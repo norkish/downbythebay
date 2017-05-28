@@ -34,9 +34,9 @@ public class Main {
 		}
 		
 		// Add rest of constraints
-		constraints.get(A).add(new PartOfSpeechConstraint<SyllableToken>(Pos.DETERMINER));
-		constraints.get(LLA).add(new PartOfSpeechConstraint<SyllableToken>(Pos.NOUN));
-		constraints.get(JA).add(new PartsOfSpeechConstraint<SyllableToken>(new Pos[]{Pos.NOUN, Pos.VERB, Pos.ADJECTIVE, Pos.ADVERB}));
+		constraints.get(A).add(new PartOfSpeechConstraint<SyllableToken>(Pos.DT));
+		constraints.get(LLA).add(new PartsOfSpeechConstraint<SyllableToken>(new Pos[]{Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS}));
+		constraints.get(JA).add(new PartsOfSpeechConstraint<SyllableToken>(new Pos[]{Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB}));
 		constraints.get(JA).add(new BinaryRhymeConstraint<SyllableToken>((JA-LLA)));
 		constraints.get(JA).add(new BinaryRhymeConstraint<SyllableToken>((MAS-MA)));
 		
