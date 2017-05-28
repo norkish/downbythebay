@@ -1,15 +1,18 @@
 package main;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
 import constraint.PartOfSpeechConstraint;
 import constraint.PartsOfSpeechConstraint;
+import constraint.PhonemesConstraint;
 import constraint.StressConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
+import linguistic.Phoneme;
 import linguistic.Pos;
 import markov.SparseVariableOrderMarkovModel;
 import markov.SparseVariableOrderNHMM;
@@ -32,6 +35,13 @@ public class Main {
 			constraints.add(constraintsForPosition);
 			constraintsForPosition.add(new StressConstraint<SyllableToken>(rhythmicSuperTemplate[i]));
 		}
+		
+		// Add primer constraints (i.e., "Have you ever seen")
+		constraints.get(HAVE).add(new PhonemesConstraint<SyllableToken>(new ArrayList<Phoneme>(Arrays.asList(Phoneme.HH, Phoneme.AE, Phoneme.V))));
+		constraints.get(YOU).add(new PhonemesConstraint<SyllableToken>(new ArrayList<Phoneme>(Arrays.asList(Phoneme.Y, Phoneme.UW))));
+		constraints.get(EV).add(new PhonemesConstraint<SyllableToken>(new ArrayList<Phoneme>(Arrays.asList(Phoneme.EH, Phoneme.V))));
+		constraints.get(ER).add(new PhonemesConstraint<SyllableToken>(new ArrayList<Phoneme>(Arrays.asList(Phoneme.ER))));
+		constraints.get(SEEN).add(new PhonemesConstraint<SyllableToken>(new ArrayList<Phoneme>(Arrays.asList(Phoneme.S, Phoneme.IY, Phoneme.N))));
 		
 		// Add rest of constraints
 		constraints.get(A).add(new PartOfSpeechConstraint<SyllableToken>(Pos.DT));
