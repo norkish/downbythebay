@@ -11,7 +11,7 @@ import java.util.Random;
 public class SparseVariableOrderMarkovModel<T> extends AbstractMarkovModel<T>{
 
 	T[] states;
-	Map<List<Integer>,Map<Integer,Double>> logTransitions;
+	Map<LinkedList<Integer>,Map<Integer,Double>> logTransitions;
 	Map<T, Integer> stateIndex;
 	Random rand = new Random();
 	int order;
@@ -22,7 +22,7 @@ public class SparseVariableOrderMarkovModel<T> extends AbstractMarkovModel<T>{
 	@SuppressWarnings("unchecked")
 	public SparseVariableOrderMarkovModel(T[] states, Map<LinkedList<Integer>,Map<Integer,Double>> transitions) {
 		this.states = (T[]) new Object[states.length];
-		this.logTransitions = new HashMap<List<Integer>, Map<Integer, Double>>(transitions.size());
+		this.logTransitions = new HashMap<LinkedList<Integer>, Map<Integer, Double>>(transitions.size());
 		
 		Map<Integer, Double> newInnerMap, oldInnerMap;
 		for (int i = 0; i < states.length; i++) {
@@ -31,7 +31,7 @@ public class SparseVariableOrderMarkovModel<T> extends AbstractMarkovModel<T>{
 			stateIndex.put(states[i], i);
 		}
 		
-		for (List<Integer> key : transitions.keySet()) {
+		for (LinkedList<Integer> key : transitions.keySet()) {
 			newInnerMap = new HashMap<Integer, Double>();
 			this.logTransitions.put(key, newInnerMap);
 			oldInnerMap = transitions.get(key);
@@ -45,7 +45,7 @@ public class SparseVariableOrderMarkovModel<T> extends AbstractMarkovModel<T>{
 	public SparseVariableOrderMarkovModel(Map<T, Integer> statesByIndex, Map<LinkedList<Integer>, Map<Integer, Double>> transitions) {
 		this.states = (T[]) new Object[statesByIndex.size()];
 		this.stateIndex = statesByIndex;
-		this.logTransitions = new HashMap<List<Integer>, Map<Integer, Double>>(transitions.size());
+		this.logTransitions = new HashMap<LinkedList<Integer>, Map<Integer, Double>>(transitions.size());
 		
 		Map<Integer, Double> newInnerMap, oldInnerMap;
 		int i;
@@ -54,7 +54,7 @@ public class SparseVariableOrderMarkovModel<T> extends AbstractMarkovModel<T>{
 			this.states[i] = stateIdx.getKey();
 		}
 		
-		for (List<Integer> key : transitions.keySet()) {
+		for (LinkedList<Integer> key : transitions.keySet()) {
 			newInnerMap = new HashMap<Integer, Double>();
 			this.logTransitions.put(key, newInnerMap);
 			oldInnerMap = transitions.get(key);
@@ -99,7 +99,7 @@ public class SparseVariableOrderMarkovModel<T> extends AbstractMarkovModel<T>{
 		StringBuilder str = new StringBuilder();
 		
 		str.append("logTransitions:");
-		for (Entry<List<Integer>, Map<Integer, Double>> entry: logTransitions.entrySet()) {
+		for (Entry<LinkedList<Integer>, Map<Integer, Double>> entry: logTransitions.entrySet()) {
 			str.append("[");
 			for (Entry<Integer, Double> innerEntry : entry.getValue().entrySet()) {
 				str.append("\n\t");

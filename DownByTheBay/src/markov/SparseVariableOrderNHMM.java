@@ -1,8 +1,10 @@
 package markov;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -16,43 +18,44 @@ import utils.MathUtils;
 public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 
 	T [] states;
-	List<Map<List<Integer>, Map<Integer,Double>>> logTransitions; // first 2d matrix represents transitions from first to second position
-	List<Map<List<Integer>, Integer>> inSupport; // first matrix represents the number of non-zero transition probabilities to the ith state at pos 1 in the seq 
+	List<Map<LinkedList<Integer>, Map<Integer,Double>>> logTransitions; // first 2d matrix represents transitions from first to second position
+	List<Map<LinkedList<Integer>, Integer>> inSupport; // first matrix represents the number of non-zero transition probabilities to the ith state at pos 1 in the seq 
 	Map<T, Integer> stateIndex;
+	int order;
 	Random rand = new Random();
 	
 	public SparseVariableOrderNHMM(SparseVariableOrderMarkovModel<T> model, int length, List<List<Constraint<T>>> constraints) {
 		this.states = model.states;
 		this.stateIndex = model.stateIndex;
+		this.order = model.order;
 		
-		this.inSupport = new ArrayList<Map<List<Integer>, Integer>>(Math.max(0, length-1));
-		logTransitions = new ArrayList<Map<List<Integer>, Map<Integer, Double>>>(Math.max(0, length-1));
+		this.inSupport = new ArrayList<Map<LinkedList<Integer>, Integer>>(Math.max(0, length-1));
+		logTransitions = new ArrayList<Map<LinkedList<Integer>, Map<Integer, Double>>>(Math.max(0, length-1));
 		if (length > 1) {
 			for (int i = 0; i < length-1; i++) {
-				this.inSupport.add(new HashMap<List<Integer>, Integer>());
+				this.inSupport.add(new HashMap<LinkedList<Integer>, Integer>());
 			}
 			
-			for (int i = 0; i < length-1; i++) {
-				logTransitions.add(deepCopy(model.logTransitions));
-			}
-		
-			Entry<Integer, Map<Integer, Double>> next;
-			Map<Integer, Integer> inSupportAtPosLessOne, inSupportAtPos = inSupport.get(0);
+			Entry<LinkedList<Integer>, Map<Integer, Double>> next;
+			Map<LinkedList<Integer>, Integer> inSupportAtPosLessOne, inSupportAtPos = inSupport.get(0);
 			// for each possible transition (fromState -> toState) from the original naive transition matrix
-			Integer fromState;
-			for(Iterator<Entry<Integer,Map<Integer,Double>>> it = logTransitions.get(0).entrySet().iterator(); it.hasNext();) {
-				next = it.next();
-				fromState = next.getKey();
-				// if the logPriors doesn't give any probability to the fromState
-				if (!this.logPriors.keySet().contains(fromState)) {
-					// remove the transition from the logTransitions at position 0
-					it.remove();
-				} else { // otherwise
-					// make note that via this fromState, each of the toStates is accessible via yet one more path
-					for (Integer toIndex : next.getValue().keySet()) {
-						incrementCount(inSupportAtPos,toIndex);
-					}
-				}
+			LinkedList<Integer> prefix = new LinkedList<Integer>(Collections.nCopies(order, START_TOKEN)); 
+			Map<LinkedList<Integer>, Map<Integer, Double>> startTransitionMatrix = new HashMap<LinkedList<Integer>, Map<Integer, Double>>();
+			Map<Integer, Double> startTransitions = model.logTransitions.get(prefix);
+			startTransitionMatrix.put(prefix, startTransitions);
+			logTransitions.add(deepCopy(startTransitionMatrix));
+			
+			// make note that via this fromState, each of the toStates is accessible via yet one more path
+			Integer oldPrefix = prefix.removeFirst();
+			for (Integer toIndex : startTransitions.keySet()) {
+				prefix.add(toIndex);
+				incrementCount(inSupportAtPos,prefix);
+				prefix.removeLast();
+			}
+			prefix.addFirst(oldPrefix); // have to restore key value
+			
+			for (int i = 1; i < length-1; i++) {
+				logTransitions.add(deepCopy(model.logTransitions));
 			}
 			
 			Integer pathsToFromState;
@@ -60,19 +63,23 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 				inSupportAtPos = inSupport.get(i);
 				inSupportAtPosLessOne = inSupport.get(i-1);
 				// for each possible transition (fromState -> toState) from the original naive transition matrix
-				for(Iterator<Entry<Integer,Map<Integer,Double>>> it = logTransitions.get(i).entrySet().iterator(); it.hasNext();) {
+				for(Iterator<Entry<LinkedList<Integer>,Map<Integer,Double>>> it = logTransitions.get(i).entrySet().iterator(); it.hasNext();) {
 					next = it.next();
-					fromState = next.getKey();
-					pathsToFromState = inSupportAtPosLessOne.get(fromState);
+					prefix = next.getKey();
+					pathsToFromState = inSupportAtPosLessOne.get(prefix);
 					// if there are NO ways of getting to fromState
 					if (pathsToFromState == null) {
 						// remove the transition from the logTransitions at position 0
 						it.remove();
 					} else { // otherwise
 						// make note that via this fromState, each of the toStates is accessible via yet one more path
+						oldPrefix = prefix.removeFirst();
 						for (Integer toIndex : next.getValue().keySet()) {
-							incrementCount(inSupportAtPos,toIndex);
+							prefix.add(toIndex);
+							incrementCount(inSupportAtPos,prefix);
+							prefix.removeLast();
 						}
+						prefix.addFirst(oldPrefix); // have to restore original key value
 					}
 				}
 			}
@@ -98,7 +105,7 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 		logNormalize();
 	}
 
-	private void incrementCount(Map<Integer, Integer> map, Integer key) {
+	private void incrementCount(Map<LinkedList<Integer>, Integer> map, LinkedList<Integer> key) {
 		Integer value = map.get(key);
 		if(value == null)
 			map.put(key, 1);
@@ -106,7 +113,7 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 			map.put(key, value+1);
 	}
 	
-	private void decrementCountOrRemove(Map<Integer, Integer> map, Integer key) {
+	private void decrementCountOrRemove(Map<LinkedList<Integer>, Integer> map, LinkedList<Integer> key) {
 		Integer value = map.get(key);
 		if(value == null)
 			throw new RuntimeException("Cannot decrement: not present in map");
@@ -117,35 +124,32 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 	}
 
 	private boolean satisfiable() {
-		if (inSupport.size() == 0)
-			return (logPriors.size() > 0);
-		else
-			return inSupport.get(inSupport.size()-1).size() > 0;
+		return inSupport.get(inSupport.size()-1).size() > 0;
 	}
 
 	private void logNormalize() {
 		if (logTransitions.size() == 0) {
-			Double value;
-			//normalize only priors
-			// calculate sum for each row
-			value = Double.NEGATIVE_INFINITY;
-			for (Entry<Integer, Double> col: logPriors.entrySet()) {
-				value = MathUtils.logSum(value, col.getValue());
-			}
-			// divide each value by the sum for its row
-			for (Entry<Integer, Double> col: logPriors.entrySet()) {
-				col.setValue(col.getValue() - value);
-			}
+//			Double value;
+//			//normalize only priors
+//			// calculate sum for each row
+//			value = Double.NEGATIVE_INFINITY;
+//			for (Entry<Integer, Double> col: logPriors.entrySet()) {
+//				value = MathUtils.logSum(value, col.getValue());
+//			}
+//			// divide each value by the sum for its row
+//			for (Entry<Integer, Double> col: logPriors.entrySet()) {
+//				col.setValue(col.getValue() - value);
+//			}
 			
 			return;
 		}
 		
-		Map<Integer, Map<Integer, Double>> currentMatrix = logTransitions.get(logTransitions.size()-1);
-		Map<Integer, Double> oldLogAlphas = new HashMap<Integer, Double>(currentMatrix.size());
+		Map<LinkedList<Integer>, Map<Integer, Double>> currentMatrix = logTransitions.get(logTransitions.size()-1);
+		Map<LinkedList<Integer>, Double> oldLogAlphas = new HashMap<LinkedList<Integer>, Double>(currentMatrix.size());
 		
 		Double value;
 		//normalize last matrix individually
-		for (Entry<Integer, Map<Integer, Double>> row: currentMatrix.entrySet()) {
+		for (Entry<LinkedList<Integer>, Map<Integer, Double>> row: currentMatrix.entrySet()) {
 			// calculate sum for each row
 			value = Double.NEGATIVE_INFINITY;
 			for (Entry<Integer, Double> col: row.getValue().entrySet()) {
@@ -158,13 +162,13 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 			oldLogAlphas.put(row.getKey(),value);
 		}
 		
-		Map<Integer, Double> newLogAlphas;
+		Map<LinkedList<Integer>, Double> newLogAlphas;
 		//propagate normalization from right to left
 		for (int i = logTransitions.size()-2; i >= 0; i--) {
 			// generate based on alphas from old previous matrix
 			currentMatrix = logTransitions.get(i);
-			newLogAlphas = new HashMap<Integer, Double>(currentMatrix.size());
-			for (Entry<Integer, Map<Integer, Double>> row: currentMatrix.entrySet()) {
+			newLogAlphas = new HashMap<LinkedList<Integer>, Double>(currentMatrix.size());
+			for (Entry<LinkedList<Integer>, Map<Integer, Double>> row: currentMatrix.entrySet()) {
 				// calculate sum for each row (new alphas; not used until next matrix)
 				value = Double.NEGATIVE_INFINITY;
 				// new val = currVal * oldAlpha
@@ -182,32 +186,32 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 			oldLogAlphas = newLogAlphas;
 		}
 		
-		// propagate normalization to prior		
-		double tmpSum = Double.NEGATIVE_INFINITY;
-		for (Entry<Integer,Double> row : logPriors.entrySet()) {
-			// new val = currVal * oldAlpha
-			row.setValue(row.getValue() + oldLogAlphas.get(row.getKey()));
-			tmpSum = MathUtils.logSum(tmpSum, row.getValue());
-		}
-		// normalize
-		for (Entry<Integer,Double> row : logPriors.entrySet()) {
-			row.setValue(row.getValue() - tmpSum);
-		}
+//		// propagate normalization to prior		
+//		double tmpSum = Double.NEGATIVE_INFINITY;
+//		for (Entry<Integer,Double> row : logPriors.entrySet()) {
+//			// new val = currVal * oldAlpha
+//			row.setValue(row.getValue() + oldLogAlphas.get(row.getKey()));
+//			tmpSum = MathUtils.logSum(tmpSum, row.getValue());
+//		}
+//		// normalize
+//		for (Entry<Integer,Double> row : logPriors.entrySet()) {
+//			row.setValue(row.getValue() - tmpSum);
+//		}
 	}
 
-	static private Map<List<Integer>, Map<Integer, Double>> deepCopy(Map<List<Integer>, Map<Integer, Double>> otherLogTransitions) {
+	static private Map<LinkedList<Integer>, Map<Integer, Double>> deepCopy(Map<LinkedList<Integer>, Map<Integer, Double>> otherLogTransitions) {
 		if (otherLogTransitions == null)
 			return null;
 		
 		if (otherLogTransitions.size() == 0)
-			return new HashMap<List<Integer>, Map<Integer, Double>>(0);
+			return new HashMap<LinkedList<Integer>, Map<Integer, Double>>(0);
 		
-		Map<List<Integer>, Map<Integer, Double>> newMatrix = new HashMap<List<Integer>, Map<Integer, Double>>(otherLogTransitions.size());
+		Map<LinkedList<Integer>, Map<Integer, Double>> newMatrix = new HashMap<LinkedList<Integer>, Map<Integer, Double>>(otherLogTransitions.size());
 		
 		Map<Integer,Double> newInnerMap;
-		for (Entry<List<Integer>,Map<Integer, Double>> entry : otherLogTransitions.entrySet()) {
+		for (Entry<LinkedList<Integer>,Map<Integer, Double>> entry : otherLogTransitions.entrySet()) {
 			newInnerMap = new HashMap<Integer, Double>();
-			newMatrix.put(entry.getKey(), newInnerMap);
+			newMatrix.put(new LinkedList<Integer>(entry.getKey()), newInnerMap);
 			newInnerMap.putAll(entry.getValue());
 		}
 		
@@ -219,23 +223,50 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 	 *  decrementing the corresponding in/outSupport values
 	 *  removing states accordingly whose in/outSupport values result in 0
 	 */
-	public Set<PositionedState> removeState(int position, int stateIndex) {
-		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
+	public Set<PositionedVariableOrderState> removeState(int position, LinkedList<Integer> prefix) {
+		Set<PositionedVariableOrderState> posStateToRemove = new HashSet<PositionedVariableOrderState>();
 
 		if(position == 0)
 		{
-			this.logPriors.remove(stateIndex);
+//			this.logPriors.remove(stateIndex);
 		}
-		else
+		else // only if position != 0
 		{
 			// address transitions *to* the removed state
-			posStateToRemove.addAll(adjustTransitionsTo(position, stateIndex));
+			posStateToRemove.addAll(adjustTransitionsTo(position, prefix));
 		}
 
 		if(position < this.logTransitions.size())
 		{
 			// address transitions *from* the removed state
-			posStateToRemove.addAll(adjustTransitionsFrom(position, stateIndex));
+			posStateToRemove.addAll(adjustTransitionsFrom(position, prefix));
+		}
+
+		return posStateToRemove;
+	}
+	
+	/*
+	 *  set all transition probs to/from the state to zero
+	 *  decrementing the corresponding in/outSupport values
+	 *  removing states accordingly whose in/outSupport values result in 0
+	 */
+	public Set<PositionedVariableOrderState> removeState(int position, Integer toState) {
+		Set<PositionedVariableOrderState> posStateToRemove = new HashSet<PositionedVariableOrderState>();
+
+		if(position == 0)
+		{
+//			this.logPriors.remove(stateIndex);
+		}
+		else // only if position != 0
+		{
+			// address transitions *to* the removed state
+			posStateToRemove.addAll(adjustTransitionsTo(position, toState));
+		}
+
+		if(position < this.logTransitions.size())
+		{
+			// address transitions *from* the removed state
+			posStateToRemove.addAll(adjustTransitionsFrom(position, toState));
 		}
 
 		return posStateToRemove;
@@ -245,25 +276,83 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 	 * Presumably the state at position position and at state index statIndex has been removed.
 	 * We now adjust the inSupport and outSupport and logTransition matrices that transition *to* the removed state
 	 * @param position
-	 * @param stateIndex
+	 * @param prefix
 	 * @return
 	 */
-	private Set<PositionedState> adjustTransitionsTo(int position, int stateIndex) {
-		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
-		Integer fromState;
+	private Set<PositionedVariableOrderState> adjustTransitionsTo(int position, LinkedList<Integer> prefix) {
+		Set<PositionedVariableOrderState> posStateToRemove = new HashSet<PositionedVariableOrderState>();
+		LinkedList<Integer> fromState;
 		Map<Integer, Double> toStates;
-		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position-1);
-		for (Entry<Integer,Map<Integer, Double>> entry : this.logTransitions.get(position-1).entrySet()) {
+		Integer prefixSuffix = prefix.removeLast();
+		
+		Map<LinkedList<Integer>, Integer> inSupportAtPos = this.inSupport.get(position-1);
+		// get transitions to the stateIndex 
+		for (Entry<LinkedList<Integer>,Map<Integer, Double>> entry : this.logTransitions.get(position-1).entrySet()) {
+			// for each prefix
 			fromState = entry.getKey();
+			// this is the map of possible suffixes
 			toStates = entry.getValue();
 
-			if (toStates.containsKey(stateIndex)) {
-				decrementCountOrRemove(inSupportAtPos,stateIndex);
-				toStates.remove(stateIndex);
+			// if the suffixes contains the state index to be removed
+			Integer oldPrefix = fromState.removeFirst();
+			if (fromState.equals(prefix) && toStates.containsKey(prefixSuffix)) {
+				fromState.addFirst(oldPrefix);
+				// then the support for prefixes in the next step that use this suffix should be decremented
+				decrementCountOrRemove(inSupportAtPos,fromState);
+				// the suffix should be removed
+				toStates.remove(prefixSuffix);
 				
+				// and if this makes no possible suffixes
 				if (toStates.isEmpty()) {
-					posStateToRemove.add(new PositionedState(position-1, fromState));
+					// then the prefix should also be removed
+					posStateToRemove.add(new PositionedVariableOrderState(position-1, fromState));
 				}
+			} else {
+				fromState.addFirst(oldPrefix);
+			}
+		}
+		
+		prefix.addLast(prefixSuffix);
+		
+		return posStateToRemove;
+	}
+	
+	/**
+	 * Presumably the state at position position and at state index statIndex has been removed.
+	 * We now adjust the inSupport and outSupport and logTransition matrices that transition *to* the removed state
+	 * @param position
+	 * @param toState
+	 * @return
+	 */
+	private Set<PositionedVariableOrderState> adjustTransitionsTo(int position, Integer toState) {
+		Set<PositionedVariableOrderState> posStateToRemove = new HashSet<PositionedVariableOrderState>();
+		LinkedList<Integer> fromState;
+		Map<Integer, Double> toStates;
+		
+		Map<LinkedList<Integer>, Integer> inSupportAtPos = this.inSupport.get(position-1);
+		// get transitions to the stateIndex 
+		for (Entry<LinkedList<Integer>,Map<Integer, Double>> entry : this.logTransitions.get(position-1).entrySet()) {
+			// for each prefix
+			fromState = entry.getKey();
+			// this is the map of possible suffixes
+			toStates = entry.getValue();
+
+			// if the suffixes contains the state index to be removed
+			Integer oldPrefix = fromState.removeFirst();
+			if (toStates.containsKey(toState)) {
+				fromState.addFirst(oldPrefix);
+				// then the support for prefixes in the next step that use this suffix should be decremented
+				decrementCountOrRemove(inSupportAtPos,fromState);
+				// the suffix should be removed
+				toStates.remove(toState);
+				
+				// and if this makes no possible suffixes
+				if (toStates.isEmpty()) {
+					// then the prefix should also be removed
+					posStateToRemove.add(new PositionedVariableOrderState(position-1, fromState));
+				}
+			} else {
+				fromState.addFirst(oldPrefix);
 			}
 		}
 		
@@ -274,49 +363,96 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 	 * Presumably the state at position position and at state index stateIndex has been removed.
 	 * We now adjust the inSupport and outSupport and logTransition matrices that transition *from* the removed state
 	 * @param position
-	 * @param stateIndex
+	 * @param prefix
 	 * @return
 	 */
-	private Set<PositionedState> adjustTransitionsFrom(int position, int stateIndex) {
-		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
+	private Set<PositionedVariableOrderState> adjustTransitionsFrom(int position, LinkedList<Integer> prefix) {
+		Set<PositionedVariableOrderState> posStateToRemove = new HashSet<PositionedVariableOrderState>();
 		
 		Integer toState;
-		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position);
-		Map<Integer, Map<Integer, Double>> logTransitionsAtPos = this.logTransitions.get(position);
-		for (Entry<Integer, Double> entry : logTransitionsAtPos.get(stateIndex).entrySet()) {
+		Map<LinkedList<Integer>, Integer> inSupportAtPos = this.inSupport.get(position);
+		// for transitions at the given position
+		Map<LinkedList<Integer>, Map<Integer, Double>> logTransitionsAtPos = this.logTransitions.get(position);
+		// from the given prefix
+		final Map<Integer, Double> transitionsForPrefix = logTransitionsAtPos.get(prefix);
+		Integer oldPrefix = prefix.removeFirst();
+		for (Entry<Integer, Double> entry : transitionsForPrefix.entrySet()) {
 			toState = entry.getKey();
 
-			decrementCountOrRemove(inSupportAtPos,toState);
+			prefix.addLast(toState);
+			decrementCountOrRemove(inSupportAtPos,prefix);
 				
-			if (!inSupportAtPos.containsKey(toState)) {
-				posStateToRemove.add(new PositionedState(position+1, toState));
+			if (!inSupportAtPos.containsKey(prefix)) {
+				posStateToRemove.add(new PositionedVariableOrderState(position+1, new LinkedList<Integer>(prefix)));
 			}
+			prefix.removeLast();
 		}
+		prefix.addFirst(oldPrefix);
 		
-		logTransitionsAtPos.remove(stateIndex);
+		logTransitionsAtPos.remove(prefix);
 		
 		return posStateToRemove;
 	}
 
+	/**
+	 * Presumably the state at position position and at state index stateIndex has been removed.
+	 * We now adjust the inSupport and outSupport and logTransition matrices that transition *from* the removed state
+	 * @param position
+	 * @param fromState
+	 * @return
+	 */
+	private Set<PositionedVariableOrderState> adjustTransitionsFrom(int position, Integer fromState) {
+		Set<PositionedVariableOrderState> posStateToRemove = new HashSet<PositionedVariableOrderState>();
+		
+		Integer toState;
+		Map<LinkedList<Integer>, Integer> inSupportAtPos = this.inSupport.get(position);
+		// for transitions at the given position
+		Map<LinkedList<Integer>, Map<Integer, Double>> logTransitionsAtPos = this.logTransitions.get(position);
+		// from the given prefix
+		for (LinkedList<Integer> prefix : logTransitionsAtPos.keySet()) {
+			if (prefix.peekLast() == fromState) {
+				final Map<Integer, Double> transitionsForPrefix = logTransitionsAtPos.get(prefix);
+				Integer oldPrefix = prefix.removeFirst();
+				for (Entry<Integer, Double> entry : transitionsForPrefix.entrySet()) {
+					toState = entry.getKey();
+					prefix.addLast(toState);
+					decrementCountOrRemove(inSupportAtPos,prefix);
+					
+					if (!inSupportAtPos.containsKey(prefix)) {
+						posStateToRemove.add(new PositionedVariableOrderState(position+1, new LinkedList<Integer>(prefix)));
+					}
+					prefix.removeLast();
+				}
+				prefix.addFirst(oldPrefix);
+				
+				logTransitionsAtPos.remove(prefix);
+			}
+		}
+		
+		return posStateToRemove;
+	}
+
+	
 	public double probabilityOfSequence(T[] seq) {
 	double logProb = 0;
 		
 		if(seq.length == 0)
 			return Double.NaN;
 		
-		int lastStateIndex, nextStateIndex = stateIndex.get(seq[0]);
-		Double value = logPriors.get(nextStateIndex);
-		if (value == null) {
-			return 0.;
-		} else { 
-			logProb += value;
-		}
+		LinkedList<Integer> prefix = new LinkedList<Integer>(Collections.nCopies(order, START_TOKEN)); 
+		int nextStateIndex = stateIndex.get(seq[0]);
+//		Double value = logPriors.get(nextStateIndex);
+//		if (value == null) {
+//			return 0.;
+//		} else { 
+//			logProb += value;
+//		}
+		Double value;
 		Map<Integer, Double> innerMap;
-		for (int i = 1; i < seq.length; i++) {
-			lastStateIndex = nextStateIndex;
+		for (int i = 0; i < seq.length; i++) {
 			nextStateIndex = stateIndex.get(seq[i]);
 
-			innerMap = logTransitions.get(i).get(lastStateIndex);
+			innerMap = logTransitions.get(i).get(prefix);
 			if (innerMap == null)
 				return 0.;
 			value = innerMap.get(nextStateIndex);
@@ -324,6 +460,8 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 				return 0.;
 			
 			logProb += value;
+			prefix.removeFirst();
+			prefix.addLast(nextStateIndex);
 		}
 		
 		return Math.exp(logProb);
@@ -332,20 +470,20 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 	public String toString()
 	{
 		StringBuilder str = new StringBuilder();
-		
-		str.append("logPriors:\n");
-		str.append("[");
-		for (Entry<Integer, Double> entry : logPriors.entrySet()) {
-			str.append("\n\t");
-			str.append(entry.getKey());
-			str.append(", ");
-			str.append(Math.exp(entry.getValue()));
-		}
-		str.append("\n]\n\n");
+//		
+//		str.append("logPriors:\n");
+//		str.append("[");
+//		for (Entry<Integer, Double> entry : logPriors.entrySet()) {
+//			str.append("\n\t");
+//			str.append(entry.getKey());
+//			str.append(", ");
+//			str.append(Math.exp(entry.getValue()));
+//		}
+//		str.append("\n]\n\n");
 		
 		str.append("logTransitions:\n");
 		for (int i = 0; i < logTransitions.size(); i++) {
-			for (Entry<Integer, Map<Integer, Double>> entry: logTransitions.get(i).entrySet()) {
+			for (Entry<LinkedList<Integer>, Map<Integer, Double>> entry: logTransitions.get(i).entrySet()) {
 				str.append("[");
 				for (Entry<Integer, Double> innerEntry : entry.getValue().entrySet()) {
 					str.append("\n\t");
@@ -363,7 +501,7 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 		str.append("outSupport:\n");
 		for (int i = 0; i < logTransitions.size(); i++) {
 			str.append("[");
-			for (Entry<Integer, Map<Integer, Double>> entry: logTransitions.get(i).entrySet()) {
+			for (Entry<LinkedList<Integer>, Map<Integer, Double>> entry: logTransitions.get(i).entrySet()) {
 				str.append("\n\t");
 				str.append(entry.getKey());
 				str.append(" - ");
@@ -375,7 +513,7 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 		str.append("inSupport:\n");
 		for (int i = 0; i < logTransitions.size(); i++) {
 			str.append("[");
-			for (Entry<Integer, Integer> entry: inSupport.get(i).entrySet()) {
+			for (Entry<LinkedList<Integer>, Integer> entry: inSupport.get(i).entrySet()) {
 				str.append("\n\t");
 				str.append(entry.getKey());
 				str.append(" - ");
@@ -390,7 +528,7 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 
 	@Override
 	public List<T> generate(int length) {
-		int prevStateIdx = -1;
+		LinkedList<Integer> prefix = new LinkedList<Integer>(Collections.nCopies(order, START_TOKEN)); 
 		int nextStateIdx = -1;
 		
 		length = Math.min(length, logTransitions.size()+1);
@@ -398,14 +536,14 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 		List<T> newSeq = new ArrayList<T>();
 		
 		for (int i = 0; i < length; i++) {
-			if(i==0)
-			{
-				nextStateIdx = sampleStartStateIdx();
-			}
-			else
-			{
-				nextStateIdx = sampleNextState(prevStateIdx, i);
-			}
+//			if(i==0)
+//			{
+//				nextStateIdx = sampleStartStateIdx();
+//			}
+//			else
+//			{
+				nextStateIdx = sampleNextState(prefix, i);
+//			}
 			
 			if(nextStateIdx == -1)
 			{
@@ -413,18 +551,19 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 			}
 			
 			newSeq.add(states[nextStateIdx]);
-			prevStateIdx = nextStateIdx;
+			prefix.removeFirst();
+			prefix.addLast(nextStateIdx);
 		}
 		
 		return newSeq;
 	}
 
-	private int sampleNextState(int prevStateIdx, int position) {
+	private int sampleNextState(LinkedList<Integer> prefix, int position) {
 		double randomDouble = rand.nextDouble();
 		
 		double accumulativeProbability = 0.;
 		
-		Map<Integer, Double> transForPrevState = logTransitions.get(position-1).get(prevStateIdx);
+		Map<Integer, Double> transForPrevState = logTransitions.get(position-1).get(prefix);
 		if (transForPrevState != null) {
 			for (Entry<Integer, Double> entry : transForPrevState.entrySet()) {
 				accumulativeProbability += Math.exp(entry.getValue());
@@ -438,23 +577,6 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 		return -1;
 	}
 	
-	private int sampleStartStateIdx() {
-		double randomDouble = rand.nextDouble();
-		
-		double accumulativeProbability = 0.;
-		
-		for (Entry<Integer, Double> entry : logPriors.entrySet()) {
-			accumulativeProbability += Math.exp(entry.getValue());
-			if (accumulativeProbability >= randomDouble)
-			{
-				return entry.getKey();
-			}
-		}
-		
-		// we assume that in order to be satisfiable that there has to be some continuation and it must be the last
-		return -1;
-	}
-
 	public T[] getStates() {
 		return states;
 	}
@@ -464,7 +586,7 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 	}
 
 	public void constrain(int position, Constraint<T> constraint) {
-		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
+		Set<PositionedVariableOrderState> posStateToRemove = new HashSet<PositionedVariableOrderState>();
 		
 		if (constraint instanceof BinaryRhymeConstraint) {
 			
@@ -480,9 +602,9 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 			
 			while(!posStateToRemove.isEmpty())
 			{
-				PositionedState stateToRemove = posStateToRemove.iterator().next();
+				PositionedVariableOrderState stateToRemove = posStateToRemove.iterator().next();
 				posStateToRemove.remove(stateToRemove);
-				posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStateIndex()));
+				posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStatePrefix()));
 			}
 		}
 	}
