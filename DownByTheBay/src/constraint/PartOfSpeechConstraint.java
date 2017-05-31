@@ -1,6 +1,6 @@
 package constraint;
 
-import linguistic.Pos;
+import linguistic.syntactic.Pos;
 
 public class PartOfSpeechConstraint<T> implements Constraint<T> {
 

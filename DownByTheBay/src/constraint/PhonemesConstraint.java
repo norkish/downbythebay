@@ -3,12 +3,12 @@ package constraint;
 import java.util.List;
 
 import data.SyllableToken;
-import linguistic.Phoneme;
+import linguistic.phonetic.PhonemeEnum;
 
 public class PhonemesConstraint<T> implements Constraint<SyllableToken> {
 
-	List<Phoneme> phonemes;
-	public PhonemesConstraint(List<Phoneme> phonemes) {
+	List<PhonemeEnum> phonemes;
+	public PhonemesConstraint(List<PhonemeEnum> phonemes) {
 		this.phonemes = phonemes;
 	}
 

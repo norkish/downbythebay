@@ -1,5 +1,6 @@
 package data;
 
+import java.io.*;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,11 +37,20 @@ public class DataLoader {
 	 * @param markovOrder the 
 	 * @return
 	 */
-	public static DataSummary loadAndAnalyzeData(int markovOrder) {
-		Map<SyllableToken, Integer> statesByIndex = new HashMap<SyllableToken, Integer>();
-		Map<LinkedList<Integer>, Map<Integer, Double>> transitions = new HashMap<LinkedList<Integer>, Map<Integer, Double>>();
+	public static DataSummary loadAndAnalyzeData(int markovOrder, String corpusName) {
+		Map<SyllableToken, Integer> statesByIndex = new HashMap<>();
+		Map<LinkedList<Integer>, Map<Integer, Double>> transitions = new HashMap<>();
 		
-		// TODO BEN: Load corpus, process corpus into SyllableTokens, populate the data structures called statesByIndex, 
+		// TODO BEN: Load corpus, process corpus into SyllableTokens, populate the data structures called statesByIndex,
+		try {
+			String text = readFileToString(corpusName);
+			statesByIndex = tokenize(text);
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+
 		// priors, and transitions (these are the data structures required by the Markov model)
 		// See the description of these data structures in the DataSummary class
 		
@@ -50,6 +60,25 @@ public class DataLoader {
 		
 		DataSummary summary = new DataSummary(statesByIndex, transitions);
 		return summary;
+	}
+
+	private static String readFileToString(String file) throws IOException {
+		InputStream is = new FileInputStream(file);
+		BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+		String line = buf.readLine(); StringBuilder sb = new StringBuilder();
+		while(line != null){
+			sb.append(line).append("\n");
+			line = buf.readLine();
+		}
+		String fileAsString = sb.toString();
+		return fileAsString;
+	}
+
+	private static Map<SyllableToken, Integer> tokenize(String text) {
+		//get phonemes from CMU pronouncing dictionary
+		//get parts of speech w/ StanfordCoreNLP
+		//syllabify
+		return null;
 	}
 
 	public static void main(String[] args) {
