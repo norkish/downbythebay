@@ -32,6 +32,7 @@ public class SparseVariableOrderMarkovModel<T> extends AbstractMarkovModel<T>{
 		}
 		
 		for (LinkedList<Integer> key : transitions.keySet()) {
+			this.order = key.size();
 			newInnerMap = new HashMap<Integer, Double>();
 			this.logTransitions.put(key, newInnerMap);
 			oldInnerMap = transitions.get(key);
@@ -55,6 +56,7 @@ public class SparseVariableOrderMarkovModel<T> extends AbstractMarkovModel<T>{
 		}
 		
 		for (LinkedList<Integer> key : transitions.keySet()) {
+			this.order = key.size();
 			newInnerMap = new HashMap<Integer, Double>();
 			this.logTransitions.put(key, newInnerMap);
 			oldInnerMap = transitions.get(key);

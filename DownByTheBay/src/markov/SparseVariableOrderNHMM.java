@@ -14,6 +14,7 @@ import java.util.Set;
 import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
 import utils.MathUtils;
+import utils.Utils;
 
 public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 
@@ -607,5 +608,75 @@ public class SparseVariableOrderNHMM<T> extends AbstractMarkovModel<T>{
 				posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStatePrefix()));
 			}
 		}
+	}
+	
+	public static void main(String[] args) {
+		int order = 5;
+		
+		Map<Character,Integer> statesByIndex = new HashMap<Character, Integer>();
+		// initially just use this to keep track of counts, then normalize to probability distribution
+		Map<LinkedList<Integer>, Map<Integer,Double>> transitions = new HashMap<LinkedList<Integer>, Map<Integer, Double>>();
+		
+		String trainingData = "Jig is a big pig. Jig has a hat. Jig's hat is a bag hat.";
+		
+		// train for each sentence as delimited by ". " (keep the period)
+		for (String sentence: trainingData.split("(?<=\\.) ")) {
+			System.out.println("SENTENCE:\"" + sentence+"\"");
+			LinkedList<Integer> prefix = new LinkedList<Integer>(Collections.nCopies(order, START_TOKEN));
+			for (int i = 0; i < sentence.length(); i++) {
+				Character c = sentence.charAt(i);
+				Integer cIdx = statesByIndex.get(c);
+				if (cIdx == null) {
+					cIdx = statesByIndex.size();
+					statesByIndex.put(c, cIdx);
+				}
+				
+				Map<Integer, Double> mapForPrefix = transitions.get(prefix);
+				if (mapForPrefix == null) {
+					mapForPrefix = new HashMap<Integer, Double>();
+					// we copy the list because we modify prefix later and the pointer in the map would then also be modified if it were not a copy
+					transitions.put(new LinkedList<Integer>(prefix), mapForPrefix); 
+				}
+				
+				Double value = mapForPrefix.get(cIdx);
+				mapForPrefix.put(cIdx, (value == null?0.0:value) + 1.0);
+				
+				prefix.removeFirst();
+				prefix.addLast(cIdx);
+			}
+		}
+		
+		// normalize transitions
+		for (Map<Integer, Double> mapForPrefix : transitions.values()) {
+			// sum tallies
+			Double total = 0.0;
+			for (Double value : mapForPrefix.values()) {
+				total += value;
+			}
+			
+			// divide each value by total
+			for (Integer key : mapForPrefix.keySet()) {
+				Double value = mapForPrefix.get(key);
+				mapForPrefix.put(key, value/total);
+			} 
+		}
+		
+		// build regular markov model
+		SparseVariableOrderMarkovModel<Character> model = new SparseVariableOrderMarkovModel<Character>(statesByIndex, transitions);
+		
+		for (int i = 0; i < 5; i++) {
+			System.out.print("MARKOV: ");
+			StringBuilder str = new StringBuilder();
+			for (Character c : model.generate(20)) {
+				str.append(c);
+			}
+			System.out.println(str.toString());
+		}
+		
+		// generate from regular markov model
+		
+		// build constrained model
+		
+		// generate from constrained model
 	}
 }
