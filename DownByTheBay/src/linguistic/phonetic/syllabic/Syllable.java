@@ -1,25 +1,23 @@
 package linguistic.phonetic.syllabic;
 
-import linguistic.phonetic.ConsonantPhoneme;
-import linguistic.phonetic.Phoneme;
-import linguistic.phonetic.Pronunciation;
-import linguistic.phonetic.VowelPhoneme;
+import linguistic.phonetic.*;
+
 import java.util.List;
 import java.io.Serializable;
 import java.util.ArrayList;
 
 public final class Syllable implements Serializable {
 
-	private List<ConsonantPhoneme> onset = new ArrayList<>();
+	private ConsonantPronunciation onset = new ConsonantPronunciation();
 	private VowelPhoneme nucleus;
-	private List<ConsonantPhoneme> coda = new ArrayList<>();
+	private ConsonantPronunciation coda = new ConsonantPronunciation();
 
 	public Syllable() {}
 
 	public Syllable(List<ConsonantPhoneme> onset, VowelPhoneme nucleus, List<ConsonantPhoneme> coda) {
-		this.onset = onset;
-		this.nucleus = nucleus;
-		this.coda = coda;
+		this.setOnset(onset);
+		this.setNucleus(nucleus);
+		this.setCoda(coda);
 	}
 
 	public List<Phoneme> getPronunication() {
@@ -37,8 +35,8 @@ public final class Syllable implements Serializable {
 		return this.getNucleus();
 	}
 
-	public List<ConsonantPhoneme> getConsonants() {
-		List<ConsonantPhoneme> consonants = new ArrayList<>();
+	public ConsonantPronunciation getConsonants() {
+		ConsonantPronunciation consonants = new ConsonantPronunciation();
 		consonants.addAll(this.getOnset());
 		consonants.addAll(this.getCoda());
 		return consonants;
@@ -64,23 +62,23 @@ public final class Syllable implements Serializable {
 		return all;
 	}
 
-	public List<ConsonantPhoneme> getOnset() {
+	public ConsonantPronunciation getOnset() {
 		return onset;
 	}
 
 	public void setOnset(List<ConsonantPhoneme> onset) {
-		this.onset = (List<ConsonantPhoneme>) onset;
+		this.onset = (ConsonantPronunciation) onset;
 	}
 
-	public List<ConsonantPhoneme> getCoda() {
+	public ConsonantPronunciation getCoda() {
 		return coda;
 	}
 
 	public void setCoda(List<ConsonantPhoneme> coda) {
-		this.coda = (List<ConsonantPhoneme>) coda;
+		this.coda = (ConsonantPronunciation) coda;
 	}
 
-	public void setRhyme(VowelPhoneme nucleus, List<ConsonantPhoneme> coda) {
+	public void setRhyme(VowelPhoneme nucleus, ConsonantPronunciation coda) {
 		this.setNucleus(nucleus);
 		this.setCoda(coda);
 	}

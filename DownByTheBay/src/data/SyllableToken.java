@@ -1,8 +1,9 @@
 package data;
 
 import java.util.List;
-import linguistic.PhonemeEnum;
-import linguistic.Pos;
+
+import linguistic.phonetic.PhonemeEnum;
+import linguistic.syntactic.Pos;
 
 public class SyllableToken {
 	private List<PhonemeEnum> phonemes;

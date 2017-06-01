@@ -5,16 +5,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.SortedMap;
 
 public class Utils {
 	
@@ -213,4 +205,11 @@ public class Utils {
 			}
 		}	
 	}
+
+	public static boolean nullOrEmpty(Collection c) {
+		if (c == null || c.isEmpty())
+			return true;
+		return false;
+	}
+
 }
