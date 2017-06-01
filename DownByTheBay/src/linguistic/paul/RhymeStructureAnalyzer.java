@@ -1,4 +1,4 @@
-package linguistic;
+package linguistic.paul;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +27,9 @@ public class RhymeStructureAnalyzer {
 	private static final boolean DEBUG = false;
 	
 	private static double[][] hMatrix = HirjeeMatrix.load();
-	private static List<Pair<String, PhoneCategory>> phoneDict = Phonetecizer.loadReversePhonesDict();
+
+	//TODO: I deleted the enum PhoneCategory because it overlapped with my MannerOfArticulation class. Is that what you want here? --Ben
+//	private static List<Pair<String, PhoneCategory>> phoneDict = Phonetecizer.loadReversePhonesDict();
 
 	/**
 	 * In the returned structure the ith element, j, is an array where 

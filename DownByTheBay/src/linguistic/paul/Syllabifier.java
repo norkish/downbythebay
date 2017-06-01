@@ -1,4 +1,4 @@
-package linguistic;
+package linguistic.paul;
 
 import java.util.ArrayList;
 import java.util.Arrays;

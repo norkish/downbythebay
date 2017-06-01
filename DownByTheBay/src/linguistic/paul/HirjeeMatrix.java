@@ -1,4 +1,4 @@
-package linguistic;
+package linguistic.paul;
 
 import java.io.BufferedReader;
 import java.io.FileReader;

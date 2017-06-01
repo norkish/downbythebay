@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import linguistic.StressedPhone;
+import linguistic.paul.StressedPhone;
 
 public class WordPhonemePair extends SequencePair {
 

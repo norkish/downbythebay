@@ -1,7 +1,7 @@
 package alignment;
 
-import linguistic.Phonetecizer;
-import linguistic.StressedPhone;
+import linguistic.paul.Phonetecizer;
+import linguistic.paul.StressedPhone;
 
 public class WordPhonemeAlignment extends Alignment {
 

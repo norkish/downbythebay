@@ -1,4 +1,4 @@
-package linguistic;
+package linguistic.paul;
 
 public class StressedPhone {
 	@Override

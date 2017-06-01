@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import linguistic.HirjeeMatrix;
-import linguistic.StressedPhone;
+import linguistic.paul.HirjeeMatrix;
+import linguistic.paul.StressedPhone;
 
 public class StressedPhonePair extends SequencePair {
 	public class StressedPhoneAlignment extends AlignmentBuilder {
