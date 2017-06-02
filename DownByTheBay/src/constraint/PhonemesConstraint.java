@@ -4,6 +4,7 @@ import java.util.List;
 
 import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
+import markov.Token;
 
 public class PhonemesConstraint<T> implements Constraint<SyllableToken> {
 
@@ -13,7 +14,7 @@ public class PhonemesConstraint<T> implements Constraint<SyllableToken> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(SyllableToken states) {
+	public boolean isSatisfiedBy(Token states) {
 		// TODO Auto-generated method stub
 		return false;
 	}

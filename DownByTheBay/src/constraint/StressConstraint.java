@@ -1,4 +1,7 @@
 package constraint;
+
+import markov.Token;
+
 public class StressConstraint<T> implements Constraint<T> {
 
 	private int constraintStress;
@@ -8,7 +11,7 @@ public class StressConstraint<T> implements Constraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(T states) {
+	public boolean isSatisfiedBy(Token states) {
 		// TODO Auto-generated method stub
 		return false;
 	}

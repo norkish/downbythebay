@@ -1,10 +1,12 @@
 package data;
 
 import java.util.List;
-import linguistic.PhonemeEnum;
-import linguistic.Pos;
 
-public class SyllableToken {
+import linguistic.phonetic.PhonemeEnum;
+import linguistic.syntactic.Pos;
+import markov.Token;
+
+public class SyllableToken extends Token{
 	private List<PhonemeEnum> phonemes;
 	private Pos pos;
 	private int countOfSylsInContext;

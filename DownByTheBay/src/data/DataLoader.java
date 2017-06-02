@@ -6,27 +6,32 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import markov.BidirectionalVariableOrderPrefixIDMap;
+import markov.HierarchicalBidirectionalVariableOrderPrefixIDMap;
+import markov.Token;
+
 public class DataLoader {
 
 	public static class DataSummary {
 		/**
 		 * This map serves to store all possible tokens seen in the data set. Representing
-		 * the tokens as integers saves time and space later on. Essentially each new token (after
-		 * checking it is not already in the map) is added thus: statesByIndex.put(newToken,statesByIndex.size).
+		 * each prefix as an integer saves time and space later on. Essentially each new token (after
+		 * checking it is not already in the map) is added thus: int tokenID = statesByIndex.addPrefix(prefix), 
+		 * where prefix is and object of type LinkedList<SyllableToken>.
 		 * The integer value in the map is what is used as the key for both the priors and the transitions data
 		 * structures.
 		 */
-		public Map<SyllableToken, Integer> statesByIndex;
+		public BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex;
 		
 		/**
-		 * The inner key k_1 and outer key k_2 are the token IDs (see description of statesByIndex) for the from- and to-tokens respectively.
+		 * The inner key k_1 and outer key k_2 are the prefix IDs (see description of statesByIndex) for the from- and to-tokens respectively.
 		 * The value is the transition probability of going from k_1 to k_2 as learned empirically from the data.
 		 * Only insert inner and outer keys for non-zero transition probabilities (i.e., the absence
-		 * of a key is used to indicate a probability of 0).
+		 * of a key is used to indicate a probability of 0). k_1 and k_2 are both sequences of tokens of length markovOrder.
 		 */
-		public Map<LinkedList<Integer>, Map<Integer, Double>> transitions;
+		public Map<Integer, Map<Integer, Double>> transitions;
 
-		public DataSummary(Map<SyllableToken, Integer> statesByIndex, Map<LinkedList<Integer>, Map<Integer, Double>> transitions) {
+		public DataSummary(BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex, Map<Integer, Map<Integer, Double>> transitions) {
 			this.statesByIndex = statesByIndex;
 			this.transitions = transitions;
 		}
@@ -38,13 +43,13 @@ public class DataLoader {
 	 * @return
 	 */
 	public static DataSummary loadAndAnalyzeData(int markovOrder, String corpusName) {
-		Map<SyllableToken, Integer> statesByIndex = new HashMap<>();
-		Map<LinkedList<Integer>, Map<Integer, Double>> transitions = new HashMap<>();
+		BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex = new HierarchicalBidirectionalVariableOrderPrefixIDMap<SyllableToken>(markovOrder);
+		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
 		
 		// TODO BEN: Load corpus, process corpus into SyllableTokens, populate the data structures called statesByIndex,
 		try {
 			String text = readFileToString(corpusName);
-			statesByIndex = tokenize(text);
+//			statesByIndex = tokenize(text);
 		}
 		catch (IOException e) {
 			e.printStackTrace();

@@ -3,6 +3,7 @@ package constraint;
 import java.util.List;
 
 import data.SyllableToken;
+import markov.Token;
 
 public class BinaryRhymeConstraint<T> implements Constraint<T> {
 
@@ -16,7 +17,7 @@ public class BinaryRhymeConstraint<T> implements Constraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(T token) {
+	public boolean isSatisfiedBy(Token token) {
 		throw new IllegalStateException("Cannot satisfy a binary rhyme constraint with single token");
 	}
 	

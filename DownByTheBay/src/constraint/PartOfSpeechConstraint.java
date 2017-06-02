@@ -1,6 +1,7 @@
 package constraint;
 
 import linguistic.syntactic.Pos;
+import markov.Token;
 
 public class PartOfSpeechConstraint<T> implements Constraint<T> {
 
@@ -11,7 +12,7 @@ public class PartOfSpeechConstraint<T> implements Constraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(T states) {
+	public boolean isSatisfiedBy(Token states) {
 		// TODO Auto-generated method stub
 		return false;
 	}
