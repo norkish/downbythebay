@@ -11,6 +11,7 @@ import constraint.PartsOfSpeechConstraint;
 import constraint.PhonemesConstraint;
 import constraint.StressConstraint;
 import data.DataLoader;
+import data.DummyDataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
@@ -56,7 +57,8 @@ public class Main {
 		constraints.get(JA).add(new BinaryRhymeConstraint<SyllableToken>((MAS-MA)));
 		
 		// train a variable-order markov model on a corpus
-		DataSummary summary = DataLoader.loadAndAnalyzeData(markovOrder, "corpus.txt");
+//		DataSummary summary = DataLoader.loadAndAnalyzeData(markovOrder, "corpus.txt");
+		DataSummary summary = DummyDataLoader.loadData(); // TODO: replace with actual data loader
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<SyllableToken>(summary.statesByIndex, summary.transitions);
 		
 		// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints

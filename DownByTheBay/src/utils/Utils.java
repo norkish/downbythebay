@@ -129,16 +129,16 @@ public class Utils {
 		map.put(key, count == null ? 1 : count + 1);		
 	}
 
-	public static <S, T> void incrementValueForKeys(Map<S, Map<T, Integer>> map2d, S key1,
+	public static <S, T> void incrementValueForKeys(Map<S, Map<T, Double>> map2d, S key1,
 			T key2) {
-		Map<T,Integer> map1d = map2d.get(key1);
+		Map<T,Double> map1d = map2d.get(key1);
 		if (map1d == null) { // never even seen prevState
-			map1d = new HashMap<T,Integer>();
-			map1d.put(key2, 1);
+			map1d = new HashMap<T,Double>();
+			map1d.put(key2, 1.);
 			map2d.put(key1, map1d);
 		} else { // seen prev state
-			Integer count = map1d.get(key2);
-			map1d.put(key2, count == null ? 1 : count + 1);
+			Double count = map1d.get(key2);
+			map1d.put(key2, count == null ? 1 : count + 1.);
 		}		
 	}
 
