@@ -42,32 +42,34 @@ public class Main {
 		}
 		
 		// Add primer constraints (i.e., "Have you ever seen")
-		constraints.get(HAVE).add(new PhonemesConstraint<SyllableToken>(new ArrayList<>(Arrays.asList(PhonemeEnum.HH, PhonemeEnum.AE, PhonemeEnum.V))));
-		constraints.get(YOU).add(new PhonemesConstraint<SyllableToken>(new ArrayList<>(Arrays.asList(PhonemeEnum.Y, PhonemeEnum.UW))));
-		constraints.get(EV).add(new PhonemesConstraint<SyllableToken>(new ArrayList<>(Arrays.asList(PhonemeEnum.EH, PhonemeEnum.V))));
-		constraints.get(ER).add(new PhonemesConstraint<SyllableToken>(new ArrayList<>(Arrays.asList(PhonemeEnum.ER))));
-		constraints.get(SEEN).add(new PhonemesConstraint<SyllableToken>(new ArrayList<>(Arrays.asList(PhonemeEnum.S, PhonemeEnum.IY, PhonemeEnum.N))));
+		constraints.get(HAVE).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.HH, PhonemeEnum.AE, PhonemeEnum.V))));
+		constraints.get(YOU).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.Y, PhonemeEnum.UW))));
+		constraints.get(EV).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.EH, PhonemeEnum.V))));
+		constraints.get(ER).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.ER))));
+		constraints.get(SEEN).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.S, PhonemeEnum.IY, PhonemeEnum.N))));
 		
 		// Add rest of constraints
-		constraints.get(A).add(new PartOfSpeechConstraint<>(Pos.DT));
-		constraints.get(LLA).add(new PartsOfSpeechConstraint<>(new Pos[]{Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS}));
-		constraints.get(JA).add(new PartsOfSpeechConstraint<>(new Pos[]{Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB}));
-		constraints.get(JA).add(new BinaryRhymeConstraint<>((JA-LLA)));
-		constraints.get(JA).add(new BinaryRhymeConstraint<>((MAS-MA)));
+		constraints.get(A).add(new PartOfSpeechConstraint<SyllableToken>(Pos.DT));
+		constraints.get(LLA).add(new PartsOfSpeechConstraint<SyllableToken>(new Pos[]{Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS}));
+		constraints.get(JA).add(new PartsOfSpeechConstraint<SyllableToken>(new Pos[]{Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB}));
+		constraints.get(JA).add(new BinaryRhymeConstraint<SyllableToken>((JA-LLA)));
+		constraints.get(JA).add(new BinaryRhymeConstraint<SyllableToken>((MAS-MA)));
 		
 		// train a variable-order markov model on a corpus
 		DataSummary summary = DataLoader.loadAndAnalyzeData(markovOrder, "corpus.txt");
-		SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.transitions);
+		SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<SyllableToken>(summary.statesByIndex, summary.transitions);
 		
 		// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
 		SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel = new SparseVariableOrderNHMM<>(markovModel, markovOrder, constraints);
-			// use double rhymeScore(syl1, syl2)
 		
 		for (int i = 0; i < 20; i++) {
 			// generate a sequence of syllable tokens that meet the constraints
-			
+			List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(rhythmicSuperTemplate.length);
 			// convert the sequence of syllable tokens to a human-readable string
-			
+			for (SyllableToken syllableToken : generatedSequence) {
+				System.out.print(syllableToken.toString()); // TODO: modify it to print out the human-readable form of the syllable/word
+			}
+			System.out.println();
 		}
 	}
 

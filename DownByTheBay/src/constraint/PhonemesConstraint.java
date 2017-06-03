@@ -8,15 +8,19 @@ import markov.Token;
 
 public class PhonemesConstraint<T> implements Constraint<SyllableToken> {
 
-	List<PhonemeEnum> phonemes;
+	private List<PhonemeEnum> phonemes;
+	
 	public PhonemesConstraint(List<PhonemeEnum> phonemes) {
 		this.phonemes = phonemes;
 	}
 
 	@Override
-	public boolean isSatisfiedBy(Token states) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean isSatisfiedBy(Token token) {
+		if (!(token instanceof SyllableToken)) {
+			return false;
+		} else {
+			return ((SyllableToken) token).getPhonemes().equals(phonemes);
+		}
 	}
 
 }

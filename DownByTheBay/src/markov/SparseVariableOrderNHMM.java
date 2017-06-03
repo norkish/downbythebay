@@ -221,7 +221,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			posStateToRemove.addAll(adjustTransitionsTo(position, stateIndex));
 		}
 
-		if(position < this.logTransitions.size())
+		if(position < this.logTransitions.size()-1)
 		{
 			// address transitions *from* the removed state
 			posStateToRemove.addAll(adjustTransitionsFrom(position, stateIndex));
@@ -241,8 +241,8 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 		Integer fromState;
 		Map<Integer, Double> toStates;
-		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position-1);
-		for (Entry<Integer,Map<Integer, Double>> entry : this.logTransitions.get(position-1).entrySet()) {
+		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position);
+		for (Entry<Integer,Map<Integer, Double>> entry : this.logTransitions.get(position).entrySet()) {
 			fromState = entry.getKey();
 			toStates = entry.getValue();
 
@@ -270,8 +270,8 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 		
 		Integer toState;
-		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position);
-		Map<Integer, Map<Integer, Double>> logTransitionsAtPos = this.logTransitions.get(position);
+		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position+1);
+		Map<Integer, Map<Integer, Double>> logTransitionsAtPos = this.logTransitions.get(position+1);
 		final Map<Integer, Double> logTransitionsAtPosFromStateIndex = logTransitionsAtPos.get(stateIndex);
 		if (logTransitionsAtPosFromStateIndex != null) {
 			for (Entry<Integer, Double> entry : logTransitionsAtPosFromStateIndex.entrySet()) {
@@ -427,7 +427,17 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		Token[][] tokens = stateIndex.getIDToPrefixMap();
 		
 		if (constraint instanceof BinaryRhymeConstraint) {
-			
+			// iterate over transition matrix at this position
+			Map<Integer, Map<Integer, Double>> logTransitionsForPosition = this.logTransitions.get(position);
+			for (Integer fromStateIdx : logTransitionsForPosition.keySet()) {
+				Token[] fromState = tokens[fromStateIdx];
+				for (Integer toStateIdx : logTransitionsForPosition.get(fromStateIdx).keySet()) {
+					Token[] toState = tokens[toStateIdx];
+					if (!((BinaryRhymeConstraint<T>) constraint).isSatisfiedBy(fromState, toState[order-1])) {
+					
+					}
+				}
+			}
 		} else {
 			for (int tokenIdx = 0; tokenIdx < tokens.length; tokenIdx++) {
 				// if the considered state satisfies/dissatisfies the condition contrary to what we wanted

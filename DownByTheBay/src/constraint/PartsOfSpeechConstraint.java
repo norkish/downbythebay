@@ -1,5 +1,6 @@
 package constraint;
 
+import data.SyllableToken;
 import linguistic.syntactic.Pos;
 import markov.Token;
 
@@ -12,9 +13,18 @@ public class PartsOfSpeechConstraint<T> implements Constraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(Token states) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean isSatisfiedBy(Token token) {
+		if (!(token instanceof SyllableToken)) {
+			return false;
+		} else {
+			Pos tokenPos = ((SyllableToken) token).getPos();
+			for (Pos pos : constraintPosChoices) {
+				if (tokenPos.equals(pos)) {
+					return true;
+				}
+			}
+			return false;
+		}
 	}
 
 }

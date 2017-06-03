@@ -10,7 +10,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import constraint.Constraint;
-import markov.SparseVariableOrderMarkovModel.CharacterToken;
 
 public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMarkovModel<T>{
 
