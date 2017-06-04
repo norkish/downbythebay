@@ -18,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import edu.cmu.sphinx.linguist.g2p.G2PConverter;
 import edu.cmu.sphinx.linguist.g2p.Path;
+import linguistic.phonetic.PhonemeEnum;
 import utils.EnglishNumberToWords;
 import utils.Pair;
 
@@ -25,7 +26,6 @@ public class Phonetecizer {
 
 	private static final String cmuFilePath = "data/pron_dict/cmudict-0.7b.txt";
 	private static final String phonesFilePath = "data/pron_dict/cmudict-0.7b.phones.reordered.txt";
-
 	private static Map<String, List<StressedPhone[]>> cmuDict = loadCMUDict();
 	private static Map<String, Pair<Integer, PhoneCategory>> phonesDict = loadPhonesDict();
 	private static List<Pair<String, PhoneCategory>> reversePhonesDict = loadReversePhonesDict();

@@ -10,7 +10,7 @@ import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
 import utils.MathUtils;
 
-public class NHMM<T> extends AbstractMarkovModel<T>{
+public class NHMM<T extends Token> extends AbstractMarkovModel<T>{
 
 	T [] states;
 	double[] logPriors;

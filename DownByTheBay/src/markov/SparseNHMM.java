@@ -13,7 +13,7 @@ import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
 import utils.MathUtils;
 
-public class SparseNHMM<T> extends AbstractMarkovModel<T>{
+public class SparseNHMM<T extends Token> extends AbstractMarkovModel<T>{
 
 	T [] states;
 	Map<Integer, Double> logPriors;
@@ -473,7 +473,7 @@ public class SparseNHMM<T> extends AbstractMarkovModel<T>{
 		} else {
 			for (int stateIndex = 0; stateIndex < states.length; stateIndex++) {
 				// if the considered state satisfies/dissatisfies the condition contrary to what we wanted
-				if(constraint.isSatisfiedBy(states[stateIndex]))
+				if(!constraint.isSatisfiedBy(states[stateIndex]))
 				{
 					// remove it
 					posStateToRemove.addAll(removeState(position, stateIndex));
