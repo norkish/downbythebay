@@ -5,6 +5,11 @@ import markov.Token;
 
 public class StressConstraint<T> implements Constraint<T> {
 
+	@Override
+	public String toString() {
+		return "" + constraintStress;
+	}
+
 	private int constraintStress;
 	
 	public StressConstraint(int stress) {
@@ -16,7 +21,7 @@ public class StressConstraint<T> implements Constraint<T> {
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			return ((SyllableToken) token).getStress() == constraintStress;
+			return ((SyllableToken) token).getStress() >= constraintStress;
 		}
 	}
 

@@ -1,6 +1,7 @@
 package markov;
 
 import java.util.LinkedList;
+import java.util.List;
 
 public abstract class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 
@@ -25,12 +26,12 @@ public abstract class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 	public abstract T getPrefixFinaleForID(int toStateIdx);
 	
 	@SuppressWarnings("unchecked")
-	public abstract Token[] getPrefixForID(int toStateIdx);
+	public abstract LinkedList<Token> getPrefixForID(int toStateIdx);
 
 	public int getOrder() {
 		return this.order;
 	}
 
-	public abstract Token[][] getIDToPrefixMap();
+	public abstract List<LinkedList<Token>> getIDToPrefixMap();
 
 }

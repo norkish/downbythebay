@@ -6,6 +6,11 @@ import markov.Token;
 
 public class PartOfSpeechConstraint<T> implements Constraint<T> {
 
+	@Override
+	public String toString() {
+		return "" + constraintPos;
+	}
+
 	private Pos constraintPos;
 	
 	public PartOfSpeechConstraint(Pos pos) {

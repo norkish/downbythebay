@@ -1,14 +1,16 @@
 package markov;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 public class HierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Token> extends BidirectionalVariableOrderPrefixIDMap<T>{
 
 	private Map<Token, Object> prefixToIDMap = new HashMap<Token, Object>();
-	private Token[][] iDToPrefixMap = null;
+	private List<LinkedList<Token>> iDToPrefixMap = null;
 	private boolean newPrefixesAdded = false;
 	
 	@SuppressWarnings("unchecked")
@@ -58,7 +60,7 @@ public class HierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Token> 
 		} else {
 			for (Entry<Token, Object> entry: currentMap.entrySet()) {
 				prefixSoFar.addLast(entry.getKey());
-				iDToPrefixMap[(int) entry.getValue()] = prefixSoFar.toArray(new Token[0]);
+				iDToPrefixMap.set((int) entry.getValue(),new LinkedList<Token>(prefixSoFar));
 				prefixSoFar.removeLast();
 			}
 		}
@@ -78,21 +80,21 @@ public class HierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Token> 
 
 	@SuppressWarnings("unchecked")
 	public T getPrefixFinaleForID(int toStateIdx) {
-		return (T) getPrefixForID(toStateIdx)[order-1];
+		return (T) getPrefixForID(toStateIdx).getLast();
 	}
 	
 	@SuppressWarnings("unchecked")
-	public Token[] getPrefixForID(int toStateIdx) {
-		return getIDToPrefixMap()[toStateIdx];
+	public LinkedList<Token> getPrefixForID(int toStateIdx) {
+		return getIDToPrefixMap().get(toStateIdx);
 	}
 
 	public int getOrder() {
 		return this.order;
 	}
 
-	public Token[][] getIDToPrefixMap() {
+	public List<LinkedList<Token>> getIDToPrefixMap() {
 		if (iDToPrefixMap == null || newPrefixesAdded) {
-			iDToPrefixMap = new Token[nextID][];
+			iDToPrefixMap = new ArrayList<LinkedList<Token>>(nextID);
 			addAllIDsToIDToPrefixMap(prefixToIDMap, new LinkedList<Token>());
 			newPrefixesAdded = false;
 		}

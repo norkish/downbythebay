@@ -1,17 +1,16 @@
 package markov;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class NonHierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Token> extends BidirectionalVariableOrderPrefixIDMap<T>{
 
-	private Map<Token[], Integer> prefixToIDMap = new HashMap<Token[], Integer>();
-	private Token[][] iDToPrefixMap = null;
-	private boolean newPrefixesAdded = false;
+	private Map<LinkedList<Token>, Integer> prefixToIDMap = new HashMap<LinkedList<Token>, Integer>();
+	private List<LinkedList<Token>> iDToPrefixMap = new ArrayList<LinkedList<Token>>(prefixToIDMap.size());
 	
-	@SuppressWarnings("unchecked")
 	public NonHierarchicalBidirectionalVariableOrderPrefixIDMap(int order) {
 		super(order);
 	}
@@ -26,46 +25,35 @@ public class NonHierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Toke
 			throw new RuntimeException("Tried to add prefix \"" + prefix + "\" that does not match order of " + order);
 		}
 		
-		Token[] prefixAsArray = prefix.toArray(new Token[0]);
-		
-		Integer id = prefixToIDMap.get(prefixAsArray);
+		Integer id = prefixToIDMap.get(prefix);
 		if (id == null) {
 			id = nextID++;
-			prefixToIDMap.put(prefixAsArray, id);
+			final LinkedList<Token> prefixCopy = new LinkedList<Token>(prefix);
+			prefixToIDMap.put(prefixCopy, id);
+			iDToPrefixMap.add(prefixCopy);
 		}
 		
 		return id;
 	}
 	
 	public Integer getIDForPrefix(LinkedList<Token> prefix) {
-		Token[] prefixAsArray = prefix.toArray(new Token[0]);
-		
-		return prefixToIDMap.get(prefixAsArray);
+		return prefixToIDMap.get(prefix);
 	}
 
 	@SuppressWarnings("unchecked")
 	public T getPrefixFinaleForID(int toStateIdx) {
-		return (T) getPrefixForID(toStateIdx)[order-1];
+		return (T) getPrefixForID(toStateIdx).getLast();
 	}
 	
-	@SuppressWarnings("unchecked")
-	public Token[] getPrefixForID(int toStateIdx) {
-		return getIDToPrefixMap()[toStateIdx];
+	public LinkedList<Token> getPrefixForID(int toStateIdx) {
+		return getIDToPrefixMap().get(toStateIdx);
 	}
 
 	public int getOrder() {
 		return this.order;
 	}
 
-	public Token[][] getIDToPrefixMap() {
-		if (iDToPrefixMap == null || newPrefixesAdded) {
-			iDToPrefixMap = new Token[nextID][];
-			for (Entry<Token[], Integer> prefixAndID : prefixToIDMap.entrySet()) {
-				iDToPrefixMap[prefixAndID.getValue()] = prefixAndID.getKey();
-			}
-			
-			newPrefixesAdded = false;
-		}
+	public List<LinkedList<Token>> getIDToPrefixMap() {
 		return iDToPrefixMap;
 	}
 

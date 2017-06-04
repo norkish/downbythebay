@@ -97,7 +97,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				constrain(i, constraint);
 				if(!satisfiable())
 				{
-					throw new RuntimeException("Not satisfiable upon addition of constraint: " + constraint);
+					throw new RuntimeException("Not satisfiable upon addition of constraint at position " + i + ": " + constraint);
 				}		
 			}
 		}
@@ -424,24 +424,24 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 	public void constrain(int position, Constraint<T> constraint) {
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 		
-		Token[][] tokens = stateIndex.getIDToPrefixMap();
+		List<LinkedList<Token>> tokens = stateIndex.getIDToPrefixMap();
 		
 		if (constraint instanceof BinaryRhymeConstraint) {
 			// iterate over transition matrix at this position
 			Map<Integer, Map<Integer, Double>> logTransitionsForPosition = this.logTransitions.get(position);
 			for (Integer fromStateIdx : logTransitionsForPosition.keySet()) {
-				Token[] fromState = tokens[fromStateIdx];
+				LinkedList<Token> fromState = tokens.get(fromStateIdx);
 				for (Integer toStateIdx : logTransitionsForPosition.get(fromStateIdx).keySet()) {
-					Token[] toState = tokens[toStateIdx];
-					if (!((BinaryRhymeConstraint<T>) constraint).isSatisfiedBy(fromState, toState[order-1])) {
+					LinkedList<Token> toState = tokens.get(toStateIdx);
+					if (!((BinaryRhymeConstraint<T>) constraint).isSatisfiedBy(fromState, toState.getLast())) {
 					
 					}
 				}
 			}
 		} else {
-			for (int tokenIdx = 0; tokenIdx < tokens.length; tokenIdx++) {
+			for (int tokenIdx = 0; tokenIdx < tokens.size(); tokenIdx++) {
 				// if the considered state satisfies/dissatisfies the condition contrary to what we wanted
-				if(!constraint.isSatisfiedBy(tokens[tokenIdx][order-1]))
+				if(!constraint.isSatisfiedBy(tokens.get(tokenIdx).getLast()))
 				{
 					// remove it
 					posStateToRemove.addAll(removeState(position, tokenIdx));

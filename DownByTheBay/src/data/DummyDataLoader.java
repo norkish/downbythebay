@@ -25,8 +25,8 @@ public class DummyDataLoader {
 		int order = 8;
 		
 		String[] trainingSentences = new String[]{
-				"Have you ever seen a llama wearing polka dot pajamas?",
-				"Have you ever seen a table made with laffy taffy cable?"
+				"Have you ever seen a llama wearing polka dot pajamas?"
+//				"Have you ever seen a pirate that just ate a veggie diet?"
 		};
 		
 		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new NonHierarchicalBidirectionalVariableOrderPrefixIDMap<SyllableToken>(8);
@@ -62,7 +62,7 @@ public class DummyDataLoader {
 			String word = words[i];
 //			Pos pos = Poses.get(i);
 			
-			List<StressedPhone[]> phones = Phonetecizer.getPhones(word,true);
+			List<StressedPhone[]> phones = Phonetecizer.getPhones(word,true).subList(0, 1); // for now just take first way of pronouncing it
 			for (StressedPhone[] stressedPhones : phones) { // for each way of pronouncing it, get the syllables
 				List<Triple<String, StressedPhone[], StressedPhone>> syllables = Syllabifier.syllabify(word, stressedPhones);
 				for (int j = 0; j< syllables.size(); j++ ) {

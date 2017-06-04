@@ -8,6 +8,11 @@ import markov.Token;
 
 public class PhonemesConstraint<T> implements Constraint<SyllableToken> {
 
+	@Override
+	public String toString() {
+		return "" + phonemes;
+	}
+
 	private List<PhonemeEnum> phonemes;
 	
 	public PhonemesConstraint(List<PhonemeEnum> phonemes) {
