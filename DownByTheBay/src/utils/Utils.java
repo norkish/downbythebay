@@ -177,19 +177,17 @@ public class Utils {
 		}
 	}
 
-	public static void normalizeByFirstDimension(double[][] matrix) {
-		for (double[] row : matrix) {
+	public static void normalizeByFirstDimension(Map<Integer, Map<Integer, Double>> transitions) {
+		for (Map<Integer, Double> row : transitions.values()) {
 			//compute sum
-			double max = 0.0;
-			for (double colVal : row) {
-				if (colVal > max) {
-					max = colVal;
-				}
+			double sum = 0.0;
+			for (Double colVal : row.values()) {
+				sum += colVal;
 			}
 			
 			//normalize
-			for (int i = 0; i < row.length; i++) {
-				row[i] /= max;
+			for (Entry<Integer, Double> entry : row.entrySet()) {
+				row.put(entry.getKey(), entry.getValue()/sum);
 			}
 		}
 	}

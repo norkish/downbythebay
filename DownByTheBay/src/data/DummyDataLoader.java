@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 import data.DataLoader.DataSummary;
-import linguistic.Phonetecizer;
-import linguistic.StressedPhone;
-import linguistic.Syllabifier;
+import linguistic.paul.Phonetecizer;
+import linguistic.paul.StressedPhone;
+import linguistic.paul.Syllabifier;
 import linguistic.phonetic.PhonemeEnum;
 import linguistic.syntactic.Pos;
 import markov.BidirectionalVariableOrderPrefixIDMap;
@@ -46,6 +46,7 @@ public class DummyDataLoader {
 			}
 		}
 		
+		Utils.normalizeByFirstDimension(transitions);
 		
 		DataSummary summary = new DataSummary(prefixIDMap, transitions);
 		return summary;

@@ -1,6 +1,7 @@
 package markov;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -422,10 +423,13 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 	}
 
 	public void constrain(int position, Constraint<T> constraint) {
+		if (position >= this.logTransitions.size()) {
+			throw new RuntimeException("Attempt to constrain position " + position + " in NHMM of length " + this.logTransitions.size());
+		}
+		
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 		
 		List<LinkedList<Token>> tokens = stateIndex.getIDToPrefixMap();
-		
 		if (constraint instanceof BinaryRhymeConstraint) {
 			// iterate over transition matrix at this position
 			Map<Integer, Map<Integer, Double>> logTransitionsForPosition = this.logTransitions.get(position);
@@ -434,12 +438,12 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				for (Integer toStateIdx : logTransitionsForPosition.get(fromStateIdx).keySet()) {
 					LinkedList<Token> toState = tokens.get(toStateIdx);
 					if (!((BinaryRhymeConstraint<T>) constraint).isSatisfiedBy(fromState, toState.getLast())) {
-					
+						posStateToRemove.addAll(removeTransition(position, fromStateIdx, toStateIdx));
 					}
 				}
 			}
 		} else {
-			for (int tokenIdx = 0; tokenIdx < tokens.size(); tokenIdx++) {
+			for (Integer tokenIdx : inSupport.get(position).keySet()) {
 				// if the considered state satisfies/dissatisfies the condition contrary to what we wanted
 				if(!constraint.isSatisfiedBy(tokens.get(tokenIdx).getLast()))
 				{
@@ -448,15 +452,39 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				}
 			}
 			
-			while(!posStateToRemove.isEmpty())
-			{
-				PositionedState stateToRemove = posStateToRemove.iterator().next();
-				posStateToRemove.remove(stateToRemove);
-				posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStateIndex()));
-			}
+		}
+
+		while(!posStateToRemove.isEmpty())
+		{
+			PositionedState stateToRemove = posStateToRemove.iterator().next();
+			posStateToRemove.remove(stateToRemove);
+			posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStateIndex()));
 		}
 	}
 	
+	/**
+	 * Assumed that at position, transition fromStateIdx to toStateIdx exists
+	 * @param position
+	 * @param fromStateIdx
+	 * @param toStateIdx
+	 * @return
+	 */
+	private Set<PositionedState> removeTransition(int position, Integer fromStateIdx, Integer toStateIdx) {
+		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
+		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position);
+		decrementCountOrRemove(inSupportAtPos,toStateIdx);
+		if (!inSupportAtPos.containsKey(toStateIdx)) {
+			posStateToRemove.add(new PositionedState(position, toStateIdx));
+		}
+		Map<Integer, Double> transitionsFromFromState = this.logTransitions.get(position).get(fromStateIdx);
+		transitionsFromFromState.remove(toStateIdx);
+		if (transitionsFromFromState.isEmpty()) {
+			posStateToRemove.add(new PositionedState(position-1, fromStateIdx));
+		}
+		
+		return posStateToRemove;
+	}
+
 	public static void main(String[] args){
 		// following example in pachet paper
 		int order = 1;
