@@ -7,7 +7,7 @@ public class StressConstraint<T> implements Constraint<T> {
 
 	@Override
 	public String toString() {
-		return "" + constraintStress;
+		return "constraintStress:" + constraintStress;
 	}
 
 	private int constraintStress;

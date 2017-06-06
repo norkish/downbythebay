@@ -27,7 +27,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 	private Random rand = new Random();
 	int order;
 	
-	public SparseVariableOrderNHMM(SparseVariableOrderMarkovModel<T> model, int length, List<List<Constraint<T>>> constraints) {
+	public SparseVariableOrderNHMM(SparseVariableOrderMarkovModel<T> model, int length, List<List<Constraint<T>>> constraints) throws UnsatisfiableConstraintSetException {
 		this.stateIndex = model.stateIndex;
 		this.order = model.order;
 		
@@ -89,7 +89,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			
 			if(!satisfiable())
 			{
-				throw new RuntimeException("Not satisfiable, even before constraining");
+				throw new UnsatisfiableConstraintSetException("Not satisfiable, even before constraining");
 			}
 		}
 		
@@ -98,7 +98,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				constrain(i, constraint);
 				if(!satisfiable())
 				{
-					throw new RuntimeException("Not satisfiable upon addition of constraint at position " + i + ": " + constraint);
+					throw new UnsatisfiableConstraintSetException("Not satisfiable upon addition of " + constraint.getClass().getSimpleName() + " at position " + i + ": " + constraint);
 				}		
 			}
 		}
@@ -443,7 +443,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				}
 			}
 		} else {
-			for (Integer tokenIdx : inSupport.get(position).keySet()) {
+			for (Integer tokenIdx : new HashSet<Integer>(inSupport.get(position).keySet())) {
 				// if the considered state satisfies/dissatisfies the condition contrary to what we wanted
 				if(!constraint.isSatisfiedBy(tokens.get(tokenIdx).getLast()))
 				{
@@ -485,7 +485,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		return posStateToRemove;
 	}
 
-	public static void main(String[] args){
+	public static void main(String[] args) throws UnsatisfiableConstraintSetException{
 		// following example in pachet paper
 		int order = 1;
 		BidirectionalVariableOrderPrefixIDMap<CharacterToken> statesByIndex = new HierarchicalBidirectionalVariableOrderPrefixIDMap<CharacterToken>(order);

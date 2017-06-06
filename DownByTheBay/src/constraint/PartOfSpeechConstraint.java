@@ -8,7 +8,7 @@ public class PartOfSpeechConstraint<T> implements Constraint<T> {
 
 	@Override
 	public String toString() {
-		return "" + constraintPos;
+		return "POS:" + constraintPos;
 	}
 
 	private Pos constraintPos;

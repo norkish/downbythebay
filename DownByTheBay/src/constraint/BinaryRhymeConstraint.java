@@ -52,4 +52,9 @@ public class BinaryRhymeConstraint<T> implements Constraint<T> {
 		return syl1VowelPhoneme.compareTo(syl2VowelPhoneme) == 0 && syl1Token.getStress() == syl2Token.getStress();
 	}
 
+	@Override
+	public String toString() {
+		return "Rhyme with syllable " + constraintSylsPrevToRhymeWith + " previous";
+	}
+
 }

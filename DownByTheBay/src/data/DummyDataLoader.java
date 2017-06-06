@@ -25,7 +25,10 @@ public class DummyDataLoader {
 		int order = 8;
 		
 		String[] trainingSentences = new String[]{
-				"Have you ever seen a llama wearing polka dot pajamas?"
+				"Have you ever seen a bear combing his hair?",
+				"Have you ever seen a llama wearing polka dot pajamas?",
+//				"Have you ever seen a llama wearing pajamas?",
+//				"a moose with a pair of new shoes?",
 //				"Have you ever seen a pirate that just ate a veggie diet?"
 		};
 		
@@ -70,7 +73,7 @@ public class DummyDataLoader {
 					Triple<String, StressedPhone[], StressedPhone> syllable = syllables.get(j);
 					
 					// create a syllable token and add it
-					allTokens.add(new SyllableToken(convertToPhonemeEnums(syllable.getSecond()), Pos.NN, syllables.size(), j, syllable.getThird().stress));
+					allTokens.add(new SyllableToken(syllable.getFirst(),convertToPhonemeEnums(syllable.getSecond()), Pos.NN, syllables.size(), j, syllable.getThird().stress));
 				}
 			}
 		}
