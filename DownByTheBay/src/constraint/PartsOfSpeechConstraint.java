@@ -1,22 +1,24 @@
 package constraint;
 
-import java.util.Arrays;
+import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
 
 import data.SyllableToken;
 import linguistic.syntactic.Pos;
 import markov.Token;
 
-public class PartsOfSpeechConstraint<T> implements Constraint<T> {
+public class PartsOfSpeechConstraint<T> implements StaticConstraint<T> {
 
-	private Pos[] constraintPosChoices;
+	private Set<Pos> constraintPosChoices;
 	
-	public PartsOfSpeechConstraint(Pos[] pos) {
-		constraintPosChoices = pos;
+	public PartsOfSpeechConstraint(Set<Pos> constraintPosChoices) {
+		this.constraintPosChoices = constraintPosChoices;
 	}
 
 	@Override
 	public String toString() {
-		return "POSes:" + Arrays.toString(constraintPosChoices);
+		return "POSes:" + StringUtils.join(constraintPosChoices);
 	}
 
 	@Override
@@ -25,12 +27,7 @@ public class PartsOfSpeechConstraint<T> implements Constraint<T> {
 			return false;
 		} else {
 			Pos tokenPos = ((SyllableToken) token).getPos();
-			for (Pos pos : constraintPosChoices) {
-				if (tokenPos.equals(pos)) {
-					return true;
-				}
-			}
-			return false;
+			return constraintPosChoices.contains(tokenPos);
 		}
 	}
 

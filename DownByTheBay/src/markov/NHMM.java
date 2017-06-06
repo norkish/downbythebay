@@ -7,7 +7,7 @@ import java.util.Random;
 import java.util.Set;
 
 import constraint.BinaryRhymeConstraint;
-import constraint.Constraint;
+import constraint.StaticConstraint;
 import utils.MathUtils;
 
 public class NHMM<T extends Token> extends AbstractMarkovModel<T>{
@@ -20,7 +20,7 @@ public class NHMM<T extends Token> extends AbstractMarkovModel<T>{
 	Map<T, Integer> stateIndex;
 	Random rand = new Random();
 	
-	public NHMM(SingleOrderMarkovModel<T> model, int length, List<List<Constraint<T>>> constraints) {
+	public NHMM(SingleOrderMarkovModel<T> model, int length, List<List<StaticConstraint<T>>> constraints) {
 		this.states = model.states;
 		this.stateIndex = model.stateIndex;
 		
@@ -94,7 +94,7 @@ public class NHMM<T extends Token> extends AbstractMarkovModel<T>{
 		}
 		
 		for (int i = 0; i < constraints.size(); i++) {
-			for (Constraint<T> constraint : constraints.get(i)) {
+			for (StaticConstraint<T> constraint : constraints.get(i)) {
 				constrain(i, constraint);
 				if(!satisfiable())
 				{
@@ -459,7 +459,7 @@ public class NHMM<T extends Token> extends AbstractMarkovModel<T>{
 		return logTransitions.length;
 	}
 
-	public void constrain(int position, Constraint<T> constraint) {
+	public void constrain(int position, StaticConstraint<T> constraint) {
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 		
 		if (constraint instanceof BinaryRhymeConstraint) {

@@ -85,7 +85,7 @@ public class Syllabifier {
 		if (StringUtils.isNumeric(word)) {
 			StressedPhone maxStressedVowel = null;
 			for (StressedPhone p : phonemes) {
-				if (p.stress > maxStressedVowel.stress) {
+				if (maxStressedVowel == null || p.stress > maxStressedVowel.stress) {
 					maxStressedVowel = p;
 				}
 			}

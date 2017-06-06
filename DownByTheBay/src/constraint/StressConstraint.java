@@ -3,7 +3,7 @@ package constraint;
 import data.SyllableToken;
 import markov.Token;
 
-public class StressConstraint<T> implements Constraint<T> {
+public class StressConstraint<T> implements StaticConstraint<T> {
 
 	@Override
 	public String toString() {

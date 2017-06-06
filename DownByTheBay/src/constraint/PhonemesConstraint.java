@@ -6,7 +6,7 @@ import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
 import markov.Token;
 
-public class PhonemesConstraint<T> implements Constraint<SyllableToken> {
+public class PhonemesConstraint<T> implements StaticConstraint<SyllableToken> {
 
 	@Override
 	public String toString() {

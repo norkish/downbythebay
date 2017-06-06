@@ -2,17 +2,17 @@ package main;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
-import constraint.PartOfSpeechConstraint;
+import constraint.PartOfSpeechInSegmentConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.PhonemesConstraint;
 import constraint.StressConstraint;
-import data.DataLoader;
-import data.DummyDataLoader;
 import data.DataLoader.DataSummary;
+import data.DummyDataLoader;
 import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
 import linguistic.syntactic.Pos;
@@ -22,10 +22,11 @@ import markov.UnsatisfiableConstraintSetException;
 
 public class Main {
 
-	static int markovOrder = 8;
+	static int markovOrder;
 	
-	final static int HAVE = 0, YOU = 1, EV = 2, ER = 3, SEEN = 4, A = 5, LLA = 6, MA = 7,
-			WEAR = 8, ING = 9, POL = 10, KA = 11, DOT = 12, PA = 13, JA = 14, MAS = 15;
+//	final static int HAVE = 0, YOU = 1, EV = 2, ER = 3, SEEN = 4, 
+		final static int A = 0, LLA = 1, MA = 2,
+			WEAR = 3, ING = 4, POL = 5, KA = 6, DOT = 7, PA = 8, JA = 9, MAS = 10;
 
 	public static String rootPath = "";
 	
@@ -33,7 +34,8 @@ public class Main {
 
 		setupRootPath();
 
-		int[] rhythmicSuperTemplate = new int[]{1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0};
+//		int[] rhythmicSuperTemplate = new int[]{1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0};
+		int[] rhythmicSuperTemplate = new int[]{0,1,0,1,0,1,0,1,0,1,0};
 		
 		// a constraint is a {syllable position, feature index, value}
 		List<List<Constraint<SyllableToken>>> allConstraints = new ArrayList<List<Constraint<SyllableToken>>>();
@@ -44,27 +46,28 @@ public class Main {
 		}
 		
 		// Add primer constraints (i.e., "Have you ever seen")
-		allConstraints.get(HAVE).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.HH, PhonemeEnum.AE, PhonemeEnum.V))));
-		allConstraints.get(YOU).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.Y, PhonemeEnum.UW))));
-		allConstraints.get(EV).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.EH))));
-		allConstraints.get(ER).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.V, PhonemeEnum.ER))));
-		allConstraints.get(SEEN).add(new PhonemesConstraint<SyllableToken>(new ArrayList<PhonemeEnum>(Arrays.asList(PhonemeEnum.S, PhonemeEnum.IY, PhonemeEnum.N))));
+//		allConstraints.get(HAVE).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.HH, PhonemeEnum.AE, PhonemeEnum.V)));
+//		allConstraints.get(YOU).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.Y, PhonemeEnum.UW)));
+//		allConstraints.get(EV).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.EH)));
+//		allConstraints.get(ER).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.V, PhonemeEnum.ER)));
+//		allConstraints.get(SEEN).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.S, PhonemeEnum.IY, PhonemeEnum.N)));
 		
 		// Add rest of constraints
 //		constraints.get(A).add(new PartOfSpeechConstraint<SyllableToken>(Pos.DT));
-		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<SyllableToken>(new Pos[]{Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS}));
-		allConstraints.get(JA).add(new PartsOfSpeechConstraint<SyllableToken>(new Pos[]{Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB}));
+		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<SyllableToken>(new HashSet<Pos>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
+		allConstraints.get(JA).add(new PartsOfSpeechConstraint<SyllableToken>(new HashSet<Pos>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
 		
 		// train a variable-order markov model on a corpus
-//		DataSummary summary = DataLoader.loadAndAnalyzeData(markovOrder, "corpus.txt");
-		DataSummary summary = DummyDataLoader.loadData(); // TODO: replace with actual data loader
-		SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<SyllableToken>(summary.statesByIndex, summary.transitions);
+		// NOTE: we could choose the order as a function of the rhythmic template (e.g., rhythmic
+		// templates with fewer syllables between dynamically constrained syllables could have a lower order),
+		// but this would require retraining the Markov model for each rhythmic template. 
+		
 		
 		int[][] allRhythmicTemplates = new int[][] {
-			new int[]{1,0,1,0,1,0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
-			new int[]{1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
-			new int[]{1,0,1,0,1,0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
-			new int[]{1,0,1,0,1,0,1,-1,1,0,1,0,1,-1,1,-1} //"a moose . with a pair of new . shoes ."
+			new int[]{0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
+			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
+			new int[]{0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
+			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1} //"a moose . with a pair of new . shoes ."
 		};
 		
 		for (int[] rhythmicTemplate : allRhythmicTemplates) {
@@ -85,28 +88,37 @@ public class Main {
 				if (i > LLA && i <= JA)
 					rhymeDistance++;
 				
-				if (i == JA)
+				if (i == JA) {
 					constraints.get(templateLength).add(new BinaryRhymeConstraint<SyllableToken>(rhymeDistance));
-				else if (i == MAS)
+					constraints.get(templateLength-1).add(new PartOfSpeechInSegmentConstraint<SyllableToken>(rhymeDistance-2, new HashSet<Pos>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))));
+				} else if (i == MAS) {
 					constraints.get(templateLength).add(new BinaryRhymeConstraint<SyllableToken>(rhymeDistance));
+				}
 				templateLength += 1;
 			}
+			//		DataSummary summary = DataLoader.loadAndAnalyzeData(markovOrder, "corpus.txt");
+			markovOrder = rhymeDistance;
+			DataSummary summary = DummyDataLoader.loadData(markovOrder); // TODO: replace with actual data loader
+			
+			SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<SyllableToken>(summary.statesByIndex, summary.transitions);
 			
 			System.out.println("For Rhythmic Tempalate: " + Arrays.toString(rhythmicTemplate));
 			// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
 			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel;
 			try {
+				System.out.print("Creating NHMM");
 				constrainedMarkovModel = new SparseVariableOrderNHMM<SyllableToken>(markovModel, templateLength, constraints);
+				System.out.println();
 			} catch (UnsatisfiableConstraintSetException e) {
 				System.out.println("\t" + e.getMessage());
 				continue;
 			}
 			
-			for (int i = 0; i < 2; i++) {
+			for (int i = 0; i < 5; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
-				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
+				List<SyllableToken> generatedSequence = constrainedMarkovModel.generateWithAnyPrefix(templateLength);
 				// convert the sequence of syllable tokens to a human-readable string
-				System.out.print("\t");
+				System.out.print("\tHave you ever seen: ");
 				for (SyllableToken syllableToken : generatedSequence) {
 					System.out.print(syllableToken.getStringRepresentation() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":"")); // TODO: modify it to print out the human-readable form of the syllable/word
 				}

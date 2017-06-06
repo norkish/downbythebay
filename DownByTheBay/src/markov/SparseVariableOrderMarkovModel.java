@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import constraint.Constraint;
+import constraint.StaticConstraint;
 
 public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMarkovModel<T>{
 
@@ -159,7 +159,7 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	}
 	
 	public static class CharacterToken extends Token{
-		public static class CharacterTokenConstraint<T> implements Constraint<CharacterToken> {
+		public static class CharacterTokenConstraint<T> implements StaticConstraint<CharacterToken> {
 
 			public CharacterToken c;
 

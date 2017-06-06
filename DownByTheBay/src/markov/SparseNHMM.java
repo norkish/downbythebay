@@ -10,7 +10,7 @@ import java.util.Random;
 import java.util.Set;
 
 import constraint.BinaryRhymeConstraint;
-import constraint.Constraint;
+import constraint.StaticConstraint;
 import utils.MathUtils;
 
 public class SparseNHMM<T extends Token> extends AbstractMarkovModel<T>{
@@ -22,7 +22,7 @@ public class SparseNHMM<T extends Token> extends AbstractMarkovModel<T>{
 	Map<T, Integer> stateIndex;
 	Random rand = new Random();
 	
-	public SparseNHMM(SparseSingleOrderMarkovModel<T> model, int length, List<List<Constraint<T>>> constraints) {
+	public SparseNHMM(SparseSingleOrderMarkovModel<T> model, int length, List<List<StaticConstraint<T>>> constraints) {
 		this.states = model.states;
 		this.stateIndex = model.stateIndex;
 		this.logPriors = model.logPriors;
@@ -88,7 +88,7 @@ public class SparseNHMM<T extends Token> extends AbstractMarkovModel<T>{
 		}
 		
 		for (int i = 0; i < constraints.size(); i++) {
-			for (Constraint<T> constraint : constraints.get(i)) {
+			for (StaticConstraint<T> constraint : constraints.get(i)) {
 				constrain(i, constraint);
 				if(!satisfiable())
 				{
@@ -465,7 +465,7 @@ public class SparseNHMM<T extends Token> extends AbstractMarkovModel<T>{
 		return logTransitions.size();
 	}
 
-	public void constrain(int position, Constraint<T> constraint) {
+	public void constrain(int position, StaticConstraint<T> constraint) {
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 		
 		if (constraint instanceof BinaryRhymeConstraint) {

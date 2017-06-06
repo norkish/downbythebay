@@ -6,7 +6,7 @@ import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
 import markov.Token;
 
-public class BinaryRhymeConstraint<T> implements Constraint<T> {
+public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
 
 	// if this value, for example, is 2, then the constraint indicates that the syllable 
 	// under this constraint must rhyme with the syllable 2 positions before it
@@ -18,10 +18,6 @@ public class BinaryRhymeConstraint<T> implements Constraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(Token token) {
-		throw new IllegalStateException("Cannot satisfy a binary rhyme constraint with single token");
-	}
-	
 	public boolean isSatisfiedBy(LinkedList<Token> fromState, Token token) {
 		Token previousToken = fromState.get(fromState.size() - constraintSylsPrevToRhymeWith);
 		

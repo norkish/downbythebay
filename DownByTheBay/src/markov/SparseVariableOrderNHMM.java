@@ -1,7 +1,6 @@
 package markov;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,8 +12,9 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
-import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
+import constraint.DynamicConstraint;
+import constraint.StaticConstraint;
 import markov.SparseVariableOrderMarkovModel.CharacterToken;
 import markov.SparseVariableOrderMarkovModel.CharacterToken.CharacterTokenConstraint;
 import utils.MathUtils;
@@ -38,37 +38,29 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			for (int i = 0; i < length; i++) {
 				this.inSupport.add(new HashMap<Integer, Integer>());
 			}
-		
-			LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
-			Integer prefixId = stateIndex.getIDForPrefix(prefix);
-			
-			Map<Integer, Double> startTransitions = model.logTransitions.get(prefixId);
-			Map<Integer, Double> startTransitionsDeepCopy = new HashMap<Integer, Double>();
-			Map<Integer, Integer> inSupportAtPosLessOne, inSupportAtPos = inSupport.get(0);
-			for (Integer toIndex : startTransitions.keySet()) {
-				incrementCount(inSupportAtPos,toIndex);
-				startTransitionsDeepCopy.put(toIndex,startTransitions.get(toIndex));
+			for (int i = 0; i < length; i++) {
+				logTransitions.add(deepCopy(model.logTransitions));
 			}
-			
-			Map<Integer, Map<Integer,Double>> startTransitionsMap = new HashMap<Integer, Map<Integer,Double>>();		
-			startTransitionsMap.put(prefixId, startTransitionsDeepCopy);
-			logTransitions.add(startTransitionsMap);
-
+		
+			Map<Integer, Integer> inSupportAtPosLessOne, inSupportAtPos = inSupport.get(0);
+			for (Map<Integer, Double> toTokenMap : model.logTransitions.values()) {
+				for (Integer toIndex : toTokenMap.keySet()) {
+					incrementCount(inSupportAtPos,toIndex);
+				}
+			}
 			
 			Entry<Integer, Map<Integer, Double>> next;
 			Integer fromState;
-
-			for (int i = 1; i < length; i++) {
-				logTransitions.add(deepCopy(model.logTransitions));
-			}
-			
+			Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 			Integer pathsToFromState;
 			// for each possible transition (fromState -> toState) from the original naive transition matrix
 			for (int i = 1; i < length; i++) {
+				System.out.print(".");
 				inSupportAtPos = inSupport.get(i);
 				inSupportAtPosLessOne = inSupport.get(i-1);
 				// for each possible transition (fromState -> toState) from the original naive transition matrix
-				for(Iterator<Entry<Integer,Map<Integer,Double>>> it = logTransitions.get(i).entrySet().iterator(); it.hasNext();) {
+				final Map<Integer, Map<Integer, Double>> logTransitionsAtPosition = logTransitions.get(i);
+				for(Iterator<Entry<Integer,Map<Integer,Double>>> it = logTransitionsAtPosition.entrySet().iterator(); it.hasNext();) {
 					next = it.next();
 					fromState = next.getKey();
 					pathsToFromState = inSupportAtPosLessOne.get(fromState);
@@ -83,9 +75,21 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 						}
 					}
 				}
+				// for each toState at the previous step (as per inSupport), if there is no logTransition from the state in this step, it should be marked for removal
+				for (Integer prevToState : inSupportAtPosLessOne.keySet()) {
+					if (!logTransitionsAtPosition.containsKey(prevToState)) {
+						posStateToRemove.add(new PositionedState(i-1, prevToState));
+					}
+				}
 			}
 			
-	//		System.out.println(this);
+			// remove states marked for removal because they result in premature terminations
+			while(!posStateToRemove.isEmpty())
+			{
+				PositionedState stateToRemove = posStateToRemove.iterator().next();
+				posStateToRemove.remove(stateToRemove);
+				posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStateIndex()));
+			}
 			
 			if(!satisfiable())
 			{
@@ -212,15 +216,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 	public Set<PositionedState> removeState(int position, int stateIndex) {
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 
-		if(position == 0)
-		{
-//			this.logPriors.remove(stateIndex);
-		}
-		else
-		{
-			// address transitions *to* the removed state
-			posStateToRemove.addAll(adjustTransitionsTo(position, stateIndex));
-		}
+		posStateToRemove.addAll(adjustTransitionsTo(position, stateIndex));
 
 		if(position < this.logTransitions.size()-1)
 		{
@@ -243,7 +239,8 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		Integer fromState;
 		Map<Integer, Double> toStates;
 		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position);
-		for (Entry<Integer,Map<Integer, Double>> entry : this.logTransitions.get(position).entrySet()) {
+		for (Iterator<Entry<Integer, Map<Integer, Double>>> it = this.logTransitions.get(position).entrySet().iterator(); it.hasNext();) {
+			Entry<Integer,Map<Integer, Double>> entry = it.next();
 			fromState = entry.getKey();
 			toStates = entry.getValue();
 
@@ -252,7 +249,12 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				toStates.remove(stateIndex);
 				
 				if (toStates.isEmpty()) {
-					posStateToRemove.add(new PositionedState(position-1, fromState));
+					if (position > 0) {
+						posStateToRemove.add(new PositionedState(position-1, fromState));
+					} else {
+						// need to remove starting prefix which has no toStates
+						it.remove();
+					}
 				}
 			}
 		}
@@ -373,14 +375,47 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 
 	@Override
 	public List<T> generate(int length) {
-		int fromStateIdx = -1, toStateIdx = -1;
+		LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
+		final Integer prefixID = stateIndex.getIDForPrefix(prefix);
+		if (!logTransitions.get(0).containsKey(prefixID)) {
+			throw new RuntimeException("Unable to generate from start prefix:" + prefix + "\nTry generateWithAnyPrefix()?");
+		}
+		return generateWithPrefixID(length, prefixID);
+	}
+		
+	public List<T> generateWithAnyPrefix(int length) {
+		Set<Integer> startingPrefixIDs = logTransitions.get(0).keySet();
+		if (startingPrefixIDs.isEmpty()) {
+			throw new RuntimeException("No starting prefixes (i.e., unsatisfiable constraints)");
+		}
+		int item = rand.nextInt(startingPrefixIDs.size()); 
+		int i = 0;
+		for(Integer prefixID: startingPrefixIDs)
+		{
+		    if (i == item)
+		    	return generateWithPrefixID(length, prefixID);
+		    i++;
+		}
+
+		throw new RuntimeException("Unreachable code");
+	}
+	
+	public List<T> generateWithPrefix(int length, LinkedList<Token> prefix) {
+		final Integer prefixID = stateIndex.getIDForPrefix(prefix);
+		if (!logTransitions.get(0).containsKey(prefixID)) {
+			throw new RuntimeException("Unable to generate from prefix:" + prefix + "\nTry generateWithAnyPrefix()?");
+		}
+		return generateWithPrefixID(length, prefixID);
+
+	}
+
+	public List<T> generateWithPrefixID(int length, Integer fromStateIdx) {
+		int toStateIdx = -1;
 		T toState;
 		
 		length = Math.min(length, logTransitions.size());
 		
 		List<T> newSeq = new ArrayList<T>();
-		LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
-		fromStateIdx = stateIndex.getIDForPrefix(prefix);
 
 		final Token endToken = Token.getEndToken();
 		for (int i = 0; i < length; i++) {
@@ -430,14 +465,14 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 		
 		List<LinkedList<Token>> tokens = stateIndex.getIDToPrefixMap();
-		if (constraint instanceof BinaryRhymeConstraint) {
+		if (constraint instanceof DynamicConstraint) {
 			// iterate over transition matrix at this position
 			Map<Integer, Map<Integer, Double>> logTransitionsForPosition = this.logTransitions.get(position);
 			for (Integer fromStateIdx : logTransitionsForPosition.keySet()) {
 				LinkedList<Token> fromState = tokens.get(fromStateIdx);
 				for (Integer toStateIdx : logTransitionsForPosition.get(fromStateIdx).keySet()) {
 					LinkedList<Token> toState = tokens.get(toStateIdx);
-					if (!((BinaryRhymeConstraint<T>) constraint).isSatisfiedBy(fromState, toState.getLast())) {
+					if (!((DynamicConstraint<T>) constraint).isSatisfiedBy(fromState, toState.getLast())) {
 						posStateToRemove.addAll(removeTransition(position, fromStateIdx, toStateIdx));
 					}
 				}
@@ -445,7 +480,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		} else {
 			for (Integer tokenIdx : new HashSet<Integer>(inSupport.get(position).keySet())) {
 				// if the considered state satisfies/dissatisfies the condition contrary to what we wanted
-				if(!constraint.isSatisfiedBy(tokens.get(tokenIdx).getLast()))
+				if(!((StaticConstraint<T>)constraint).isSatisfiedBy(tokens.get(tokenIdx).getLast()))
 				{
 					// remove it
 					posStateToRemove.addAll(removeState(position, tokenIdx));

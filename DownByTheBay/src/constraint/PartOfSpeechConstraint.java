@@ -4,7 +4,7 @@ import data.SyllableToken;
 import linguistic.syntactic.Pos;
 import markov.Token;
 
-public class PartOfSpeechConstraint<T> implements Constraint<T> {
+public class PartOfSpeechConstraint<T> implements StaticConstraint<T> {
 
 	@Override
 	public String toString() {
