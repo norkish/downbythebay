@@ -1,17 +1,11 @@
 package data;
 
-import java.awt.image.BufferedImageFilter;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 import data.DataLoader.DataSummary;
 import linguistic.paul.Phonetecizer;
