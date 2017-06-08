@@ -46,4 +46,3 @@ public abstract class Phoneme implements Serializable {
 		return getPhonemeEnum() != null ? getPhonemeEnum().hashCode() : 0;
 	}
 }
-

@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 
 public class HierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Token> extends BidirectionalVariableOrderPrefixIDMap<T>{
 
-	private Map<Token, Object> prefixToIDMap = new HashMap<Token, Object>();
+	private Map<Token, Object> prefixToIDMap = new HashMap<>();
 	private List<LinkedList<Token>> iDToPrefixMap = null;
 	private boolean newPrefixesAdded = false;
 	
@@ -34,7 +34,7 @@ public class HierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Token> 
 			Token prefixElement = prefix.get(i);
 			nextMap = (Map<Token, Object>) currMap.get(prefixElement);
 			if (nextMap == null) {
-				nextMap = new HashMap<Token, Object>();
+				nextMap = new HashMap<>();
 				currMap.put(prefixElement, nextMap);
 			}
 			currMap = nextMap;
@@ -94,8 +94,8 @@ public class HierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Token> 
 
 	public List<LinkedList<Token>> getIDToPrefixMap() {
 		if (iDToPrefixMap == null || newPrefixesAdded) {
-			iDToPrefixMap = new ArrayList<LinkedList<Token>>(nextID);
-			addAllIDsToIDToPrefixMap(prefixToIDMap, new LinkedList<Token>());
+			iDToPrefixMap = new ArrayList<>(nextID);
+			addAllIDsToIDToPrefixMap(prefixToIDMap, new LinkedList<>());
 			newPrefixesAdded = false;
 		}
 		return iDToPrefixMap;

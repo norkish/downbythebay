@@ -33,7 +33,7 @@ public class StressedPhone {
 		this.phone = phone;
 		this.stress = stress;
 	}
-	
+
 	public String toString() {
 		return "" + Phonetecizer.intToString(phone) + ":" + stress;
 	}

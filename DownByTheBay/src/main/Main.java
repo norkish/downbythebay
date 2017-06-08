@@ -38,11 +38,11 @@ public class Main {
 		int[] rhythmicSuperTemplate = new int[]{0,1,0,1,0,1,0,1,0,1,0};
 		
 		// a constraint is a {syllable position, feature index, value}
-		List<List<Constraint<SyllableToken>>> allConstraints = new ArrayList<List<Constraint<SyllableToken>>>();
+		List<List<Constraint<SyllableToken>>> allConstraints = new ArrayList<>();
 		for (int i = 0; i < rhythmicSuperTemplate.length; i++) {
-			final ArrayList<Constraint<SyllableToken>> constraintsForPosition = new ArrayList<Constraint<SyllableToken>>();
+			final ArrayList<Constraint<SyllableToken>> constraintsForPosition = new ArrayList<>();
 			allConstraints.add(constraintsForPosition);
-			constraintsForPosition.add(new StressConstraint<SyllableToken>(rhythmicSuperTemplate[i]));
+			constraintsForPosition.add(new StressConstraint<>(rhythmicSuperTemplate[i]));
 		}
 		
 		// Add primer constraints (i.e., "Have you ever seen")
@@ -54,8 +54,8 @@ public class Main {
 		
 		// Add rest of constraints
 //		constraints.get(A).add(new PartOfSpeechConstraint<SyllableToken>(Pos.DT));
-		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<SyllableToken>(new HashSet<Pos>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
-		allConstraints.get(JA).add(new PartsOfSpeechConstraint<SyllableToken>(new HashSet<Pos>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
+		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
+		allConstraints.get(JA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
 		
 		// train a variable-order markov model on a corpus
 		// NOTE: we could choose the order as a function of the rhythmic template (e.g., rhythmic
@@ -71,9 +71,9 @@ public class Main {
 		};
 		
 		for (int[] rhythmicTemplate : allRhythmicTemplates) {
-			List<List<Constraint<SyllableToken>>> constraints = new ArrayList<List<Constraint<SyllableToken>>>();
+			List<List<Constraint<SyllableToken>>> constraints = new ArrayList<>();
 			for (List<Constraint<SyllableToken>> allConstraintsAtPosition : allConstraints) {
-				constraints.add(new ArrayList<Constraint<SyllableToken>>(allConstraintsAtPosition));
+				constraints.add(new ArrayList<>(allConstraintsAtPosition));
 			}
 			int templateLength = 0;
 			int rhymeDistance = 0;
@@ -89,10 +89,10 @@ public class Main {
 					rhymeDistance++;
 				
 				if (i == JA) {
-					constraints.get(templateLength).add(new BinaryRhymeConstraint<SyllableToken>(rhymeDistance));
-					constraints.get(templateLength-1).add(new PartOfSpeechInSegmentConstraint<SyllableToken>(rhymeDistance-2, new HashSet<Pos>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))));
+					constraints.get(templateLength).add(new BinaryRhymeConstraint<>(rhymeDistance));
+					constraints.get(templateLength-1).add(new PartOfSpeechInSegmentConstraint<SyllableToken>(rhymeDistance-2, new HashSet<>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))));
 				} else if (i == MAS) {
-					constraints.get(templateLength).add(new BinaryRhymeConstraint<SyllableToken>(rhymeDistance));
+					constraints.get(templateLength).add(new BinaryRhymeConstraint<>(rhymeDistance));
 				}
 				templateLength += 1;
 			}
@@ -100,14 +100,14 @@ public class Main {
 			markovOrder = rhymeDistance;
 			DataSummary summary = DummyDataLoader.loadData(markovOrder); // TODO: replace with actual data loader
 			
-			SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<SyllableToken>(summary.statesByIndex, summary.transitions);
+			SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.transitions);
 			
-			System.out.println("For Rhythmic Tempalate: " + Arrays.toString(rhythmicTemplate));
+			System.out.println("For Rhythmic Template: " + Arrays.toString(rhythmicTemplate));
 			// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
 			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel;
 			try {
 				System.out.print("Creating NHMM");
-				constrainedMarkovModel = new SparseVariableOrderNHMM<SyllableToken>(markovModel, templateLength, constraints);
+				constrainedMarkovModel = new SparseVariableOrderNHMM<>(markovModel, templateLength, constraints);
 				System.out.println();
 			} catch (UnsatisfiableConstraintSetException e) {
 				System.out.println("\t" + e.getMessage());

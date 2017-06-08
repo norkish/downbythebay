@@ -37,5 +37,8 @@ public enum Pos {
 	WDT,
 	WP,
 	WP$,
-	WRB
+	WRB,
+
+	// homemade tags
+	PUNCT
 }

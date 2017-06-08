@@ -30,7 +30,7 @@ public class Phonetecizer {
 	private static Map<String, Pair<Integer, PhoneCategory>> phonesDict = loadPhonesDict();
 	private static List<Pair<String, PhoneCategory>> reversePhonesDict = loadReversePhonesDict();
 	private static G2PConverter converter = new G2PConverter("data/pron_dict/model.fst.ser");
-	
+
 	/**
 	 * Loads CMU dictionary from file into a datastructure
 	 */
@@ -71,7 +71,7 @@ public class Phonetecizer {
 					phones[i] = sPhone;
 				}
 				// System.out.println(lineSplit[0] + ":" + Arrays.toString(phones));
-				
+
 				key = lineSplit[0];
 				parenIdx = key.indexOf('(', 1);
 				if (parenIdx == -1) {
@@ -141,14 +141,14 @@ public class Phonetecizer {
 	public static void main(String[] args) throws IOException {
 		System.out.println("Loading CMU...");
 		Phonetecizer.loadCMUDict();
-		
+
 		String alphabet = "abcdeghijklmnopqrstuvwyz1234567890";
 		for (int i = 0; i < alphabet.length(); i++) {
 			getPronunciationForChar(alphabet.charAt(i));
 		}
-		
+
 		String[] tests = new String[]{"Don't", "Hey, wind, oh","Hey, wind,", "aw","","aw, aw, aw,"};
-		
+
 		for (int k = 0; k < tests.length; k++) {
 			System.out.println("Getting dictionary syllables of " + tests[k]);
 			List<StressedPhone[]> phones = getPhones(tests[k],true);
@@ -163,7 +163,7 @@ public class Phonetecizer {
 				}
 			}
 		}
-		
+
 		for (String string : cmuDict.keySet()) {
 			List<StressedPhone[]> list = cmuDict.get(string);
 				System.out.println(string + " has " + list.size() + " pronunciations:");
@@ -176,8 +176,8 @@ public class Phonetecizer {
 					System.out.println("\t\t"+ path.getPath());
 				}
 		}
-		
-		
+
+
 		tests = new String[]{"Potatoes, tomatoes, windy","hey-you, i.o.u. nu__in","namaste","schtoikandikes","lichtenstein","avadacadabrax"};
 		for (String test : tests) {
 			System.out.println("Pronunciation for \"" + test + "\"");
@@ -206,13 +206,13 @@ public class Phonetecizer {
 	private static Set<String> stopRhymes = new HashSet<String>(Arrays.asList("AW","OH"));
 
 	/**
-	 * Returns a list of ways the input string could be pronounced. If word is in cmu dictionary, then CMU entry is returned, otherwise G2Pconverter is used to guess. 
+	 * Returns a list of ways the input string could be pronounced. If word is in cmu dictionary, then CMU entry is returned, otherwise G2Pconverter is used to guess.
 	 * @param string
 	 * @return
 	 */
 	public static List<StressedPhone[]> getPhones(String string, boolean fromDictOnly) {
 		List<StressedPhone[]> prevPhones = null, nextPhones, pronunciationChoices;
-		
+
 		for (String s : string.toUpperCase().trim().split("[^A-Z0-9']+")) {
 			if (s.length() == 0) continue; // || stopRhymes.contains(s)) continue; This second condition should be handled elsewhere.
 			if (StringUtils.isNumeric(s)) {
@@ -220,16 +220,16 @@ public class Phonetecizer {
 			} else {
 				pronunciationChoices = cmuDict.get(s);
 			}
-			
+
 			if (pronunciationChoices == null && !fromDictOnly) {
 				pronunciationChoices = new ArrayList<StressedPhone[]>();
 				s = s.replaceAll("[^A-Z0-9]", " ");
-				
+
 				for(Path path: converter.phoneticize(s,3)) {
 					pronunciationChoices.add(parse(path));
 				}
 			}
-			
+
 			if (prevPhones == null) {
 				nextPhones = pronunciationChoices;
 			} else {
@@ -242,7 +242,7 @@ public class Phonetecizer {
 					}
 				}
 			}
-			
+
 			prevPhones = nextPhones;
 		}
 
@@ -258,11 +258,11 @@ public class Phonetecizer {
 		String phone;
 
 		for (int i = 0; i < pathPhones.size(); i++) {
-			phone = pathPhones.get(i); 
+			phone = pathPhones.get(i);
 			sPhone = new StressedPhone(phonesDict.get(phone).getFirst(), -1);
 			phones[i] = sPhone;
 		}
-		
+
 		return phones;
 	}
 
@@ -279,11 +279,11 @@ public class Phonetecizer {
 
 		return returnVal;
 	}
-	
+
 	public static List<StressedPhone[]> getPhonesForXLastSyllables(String string, int num) {
 		if (num == 0 || string.length() == 0)
 			return new ArrayList<StressedPhone[]>();
-		
+
 		List<StressedPhone[]> returnList = new ArrayList<StressedPhone[]>(), pronunciationChoices;
 		Map<StressedPhone[],Integer> prevPhones = null, nextPhones = null;
 		String[] words = string.toUpperCase().trim().split("[^A-Z0-9']+");
@@ -293,17 +293,17 @@ public class Phonetecizer {
 			s = words[i];
 			if (s.length() == 0 || stopRhymes.contains(s)) continue;
 			pronunciationChoices = cmuDict.get(s);
-			
+
 			if (pronunciationChoices == null) {
 				pronunciationChoices = new ArrayList<StressedPhone[]>();
 				for(Path path: converter.phoneticize(s.replaceAll("[^A-Z0-9]", " "),3)) {
 					pronunciationChoices.add(parse(path));
 				}
 			}
-			
+
 			if (prevPhones == null) { // if this is the first word
 				nextPhones = new HashMap<StressedPhone[],Integer>();
-				// go through each pronunciation and 
+				// go through each pronunciation and
 				for (StressedPhone[] phones: pronunciationChoices) {
 					vowelCount = 0;
 					start = phones.length;
@@ -315,7 +315,7 @@ public class Phonetecizer {
 							}
 						}
 					}
-					//if it has sufficient syllables, 
+					//if it has sufficient syllables,
 					if (vowelCount == num) {
 						// add it to the return list
 						returnList.add(Arrays.copyOfRange(phones, start, phones.length));
@@ -339,7 +339,7 @@ public class Phonetecizer {
 								}
 							}
 						}
-						//if it has sufficient syllables, 
+						//if it has sufficient syllables,
 						if (vowelCount + vowelCountForPrevPhone == num) {
 							// add it to the return list
 							returnList.add(ArrayUtils.addAll(Arrays.copyOfRange(pronunciationChoice, start, pronunciationChoice.length),prevPhone.getKey()));
@@ -350,18 +350,18 @@ public class Phonetecizer {
 					}
 				}
 			}
-			
+
 			if (nextPhones.size() == 0) {
 				break;
 			} else {
 				prevPhones = nextPhones;
 			}
 		}
-		
+
 		if (nextPhones != null && nextPhones.size() > 0) {
 			returnList.addAll(nextPhones.keySet());
 		}
-		
+
 		return returnList;
 	}
 
@@ -383,7 +383,7 @@ public class Phonetecizer {
 		return Arrays.copyOfRange(phones, start, phones.length);
 	}
 
-	
+
 	public static StressedPhone[] getLastSyllable(StressedPhone[] phones, int offsetFromEnd) {
 		int start = phones.length;
 

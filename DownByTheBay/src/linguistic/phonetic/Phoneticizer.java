@@ -16,9 +16,6 @@ public class Phoneticizer {
 	private static final String cmuFilePath = Main.rootPath + "data/phonemes/pron-dict/cmudict-0.7b.txt";
 
 	public static Map<String, List<Pronunciation>> cmuDict = loadCMUDict();
-	public static Map<List<PhonemeEnum>, Set<String>> lastSylRhymeDict = new HashMap<>();
-	public static Map<List<List<PhonemeEnum>>, Set<String>> last2SylRhymeDict = new HashMap<>();
-	public static Map<List<List<PhonemeEnum>>, Set<String>> last3SylRhymeDict = new HashMap<>();
 	public static Map<String, List<WordSyllables>> syllableDict = loadSyllableDicts();
 	//    private static Map<String, Pair<Integer, MannerOfArticulation>> phonesDict = loadPhonesDict();
 //    private static List<Pair<String, MannerOfArticulation>> reversePhonesDict = loadReversePhonesDict();
@@ -93,45 +90,42 @@ public class Phoneticizer {
 	public static Map<String, List<WordSyllables>> loadSyllableDicts() {
 		Map<String, List<WordSyllables>> result = new HashMap<>();
 		for (Map.Entry<String, List<Pronunciation>> entry : cmuDict.entrySet()) {
-			if (entry.getKey().equals("SWIMSUIT")) {
-//                U.print("stop for test");
-			}
 			List<WordSyllables> pronunciationSyls = new ArrayList<>();
 			for (Pronunciation pronunciation : entry.getValue()) {
 				WordSyllables syllables = Syllabifier.algorithmicallyParse(pronunciation);
 				pronunciationSyls.add(syllables);
-				int nSyl = syllables.size();
-				if (nSyl > 0) {
-					Syllable ultimate = syllables.get(syllables.size() - 1);
-					Set<String> oldSet1 = lastSylRhymeDict.get(ultimate.getRhyme());
-					if (oldSet1 == null)
-						oldSet1 = new HashSet<>();
-					oldSet1.add(entry.getKey());
-					lastSylRhymeDict.put(ultimate.getRhyme().getPhonemeEnums(), oldSet1);
-					if (nSyl > 1) {
-						List<List<PhonemeEnum>> list1 = new ArrayList<>();
-						Syllable penultimate = syllables.get(syllables.size() - 2);
-						list1.add(penultimate.getRhyme().getPhonemeEnums());
-						list1.add(ultimate.getAllPhonemes().getPhonemeEnums());
-						Set<String> oldSet2 = lastSylRhymeDict.get(list1);
-						if (oldSet2 == null)
-							oldSet2 = new HashSet<>();
-						oldSet2.add(entry.getKey());
-						last2SylRhymeDict.put(list1, oldSet2);
-						if (nSyl > 2) {
-							List<List<PhonemeEnum>> list2 = new ArrayList<>();
-							Syllable antepenultimate = syllables.get(syllables.size() - 3);
-							list2.add(antepenultimate.getRhyme().getPhonemeEnums());
-							list2.add(penultimate.getAllPhonemes().getPhonemeEnums());
-							list2.add(ultimate.getAllPhonemes().getPhonemeEnums());
-							Set<String> oldSet3 = lastSylRhymeDict.get(list2);
-							if (oldSet3 == null)
-								oldSet3 = new HashSet<>();
-							oldSet3.add(entry.getKey());
-							last3SylRhymeDict.put(list2, oldSet3);
-						}
-					}
-				}
+//				int nSyl = syllables.size();
+//				if (nSyl > 0) {
+//					Syllable ultimate = syllables.get(syllables.size() - 1);
+////					Set<String> oldSet1 = lastSylRhymeDict.get(ultimate.getRhyme());
+////					if (oldSet1 == null)
+////						oldSet1 = new HashSet<>();
+////					oldSet1.add(entry.getKey());
+////					lastSylRhymeDict.put(ultimate.getRhyme().getPhonemeEnums(), oldSet1);
+//					if (nSyl > 1) {
+//						List<List<PhonemeEnum>> list1 = new ArrayList<>();
+//						Syllable penultimate = syllables.get(syllables.size() - 2);
+//						list1.add(penultimate.getRhyme().getPhonemeEnums());
+//						list1.add(ultimate.getAllPhonemes().getPhonemeEnums());
+////						Set<String> oldSet2 = lastSylRhymeDict.get(list1);
+////						if (oldSet2 == null)
+////							oldSet2 = new HashSet<>();
+////						oldSet2.add(entry.getKey());
+////						last2SylRhymeDict.put(list1, oldSet2);
+//						if (nSyl > 2) {
+//							List<List<PhonemeEnum>> list2 = new ArrayList<>();
+//							Syllable antepenultimate = syllables.get(syllables.size() - 3);
+//							list2.add(antepenultimate.getRhyme().getPhonemeEnums());
+//							list2.add(penultimate.getAllPhonemes().getPhonemeEnums());
+//							list2.add(ultimate.getAllPhonemes().getPhonemeEnums());
+////							Set<String> oldSet3 = lastSylRhymeDict.get(list2);
+////							if (oldSet3 == null)
+////								oldSet3 = new HashSet<>();
+////							oldSet3.add(entry.getKey());
+////							last3SylRhymeDict.put(list2, oldSet3);
+//						}
+//					}
+//				}
 			}
 			result.put(entry.getKey(), pronunciationSyls);
 		}
