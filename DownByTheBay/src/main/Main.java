@@ -12,7 +12,7 @@ import constraint.PartsOfSpeechConstraint;
 import constraint.PhonemesConstraint;
 import constraint.StressConstraint;
 import data.DataLoader.DataSummary;
-import data.DummyDataLoader;
+import data.DataLoader;
 import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
 import linguistic.syntactic.Pos;
@@ -96,9 +96,8 @@ public class Main {
 				}
 				templateLength += 1;
 			}
-			//		DataSummary summary = DataLoader.loadAndAnalyzeData(markovOrder, "corpus.txt");
 			markovOrder = rhymeDistance;
-			DataSummary summary = DummyDataLoader.loadData(markovOrder); // TODO: replace with actual data loader
+			DataSummary summary = DataLoader.loadData(markovOrder); // TODO: replace with actual data loader
 			
 			SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.transitions);
 			
