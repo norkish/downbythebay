@@ -1,10 +1,31 @@
 package linguistic.phonetic.syllabic;
 
+import data.SyllableToken;
 import linguistic.phonetic.*;
 import utils.Pair;
 import java.util.*;
 
 public abstract class Syllabifier {
+
+	public static Syllable tokenToSyllable(SyllableToken syllableToken) {
+		Syllable result = new Syllable();
+		for (PhonemeEnum p : syllableToken.getPhonemes()) {
+			Phoneme phoneme;
+			if (p.isVowel()) {
+				phoneme = new VowelPhoneme(p, syllableToken.getStress());
+				result.setNucleus((VowelPhoneme) phoneme);
+			}
+			else {
+				phoneme = new ConsonantPhoneme(p);
+				if (result.getNucleus() == null)
+					result.getOnset().add((ConsonantPhoneme)phoneme);
+				else {
+					result.getCoda().add((ConsonantPhoneme)phoneme);
+				}
+			}
+		}
+		return result;
+	}
 
 	private static WordSyllables initialParse(List<VowelPhoneme> stressedPhonemes, int nSyllables) {
 		WordSyllables syllables = new WordSyllables();
