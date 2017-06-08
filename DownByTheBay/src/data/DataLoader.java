@@ -52,35 +52,35 @@ public class DataLoader {
 	
 	public static DataSummary loadData(int order) {
 		
-//		String[] trainingSentences = new String[]{
-////				"Have you ever seen a bear combing his hair?",
-////				"Have you ever seen a llama wearing polka dot pajamas?",
-////				"Have you ever seen a llama wearing pajamas?",
-////				"Have you ever seen a moose with a pair of new shoes?",
-////				"Have you ever seen a pirate that just ate a veggie diet?",
-//				"Once I saw a bear combing his hair?",
-//				"Why is it so weird to think about a llama wearing polka dot pajamas?",
-//				"I have a llama wearing pajamas.",
-//				"Have you seen a moose with a pair of new shoes?",
-//				"Have you a pirate that just ate a veggie diet?",
-//		};
-//		
-		StringBuilder str = new StringBuilder();
-		try {
-			BufferedReader br = new BufferedReader(new FileReader("/Users/norkish/Archive/2017_BYU/ComputationalCreativity/data/COCA Text DB/text_fiction_awq/w_fic_2012.txt"));
-			String currLine;
-			while ((currLine = br.readLine()) != null) {
-				str.append(currLine);
-			}
-			br.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		String[] trainingSentences = new String[]{
+//				"Have you ever seen a bear combing his hair?",
+//				"Have you ever seen a llama wearing polka dot pajamas?",
+//				"Have you ever seen a llama wearing pajamas?",
+//				"Have you ever seen a moose with a pair of new shoes?",
+//				"Have you ever seen a pirate that just ate a veggie diet?",
+				"Once I saw a bear combing his hair?",
+				"Why is it so weird to think about a llama wearing polka dot pajamas?",
+				"I have a llama wearing pajamas.",
+				"Have you seen a moose with a pair of new shoes?",
+				"Have you a pirate that just ate a veggie diet?",
+		};
 		
-		String fileContents = str.toString();
-		fileContents = fileContents.replaceAll("##\\d+(?= )", "");
-		fileContents = fileContents.replaceAll("<p> ", "");
-		String[] trainingSentences = fileContents.split(" [[\\.,;:!\\-\")(?@]+ ]+");
+//		StringBuilder str = new StringBuilder();
+//		try {
+//			BufferedReader br = new BufferedReader(new FileReader("/Users/norkish/Archive/2017_BYU/ComputationalCreativity/data/COCA Text DB/text_fiction_awq/w_fic_2012.txt"));
+//			String currLine;
+//			while ((currLine = br.readLine()) != null) {
+//				str.append(currLine);
+//			}
+//			br.close();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		
+//		String fileContents = str.toString();
+//		fileContents = fileContents.replaceAll("##\\d+(?= )", "");
+//		fileContents = fileContents.replaceAll("<p> ", "");
+//		String[] trainingSentences = fileContents.split(" [[\\.,;:!\\-\")(?@]+ ]+");
 		
 		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new NonHierarchicalBidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
 		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();

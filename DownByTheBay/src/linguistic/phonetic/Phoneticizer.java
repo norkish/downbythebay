@@ -13,13 +13,13 @@ public class Phoneticizer {
 
 	//    private static final String cmuFilePath = TabDriver.dataDir + "/pron_dict/cmudict-0.7b.txt";
 //    private static final String phonesFilePath = TabDriver.dataDir + "/pron_dict/cmudict-0.7b.phones.reordered.txt";
-	private static final String cmuFilePath = Main.rootPath + "data/phonemes/pron-dict/cmudict-0.7b.txt";
+	private static final String cmuFilePath = Main.rootPath + "data/pron_dict/cmudict-0.7b.txt";
 
 	public static Map<String, List<Pronunciation>> cmuDict = loadCMUDict();
 	public static Map<String, List<WordSyllables>> syllableDict = loadSyllableDicts();
 	//    private static Map<String, Pair<Integer, MannerOfArticulation>> phonesDict = loadPhonesDict();
 //    private static List<Pair<String, MannerOfArticulation>> reversePhonesDict = loadReversePhonesDict();
-	private static G2PConverter converter = new G2PConverter(Main.rootPath + "data/phonemes/pron-dict/model.fst.ser");
+	private static G2PConverter converter = new G2PConverter(Main.rootPath + "data/pron_dict/model.fst.ser");
 
 	/**
 	 * Loads CMU dictionary from file into a datastructure
