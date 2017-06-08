@@ -133,7 +133,7 @@ public class DataLoader {
 		for (Pair<String,Pos> taggedWord : taggedWords) {
 			if (taggedWord.getSecond() == null) continue;
 			List<WordSyllables> pronunciations = Phoneticizer.syllableDict.get(taggedWord.getFirst().toUpperCase());
-			for (WordSyllables pronunciation : pronunciations) {
+			for (WordSyllables pronunciation : pronunciations.subList(0, 1)) {
 				for (int i = 0; i < pronunciation.size(); i++) {
 					//TODO integrate syllable string representation into Ben's syllable objects
 					allTokens.add(new SyllableToken(taggedWord.getFirst(), pronunciation.get(i).getPhonemeEnums(), taggedWord.getSecond(), pronunciation.size(), i, pronunciation.get(i).getStress()));

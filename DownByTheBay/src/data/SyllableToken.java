@@ -65,8 +65,7 @@ public class SyllableToken extends Token {
 		this.setCountOfSylsInContext(countOfSylsInContext);
 		this.setPositionInContext(positionInContext);
 		this.setStress(stress);
-		if (positionInContext == 0)
-			this.setStringRepresentation(stringRepresentation);
+		this.setStringRepresentation(stringRepresentation);
 	}
 
 	public List<PhonemeEnum> getPhonemes() {
@@ -115,5 +114,12 @@ public class SyllableToken extends Token {
 
 	public void setStringRepresentation(String stringRepresentation) {
 		this.stringRepresentation = stringRepresentation;
+	}
+
+	public String getStringRepresentationIfFirstSyllable() {
+		if (positionInContext == 0) {
+			return getStringRepresentation();
+		}
+		else return "";
 	}
 }

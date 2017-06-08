@@ -119,7 +119,7 @@ public class Main {
 				// convert the sequence of syllable tokens to a human-readable string
 				System.out.print("\tHave you ever seen: ");
 				for (SyllableToken syllableToken : generatedSequence) {
-					System.out.print(syllableToken.getStringRepresentation() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":"")); // TODO: modify it to print out the human-readable form of the syllable/word
+					System.out.print(syllableToken.getStringRepresentationIfFirstSyllable() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":"")); // TODO: modify it to print out the human-readable form of the syllable/word
 				}
 				System.out.println();
 			}

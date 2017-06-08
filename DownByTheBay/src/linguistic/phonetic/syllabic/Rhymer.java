@@ -212,7 +212,7 @@ public abstract class Rhymer {
 	public static double score2Syllables(Syllable s1, Syllable s2) {
 		int n = 3;
 
-		double onsetWeight = 1;
+		double onsetWeight = .25;
 		double nucleusWeight = 6;
 		double codaWeight = 1;
 

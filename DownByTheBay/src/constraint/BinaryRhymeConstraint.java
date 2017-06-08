@@ -31,30 +31,16 @@ public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
 		SyllableToken syl1Token = (SyllableToken) previousToken;
 		SyllableToken syl2Token = (SyllableToken) token;
 		
-		// TODO: BEN - implement function to determine if previousToken and token rhyme
+		if (syl1Token.getStringRepresentation().equals(syl2Token.getStringRepresentation()) && syl1Token.getPositionInContext() == syl2Token.getPositionInContext()) {
+			return false;
+		}
+		
 		Syllable s1 = Syllabifier.tokenToSyllable(syl1Token);
 		Syllable s2 = Syllabifier.tokenToSyllable(syl2Token);
 		double score = Rhymer.score2Syllables(s1, s2);
-		if (score >= 1.0)
+		if (score >= .85)
 			return true;
 		return false;
-		
-//		PhonemeEnum syl1VowelPhoneme = null;
-//		for (PhonemeEnum syl1Phoneme : syl1Token.getPhonemes()) {
-//			if (syl1Phoneme.isVowel()) {
-//				syl1VowelPhoneme = syl1Phoneme;
-//				break;
-//			}
-//		}
-//		PhonemeEnum syl2VowelPhoneme = null;
-//		for (PhonemeEnum syl2Phoneme : syl2Token.getPhonemes()) {
-//			if (syl2Phoneme.isVowel()) {
-//				syl2VowelPhoneme = syl2Phoneme;
-//				break;
-//			}
-//		}
-//
-//		return syl1VowelPhoneme.compareTo(syl2VowelPhoneme) == 0 && syl1Token.getStress() == syl2Token.getStress();
 	}
 
 	@Override
