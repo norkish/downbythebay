@@ -97,7 +97,7 @@ public class DummyDataLoader {
 			for (WordSyllables pronunciation : pronunciations) {
 				for (int i = 0; i < pronunciation.size(); i++) {
 					//TODO integrate syllable string representation into Ben's syllable objects
-					allTokens.add(new SyllableToken(pronunciation.get(i).getPhonemeEnums().toString(), pronunciation.get(i).getPhonemeEnums(), taggedWord.getSecond(), pronunciation.size(), i, pronunciation.get(i).getStress()));
+					allTokens.add(new SyllableToken(taggedWord.getFirst(), pronunciation.get(i).getPhonemeEnums(), taggedWord.getSecond(), pronunciation.size(), i, pronunciation.get(i).getStress()));
 				}
 			}
 		}

@@ -4,6 +4,7 @@ import java.util.LinkedList;
 
 import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
+import linguistic.phonetic.syllabic.Rhymer;
 import markov.Token;
 
 public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
@@ -29,6 +30,7 @@ public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
 		SyllableToken syl2Token = (SyllableToken) token;
 		
 		// TODO: BEN - implement function to determine if previousToken and token rhyme
+		Rhymer.score2Syllables();
 		
 		PhonemeEnum syl1VowelPhoneme = null;
 		for (PhonemeEnum syl1Phoneme : syl1Token.getPhonemes()) {

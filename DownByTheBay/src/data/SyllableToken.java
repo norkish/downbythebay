@@ -65,7 +65,8 @@ public class SyllableToken extends Token {
 		this.setCountOfSylsInContext(countOfSylsInContext);
 		this.setPositionInContext(positionInContext);
 		this.setStress(stress);
-		this.setStringRepresentation(stringRepresentation);
+		if (positionInContext == 0)
+			this.setStringRepresentation(stringRepresentation);
 	}
 
 	public List<PhonemeEnum> getPhonemes() {
