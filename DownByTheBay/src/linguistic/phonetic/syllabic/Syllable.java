@@ -1,9 +1,7 @@
 package linguistic.phonetic.syllabic;
 
-import linguistic.phonetic.ConsonantPhoneme;
-import linguistic.phonetic.Phoneme;
-import linguistic.phonetic.Pronunciation;
-import linguistic.phonetic.VowelPhoneme;
+import linguistic.phonetic.*;
+
 import java.util.List;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -117,6 +115,14 @@ public final class Syllable implements Serializable {
 		if (this.coda != null && !this.coda.isEmpty())
 			return true;
 		return false;
+	}
+
+	public List<PhonemeEnum> getPhonemeEnums() {
+		List<PhonemeEnum> result = new ArrayList<>();
+		for (Phoneme p : this.getAllPhonemes()) {
+			result.add(p.getPhonemeEnum());
+		}
+		return result;
 	}
 
 	@Override
