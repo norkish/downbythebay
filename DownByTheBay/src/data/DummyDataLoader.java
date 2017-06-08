@@ -1,5 +1,7 @@
 package data;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,13 +11,7 @@ import java.util.Map;
 
 import data.DataLoader.DataSummary;
 import edu.stanford.nlp.util.CoreMap;
-import linguistic.paul.Phonetecizer;
-import linguistic.phonetic.Phoneme;
-import linguistic.phonetic.PhonemeEnum;
 import linguistic.phonetic.Phoneticizer;
-import linguistic.phonetic.Pronunciation;
-import linguistic.phonetic.syllabic.Syllabifier;
-import linguistic.phonetic.syllabic.Syllable;
 import linguistic.phonetic.syllabic.WordSyllables;
 import linguistic.syntactic.Pos;
 import linguistic.syntactic.StanfordNlpInterface;
@@ -23,49 +19,51 @@ import markov.BidirectionalVariableOrderPrefixIDMap;
 import markov.NonHierarchicalBidirectionalVariableOrderPrefixIDMap;
 import markov.Token;
 import utils.Pair;
-import utils.Triple;
 import utils.Utils;
 
 public class DummyDataLoader {
 
 	public static StanfordNlpInterface nlp = new StanfordNlpInterface();
-	public static DataSummary loadData(int order) {
-
-		String[] trainingSentences = new String[]{
-//				"Have you ever seen a bear combing his hair?",
-//				"Have you ever seen a llama wearing polka dot pajamas?",
-//				"Have you ever seen a llama wearing pajamas?",
-//				"Have you ever seen a moose with a pair of new shoes?",
-//				"Have you ever seen a pirate that just ate a veggie diet?",
-				"Once I saw a bear combing his hair?",
-				"Why is it so weird to think about a llama wearing polka dot pajamas?",
-				"I have a llama wearing pajamas.",
-				"Have you seen a moose with a pair of new shoes?",
-				"Have you a pirate that just ate a veggie diet?",
-		};
-
-//		StringBuilder str = new StringBuilder();
-//		try {
-//			BufferedReader br = new BufferedReader(new FileReader("/Users/norkish/Archive/2017_BYU/ComputationalCreativity/data/COCA Text DB/text_fiction_awq/w_fic_2012.txt"));
-//			String currLine;
-//			while ((currLine = br.readLine()) != null) {
-//				str.append(currLine);
-//			}
-//			br.close();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//		
-//		String[] trainingSentences = str.toString().split(" . ");
+public static DataSummary loadData(int order) {
 		
-		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new NonHierarchicalBidirectionalVariableOrderPrefixIDMap<>(order);
-		Map<Integer, Map<Integer, Double>> transitions = new HashMap<>();
+//		String[] trainingSentences = new String[]{
+////				"Have you ever seen a bear combing his hair?",
+////				"Have you ever seen a llama wearing polka dot pajamas?",
+////				"Have you ever seen a llama wearing pajamas?",
+////				"Have you ever seen a moose with a pair of new shoes?",
+////				"Have you ever seen a pirate that just ate a veggie diet?",
+//				"Once I saw a bear combing his hair?",
+//				"Why is it so weird to think about a llama wearing polka dot pajamas?",
+//				"I have a llama wearing pajamas.",
+//				"Have you seen a moose with a pair of new shoes?",
+//				"Have you a pirate that just ate a veggie diet?",
+//		};
+//		
+		StringBuilder str = new StringBuilder();
+		try {
+			BufferedReader br = new BufferedReader(new FileReader("/Users/norkish/Archive/2017_BYU/ComputationalCreativity/data/COCA Text DB/text_fiction_awq/w_fic_2012.txt"));
+			String currLine;
+			while ((currLine = br.readLine()) != null) {
+				str.append(currLine);
+			}
+			br.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		String fileContents = str.toString();
+		fileContents = fileContents.replaceAll("##\\d+(?= )", "");
+		fileContents = fileContents.replaceAll("<p> ", "");
+		String[] trainingSentences = fileContents.split(" [[\\.,;:!\\-\")(?@]+ ]+");
+		
+		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new NonHierarchicalBidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
+		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
 
 		Integer fromTokenID, toTokenID;
 		for (String trainingSentence : trainingSentences) {
-			List<SyllableToken> trainingSentenceTokens = convertToSyllableTokens(trainingSentence);
+			List<SyllableToken> trainingSentenceTokens = convertToSyllableTokens(cleanSentence(trainingSentence));
 			if (trainingSentenceTokens == null) continue;
-			LinkedList<Token> prefix = new LinkedList<>(Collections.nCopies(order, Token.getStartToken()));
+			LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
 			fromTokenID = prefixIDMap.addPrefix(prefix);
 			for (SyllableToken syllableToken : trainingSentenceTokens) {
 				prefix.removeFirst();
@@ -75,16 +73,31 @@ public class DummyDataLoader {
 				fromTokenID = toTokenID;
 			}
 		}
-
+		
 		Utils.normalizeByFirstDimension(transitions);
 		
 		DataSummary summary = new DataSummary(prefixIDMap, transitions);
 		return summary;
 	}
 
-	private static PhonemeEnum[] phonemeEnums = PhonemeEnum.values();
+	final private static String[] suffixes = new String[]{" n't "," ' "," 's "," 've ", " 'd ", " 'll ", " 're ", " 't "," 'm "};
+	private static String cleanSentence(String trainingSentence) {
+		trainingSentence = " " + trainingSentence + " ";
+		for (String suffix : suffixes) {
+			trainingSentence = trainingSentence.replaceAll(suffix, suffix.substring(1));
+		}
+		
+		trainingSentence = trainingSentence.trim();
+		
+		if (trainingSentence.isEmpty()) {
+			return null;
+		}
+		
+		return trainingSentence;
+	}
 
 	private static List<SyllableToken> convertToSyllableTokens(String trainingSentence) {
+		if (trainingSentence == null) return null;
 		List<CoreMap> taggedSentences = nlp.parseTextToCoreMaps(trainingSentence);
 		List<Pair<String,Pos>> taggedWords = nlp.parseCoreMapsToPairs(taggedSentences.get(0));
 		//TODO deal with instances where Stanford tagger splits words, like "don't" -> "do" + "n't"
