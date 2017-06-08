@@ -3,7 +3,6 @@ package constraint;
 import java.util.LinkedList;
 
 import data.SyllableToken;
-import linguistic.phonetic.PhonemeEnum;
 import linguistic.phonetic.syllabic.Rhymer;
 import linguistic.phonetic.syllabic.Syllabifier;
 import linguistic.phonetic.syllabic.Syllable;

@@ -7,14 +7,14 @@ import java.util.List;
 
 import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
+import constraint.EndOfWordConstraint;
 import constraint.PartOfSpeechInSegmentConstraint;
 import constraint.PartsOfSpeechConstraint;
-import constraint.PhonemesConstraint;
+import constraint.StartOfWordConstraint;
 import constraint.StressConstraint;
-import data.DataLoader.DataSummary;
 import data.DataLoader;
+import data.DataLoader.DataSummary;
 import data.SyllableToken;
-import linguistic.phonetic.PhonemeEnum;
 import linguistic.syntactic.Pos;
 import markov.SparseVariableOrderMarkovModel;
 import markov.SparseVariableOrderNHMM;
@@ -54,6 +54,9 @@ public class Main {
 		
 		// Add rest of constraints
 //		constraints.get(A).add(new PartOfSpeechConstraint<SyllableToken>(Pos.DT));
+		allConstraints.get(A).add(new StartOfWordConstraint<>());
+		allConstraints.get(A).add(new EndOfWordConstraint<>());
+		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
 		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
 		allConstraints.get(JA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
 		

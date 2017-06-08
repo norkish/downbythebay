@@ -1,9 +1,16 @@
 package linguistic.phonetic;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import edu.cmu.sphinx.linguist.g2p.G2PConverter;
+import edu.cmu.sphinx.linguist.g2p.Path;
 import linguistic.phonetic.syllabic.Syllabifier;
 import linguistic.phonetic.syllabic.Syllable;
 import linguistic.phonetic.syllabic.WordSyllables;
@@ -249,5 +256,35 @@ public class Phoneticizer {
 	
 	public static Map<String, List<Pronunciation>> getCmuDict() {
 		return cmuDict;
+	}
+
+	public static List<WordSyllables> useG2P(String upperCase) {
+		ArrayList<Path> phoneticize = converter.phoneticize(upperCase, 1);
+		
+		if (phoneticize == null || phoneticize.isEmpty())
+			return null;
+		
+		Path path = phoneticize.get(0);
+		if (path == null) return null;
+		ArrayList<String> pathPhones = path.getPath();
+		if (pathPhones.size() != 1) {
+			return null;
+		}
+
+		List<Phoneme> phones = new ArrayList<Phoneme>();
+		
+		String phone = pathPhones.get(0); 
+		PhonemeEnum temp = PhonemeEnum.valueOf(phone);
+		if (temp.isVowel()) {
+			phones.add(new VowelPhoneme(temp, 1));
+		}
+		else {
+			phones.add(new ConsonantPhoneme(temp));
+		}
+		
+		List<WordSyllables> wordSyllables = new ArrayList<WordSyllables>();
+		wordSyllables.add(Syllabifier.algorithmicallyParse(phones));
+		
+		return wordSyllables;
 	}
 }
