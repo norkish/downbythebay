@@ -80,7 +80,7 @@ public class DataLoader {
 		for (int i = 1990; i <= 2012; i++) {
 			StringBuilder str = new StringBuilder();
 			try {
-				final String fileName = "/Users/norkish/Archive/2017_BYU/ComputationalCreativity/data/COCA Text DB/text_fiction_awq/w_fic_" + i + ".txt";
+				final String fileName = "/data/text_fiction_awq/w_fic_" + i + ".txt";
 				System.out.println("Now training on " + fileName);
 				BufferedReader br = new BufferedReader(new FileReader(fileName));
 				String currLine;
