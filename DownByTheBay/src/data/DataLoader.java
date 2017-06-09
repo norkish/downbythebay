@@ -53,7 +53,7 @@ public class DataLoader {
 			this.transitions = transitions;
 		}
 	}
-	private static final int MAX_TRAINING_SENTENCES = 5;
+	private static final long MAX_TRAINING_SENTENCES = -1; // -1 for no limit
 	
 	public static DataSummary loadData(int order) {
 		
@@ -74,8 +74,8 @@ public class DataLoader {
 		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
 		
 		Integer fromTokenID, toTokenID;
-		int sentencesTrainedOn = 0;
-		int sentencePronunciationsTrainedOn = 0;
+		long sentencesTrainedOn = 0;
+		long sentencePronunciationsTrainedOn = 0;
 
 		for (int i = 1990; i <= 2012; i++) {
 			StringBuilder str = new StringBuilder();
