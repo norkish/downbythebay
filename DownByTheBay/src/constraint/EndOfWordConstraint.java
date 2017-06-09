@@ -15,4 +15,10 @@ public class EndOfWordConstraint<T> implements StaticConstraint<SyllableToken> {
 		}
 	}
 
+	private final String string = "Must be last syllable in a word";
+	@Override
+	public String toString() {
+		return string;
+	}
+
 }

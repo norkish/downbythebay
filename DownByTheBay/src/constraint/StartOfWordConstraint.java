@@ -14,4 +14,10 @@ public class StartOfWordConstraint<T> implements StaticConstraint<SyllableToken>
 		}
 	}
 
+	private final String string = "Must be first syllable in a word";
+	@Override
+	public String toString() {
+		return string;
+	}
+
 }

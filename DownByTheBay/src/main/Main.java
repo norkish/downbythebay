@@ -38,39 +38,45 @@ public class Main {
 		int[] rhythmicSuperTemplate = new int[]{0,1,0,1,0,1,0,1,0,1,0};
 		
 		// a constraint is a {syllable position, feature index, value}
-		List<List<Constraint<SyllableToken>>> allConstraints = new ArrayList<>();
+		List<List<Constraint<SyllableToken>>> generalConstraints = new ArrayList<>();
 		for (int i = 0; i < rhythmicSuperTemplate.length; i++) {
 			final ArrayList<Constraint<SyllableToken>> constraintsForPosition = new ArrayList<>();
-			allConstraints.add(constraintsForPosition);
+			generalConstraints.add(constraintsForPosition);
 			constraintsForPosition.add(new StressConstraint<>(rhythmicSuperTemplate[i]));
 		}
 		
 		// Add rest of constraints
-		allConstraints.get(A).add(new PartOfSpeechConstraint<>(Pos.DT));
-		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
-		allConstraints.get(JA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
+		generalConstraints.get(A).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.NN, Pos.JJ))));
+		generalConstraints.get(LLA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
+		generalConstraints.get(JA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
+		generalConstraints.get(MAS).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
 		
 		// train a high-order markov model on a corpus
 		
 		int[][] allRhythmicTemplates = new int[][] {
 			new int[]{0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
-			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
 			new int[]{0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
-			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1} //"a moose . with a pair of new . shoes ."
+			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1}, //"a moose . with a pair of new . shoes ."
+			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
 		};
 		
+		int prevOrder = -1;
+		SparseVariableOrderMarkovModel<SyllableToken> markovModel = null;
 		for (int[] rhythmicTemplate : allRhythmicTemplates) {
 			List<List<Constraint<SyllableToken>>> constraints = new ArrayList<>();
-			for (List<Constraint<SyllableToken>> allConstraintsAtPosition : allConstraints) {
+			for (List<Constraint<SyllableToken>> allConstraintsAtPosition : generalConstraints) {
 				constraints.add(new ArrayList<>(allConstraintsAtPosition));
 			}
 			int templateLength = 0;
 			int rhymeDistance = 0;
 			
+			int prevStress = -1;
 			for (int i = 0; i < rhythmicTemplate.length; i++) {
 				int stress = rhythmicTemplate[i];
 				if (stress == -1){
 					constraints.remove(templateLength);
+					if (prevStress != -1) constraints.get(templateLength-1).add(new EndOfWordConstraint<>());
+					prevStress = stress;
 					continue;
 				}
 				
@@ -84,21 +90,30 @@ public class Main {
 					constraints.get(templateLength).add(new BinaryRhymeConstraint<>(rhymeDistance));
 				}
 				templateLength += 1;
+				prevStress = stress;
 			}
 			
-			allConstraints.get(0).add(new StartOfWordConstraint<>());
-			allConstraints.get(templateLength-1).add(new EndOfWordConstraint<>());
+			constraints.get(0).add(new StartOfWordConstraint<>()); // ensure starts at beginning of a word
+			if (prevStress != -1) constraints.get(templateLength-1).add(new EndOfWordConstraint<>()); // ensure ends at end of a word
 			
 			markovOrder = rhymeDistance;
-			DataSummary summary = DataLoader.loadData(markovOrder); // TODO: replace with actual data loader
 			
-			SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.transitions);
-			
+			if (markovOrder != prevOrder) {
+				DataSummary summary = DataLoader.loadData(markovOrder);
+				markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.transitions);
+			}
+
 			System.out.println("For Rhythmic Template: " + Arrays.toString(rhythmicTemplate));
 			// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
 			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel;
 			try {
-				System.out.print("Creating NHMM");
+				System.out.println("Creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
+				for (int i = 0; i < constraints.size(); i++) {
+					System.out.println("\tAt position " + i + ":");
+					for (Constraint<SyllableToken> constraint : constraints.get(i)) {
+						System.out.println("\t\t" + constraint);
+					}
+				}
 				constrainedMarkovModel = new SparseVariableOrderNHMM<>(markovModel, templateLength, constraints);
 				System.out.println();
 			} catch (UnsatisfiableConstraintSetException e) {
@@ -110,12 +125,14 @@ public class Main {
 				// generate a sequence of syllable tokens that meet the constraints
 				List<SyllableToken> generatedSequence = constrainedMarkovModel.generateWithAnyPrefix(templateLength);
 				// convert the sequence of syllable tokens to a human-readable string
-				System.out.print("\tHave you ever seen: ");
+				System.out.print("\tHave you ever seen ");
 				for (SyllableToken syllableToken : generatedSequence) {
-					System.out.print(syllableToken.getStringRepresentationIfFirstSyllable() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":"")); // TODO: modify it to print out the human-readable form of the syllable/word
+					System.out.print(syllableToken.getStringRepresentationIfFirstSyllable() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":""));
 				}
-				System.out.println();
+				System.out.println(" down by the bay?");
 			}
+			
+			prevOrder = markovOrder;
 		}
 	}
 

@@ -9,7 +9,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import data.DataLoader.DataSummary;
 import edu.stanford.nlp.util.CoreMap;
 import linguistic.phonetic.Phoneticizer;
 import linguistic.phonetic.syllabic.WordSyllables;
@@ -49,7 +48,7 @@ public class DataLoader {
 			this.transitions = transitions;
 		}
 	}
-	private static final int MAX_TRAINING_SENTENCES = Integer.MAX_VALUE;
+	private static final int MAX_TRAINING_SENTENCES = 5000;
 	
 	public static DataSummary loadData(int order) {
 		
@@ -65,47 +64,55 @@ public class DataLoader {
 //				"Have you seen a moose with a pair of new shoes?",
 //				"Have you a pirate that just ate a veggie diet?",
 //		};
-//		
-		StringBuilder str = new StringBuilder();
-		try {
-			BufferedReader br = new BufferedReader(new FileReader("/Users/norkish/Archive/2017_BYU/ComputationalCreativity/data/COCA Text DB/text_fiction_awq/w_fic_2012.txt"));
-			String currLine;
-			while ((currLine = br.readLine()) != null) {
-				str.append(currLine);
-			}
-			br.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		String fileContents = str.toString();
-		fileContents = fileContents.replaceAll("##\\d+(?= )", "");
-		fileContents = fileContents.replaceAll("<p> ", "");
-		String[] trainingSentences = fileContents.split(" [[\\.,;:!\\-\")(?@]+ ]+");
-		
+
 		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new NonHierarchicalBidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
 		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
-
+		
 		Integer fromTokenID, toTokenID;
 		int sentencesTrainedOn = 0;
-		for (String trainingSentence : trainingSentences) {
+
+		for (int i = 1990; i <= 2012; i++) {
+			StringBuilder str = new StringBuilder();
+			try {
+				final String fileName = "/Users/norkish/Archive/2017_BYU/ComputationalCreativity/data/COCA Text DB/text_fiction_awq/w_fic_" + i + ".txt";
+				System.out.println("Now training on " + fileName);
+				BufferedReader br = new BufferedReader(new FileReader(fileName));
+				String currLine;
+				while ((currLine = br.readLine()) != null) {
+					str.append(currLine);
+				}
+				br.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			String fileContents = str.toString();
+			fileContents = fileContents.replaceAll("##\\d+(?= )", "");
+			fileContents = fileContents.replaceAll("<p> ", "");
+			String[] trainingSentences = fileContents.split(" [[\\.,;:!\\-\")(?@]+ ]+");
+			
+			for (String trainingSentence : trainingSentences) {
+				if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
+					break;
+				}
+				List<SyllableToken> trainingSentenceTokens = convertToSyllableTokens(cleanSentence(trainingSentence));
+				if (trainingSentenceTokens == null) continue;
+				LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
+				fromTokenID = prefixIDMap.addPrefix(prefix);
+				for (SyllableToken syllableToken : trainingSentenceTokens) {
+					prefix.removeFirst();
+					prefix.addLast(syllableToken);
+					toTokenID = prefixIDMap.addPrefix(prefix);
+					Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID);
+					fromTokenID = toTokenID;
+				}
+				sentencesTrainedOn++;
+			}
 			if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
 				break;
 			}
-			List<SyllableToken> trainingSentenceTokens = convertToSyllableTokens(cleanSentence(trainingSentence));
-			if (trainingSentenceTokens == null) continue;
-			LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
-			fromTokenID = prefixIDMap.addPrefix(prefix);
-			for (SyllableToken syllableToken : trainingSentenceTokens) {
-				prefix.removeFirst();
-				prefix.addLast(syllableToken);
-				toTokenID = prefixIDMap.addPrefix(prefix);
-				Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID);
-				fromTokenID = toTokenID;
-			}
-			sentencesTrainedOn++;
 		}
-		
+		System.err.println("Trained on " + sentencesTrainedOn + " sentences");
 		Utils.normalizeByFirstDimension(transitions);
 		
 		DataSummary summary = new DataSummary(prefixIDMap, transitions);

@@ -29,7 +29,7 @@ public class PartOfSpeechInSegmentConstraint<T> implements DynamicConstraint<Syl
 
 	@Override
 	public String toString() {
-		return "One of last " + lengthOfSegment + "syllables must be " + StringUtils.join(partsOfSpeech);
+		return "Current or one of previous " + lengthOfSegment + " syllables must be in " + StringUtils.join(partsOfSpeech);
 	}
 
 	@Override
