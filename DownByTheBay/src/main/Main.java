@@ -129,7 +129,7 @@ public class Main {
 				for (SyllableToken syllableToken : generatedSequence) {
 					System.out.print(syllableToken.getStringRepresentationIfFirstSyllable() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":""));
 				}
-				System.out.println(" down by the bay?");
+				System.out.println("down by the bay?");
 			}
 			
 			prevOrder = markovOrder;

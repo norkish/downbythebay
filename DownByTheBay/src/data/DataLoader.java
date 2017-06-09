@@ -5,12 +5,17 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import edu.stanford.nlp.util.CoreMap;
+import linguistic.phonetic.Phoneme;
 import linguistic.phonetic.Phoneticizer;
+import linguistic.phonetic.VowelPhoneme;
 import linguistic.phonetic.syllabic.WordSyllables;
 import linguistic.syntactic.Pos;
 import linguistic.syntactic.StanfordNlpInterface;
@@ -48,7 +53,7 @@ public class DataLoader {
 			this.transitions = transitions;
 		}
 	}
-	private static final int MAX_TRAINING_SENTENCES = 5000;
+	private static final int MAX_TRAINING_SENTENCES = 5;
 	
 	public static DataSummary loadData(int order) {
 		
@@ -70,6 +75,7 @@ public class DataLoader {
 		
 		Integer fromTokenID, toTokenID;
 		int sentencesTrainedOn = 0;
+		int sentencePronunciationsTrainedOn = 0;
 
 		for (int i = 1990; i <= 2012; i++) {
 			StringBuilder str = new StringBuilder();
@@ -95,24 +101,34 @@ public class DataLoader {
 				if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
 					break;
 				}
-				List<SyllableToken> trainingSentenceTokens = convertToSyllableTokens(cleanSentence(trainingSentence));
-				if (trainingSentenceTokens == null) continue;
-				LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
-				fromTokenID = prefixIDMap.addPrefix(prefix);
-				for (SyllableToken syllableToken : trainingSentenceTokens) {
-					prefix.removeFirst();
-					prefix.addLast(syllableToken);
-					toTokenID = prefixIDMap.addPrefix(prefix);
-					Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID);
-					fromTokenID = toTokenID;
+				// get syllable tokens for all unique pronunciations of the sentence
+				List<List<SyllableToken>> trainingTokensSentences = convertToSyllableTokens(cleanSentence(trainingSentence));
+				// if there was no valid pronunciation, skip it
+				if (trainingTokensSentences == null) continue;
+				// for each pronunciation
+				boolean foundValidPronunciation = false;
+				for (List<SyllableToken> trainingSentenceTokens : trainingTokensSentences) {
+					if (trainingSentenceTokens.isEmpty()) continue;
+					foundValidPronunciation = true;
+					LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
+					fromTokenID = prefixIDMap.addPrefix(prefix);
+					for (SyllableToken syllableToken : trainingSentenceTokens) {
+						prefix.removeFirst();
+						prefix.addLast(syllableToken);
+						toTokenID = prefixIDMap.addPrefix(prefix);
+						Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID);
+						fromTokenID = toTokenID;
+					}
+					sentencePronunciationsTrainedOn++;
 				}
-				sentencesTrainedOn++;
+				if (foundValidPronunciation)
+					sentencesTrainedOn++;
 			}
 			if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
 				break;
 			}
 		}
-		System.err.println("Trained on " + sentencesTrainedOn + " sentences");
+		System.err.println("Trained on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		Utils.normalizeByFirstDimension(transitions);
 		
 		DataSummary summary = new DataSummary(prefixIDMap, transitions);
@@ -138,29 +154,122 @@ public class DataLoader {
 		return trainingSentence;
 	}
 
-	private static List<SyllableToken> convertToSyllableTokens(String trainingSentence) {
-		if (trainingSentence == null) return null;
+	private static List<List<SyllableToken>> convertToSyllableTokens(String trainingSentence) {
+		if (trainingSentence == null || trainingSentence.trim().isEmpty()) return null;
 		List<CoreMap> taggedSentences = nlp.parseTextToCoreMaps(trainingSentence);
 		List<Pair<String,Pos>> taggedWords = nlp.parseCoreMapsToPairs(taggedSentences.get(0));
 		//TODO deal with instances where Stanford tagger splits words, like "don't" -> "do" + "n't"
 //		final String[] words = trainingSentence.split("\\s+");
 
-		List<SyllableToken> allTokens = new ArrayList<>();
+		List<List<SyllableToken>> allTokensSentences = new ArrayList<>();
+		allTokensSentences.add(new ArrayList<>());
+		// for every word
 		for (Pair<String,Pos> taggedWord : taggedWords) {
 			if (taggedWord.getSecond() == null) continue;
 			List<WordSyllables> pronunciations = Phoneticizer.syllableDict.get(taggedWord.getFirst().toUpperCase());
 			if (pronunciations == null) {
 				pronunciations = Phoneticizer.useG2P(taggedWord.getFirst().toUpperCase());
 			}
-			if (pronunciations == null) return null;
-			for (WordSyllables pronunciation : pronunciations.subList(0, 1)) {
-				for (int i = 0; i < pronunciation.size(); i++) {
-					//TODO integrate syllable string representation into Ben's syllable objects
-					allTokens.add(new SyllableToken(taggedWord.getFirst(), pronunciation.get(i).getPhonemeEnums(), taggedWord.getSecond(), pronunciation.size(), i, pronunciation.get(i).getStress()));
+			if (pronunciations == null || pronunciations.isEmpty()) return null;
+			reduceUnnecessaryPronunciations(pronunciations);
+			// replicate all of the token sentences so far
+			int pronunciationCount = pronunciations.size();
+			replicateTokenSentences(allTokensSentences, pronunciationCount);
+			
+			// for every pronunciation of the word
+			for (int i = 0; i < pronunciationCount; i++ ) {
+				WordSyllables pronunciation = pronunciations.get(i); 
+				// for each syllable in that pronunciation
+				for (int j = 0; j < pronunciation.size(); j++) {
+					// create a new syllable token
+					final SyllableToken newSyllableToken = new SyllableToken(taggedWord.getFirst(), pronunciation.get(j).getPhonemeEnums(), taggedWord.getSecond(), pronunciation.size(), j, pronunciation.get(j).getStress());
+					for (int k = i; k < allTokensSentences.size(); k+=pronunciationCount) {
+						// and add it to each original sentence
+						List<SyllableToken> sentenceTokens = allTokensSentences.get(k);
+						sentenceTokens.add(newSyllableToken);
+					}
 				}
 			}
 		}
-		return allTokens;
+		// if there were no words
+		return allTokensSentences;
+	}
+
+	private static void reduceUnnecessaryPronunciations(List<WordSyllables> pronunciations) {
+		Set<Integer> idxsToRemove = new HashSet<Integer>();
+		List<Phoneme> wordSyllables1, wordSyllables2;
+		for (int i = 0; i < pronunciations.size()-1; i++) {
+			if (idxsToRemove.contains(i)) continue;
+			wordSyllables1 = pronunciations.get(i).getPronunciation();
+			for (int j = i+1; j < pronunciations.size(); j++) {
+				if (idxsToRemove.contains(j)) continue;
+				boolean allSamePhonemeEnums = true;
+				boolean wordSyllable1hasLessStressedSyllables = false;
+				boolean wordSyllable2hasLessStressedSyllables = false;
+				wordSyllables2 = pronunciations.get(j).getPronunciation();
+				if (wordSyllables1.size() == wordSyllables2.size()) {
+					for (int k = 0; k < wordSyllables1.size(); k++) {
+						Phoneme phoneme1 = wordSyllables1.get(k);
+						Phoneme phoneme2 = wordSyllables2.get(k);
+						if (phoneme1.getPhonemeEnum() == phoneme2.getPhonemeEnum()) {
+							if (phoneme1.isVowel()) {
+								if (phoneme2.isVowel()) {
+									int phoneme1Stress = ((VowelPhoneme) phoneme1).stress;
+									int phoneme2Stress = ((VowelPhoneme) phoneme2).stress;
+									if (phoneme1Stress > phoneme2Stress) {
+										wordSyllable2hasLessStressedSyllables = true;
+									} else if (phoneme2Stress > phoneme1Stress) {
+										wordSyllable1hasLessStressedSyllables = true;
+									}
+								}
+							}
+						} else {
+							allSamePhonemeEnums = false;
+							break;
+						}
+					}
+				} else {
+					allSamePhonemeEnums = false;
+				}
+				
+				if (allSamePhonemeEnums) {
+					if (wordSyllable1hasLessStressedSyllables) {
+						if (!wordSyllable2hasLessStressedSyllables) {
+							// they're all the same and wordSyllable2 is strictly more stressed, so we can get away with using just the first
+							idxsToRemove.add(j);
+						}
+					} else {
+						if (wordSyllable2hasLessStressedSyllables) {
+							// they're all the same and wordSyllable1 is strictly more stressed, so we can get away with using just the second
+							idxsToRemove.add(i);
+						}
+					}
+				}
+			}
+		}
+		
+		final ArrayList<Integer> listOfIdxsToRemove = new ArrayList<Integer>(idxsToRemove);
+		Collections.sort(listOfIdxsToRemove, Collections.reverseOrder());
+		for (Integer idxToRemove : listOfIdxsToRemove) {
+			pronunciations.remove((int)idxToRemove);
+		}
+	}
+
+	/**
+	 * Replicates each entry in allTokensSentences so that there are copies times more instances of the entry
+	 * with copies of a given entry being placed together, preserving original ordering or unique entries 
+	 * @param allTokensSentences
+	 * @param copies
+	 */
+	private static void replicateTokenSentences(List<List<SyllableToken>> allTokensSentences, int copies) {
+		if (copies == 1) return;
+		else {
+			int allTokensSize = allTokensSentences.size();
+			for (int i = allTokensSize-1; i >=0; i--) {
+				List<SyllableToken> sentenceToReplicate = allTokensSentences.get(i);
+				allTokensSentences.add(i,new ArrayList<SyllableToken>(sentenceToReplicate));
+			}
+		}
 	}
 
 }

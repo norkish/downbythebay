@@ -46,8 +46,7 @@ public class SyllableToken extends Token {
 
 	@Override
 	public String toString() {
-		return getStringRepresentation();
-//		return phonemes + ", " + pos + ", " + countOfSylsInContext + ", " + positionInContext + ", " + stress;
+		return ""+ phonemes + stress;// + ", " + pos + ", " + countOfSylsInContext + ", " + positionInContext + ", " + stress;
 	}
 
 	private List<PhonemeEnum> phonemes;
