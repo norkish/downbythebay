@@ -47,8 +47,8 @@ public class Syllabifier {
 		for (int i = 0; i < value.size();i++){
 			Triple<String, StressedPhone[], StressedPhone> triple = value.get(i);
 			if (i!=0){
-				wStr.append('•');
-				pStr.append('•');
+				wStr.append('*');
+				pStr.append('*');
 			}
 			wStr.append(triple.getFirst());
 			StressedPhone[] syls = triple.getSecond();
