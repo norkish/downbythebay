@@ -468,9 +468,14 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		if (constraint instanceof DynamicConstraint) {
 			// iterate over transition matrix at this position
 			Map<Integer, Map<Integer, Double>> logTransitionsForPosition = this.logTransitions.get(position);
-			for (Integer fromStateIdx : logTransitionsForPosition.keySet()) {
+			
+			for (Integer fromStateIdx : new HashSet<Integer>(logTransitionsForPosition.keySet())) {
+				if (!logTransitionsForPosition.containsKey(fromStateIdx)) {
+					continue;
+				}
 				LinkedList<Token> fromState = tokens.get(fromStateIdx);
-				for (Integer toStateIdx : logTransitionsForPosition.get(fromStateIdx).keySet()) {
+				for (Integer toStateIdx : new HashSet<Integer>(logTransitionsForPosition.get(fromStateIdx).keySet())) {
+					if (!logTransitionsForPosition.containsKey(fromStateIdx) || !logTransitionsForPosition.get(fromStateIdx).containsKey(toStateIdx)) continue;
 					LinkedList<Token> toState = tokens.get(toStateIdx);
 					if (!((DynamicConstraint<T>) constraint).isSatisfiedBy(fromState, toState.getLast())) {
 						posStateToRemove.addAll(removeTransition(position, fromStateIdx, toStateIdx));
