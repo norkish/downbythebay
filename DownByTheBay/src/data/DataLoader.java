@@ -49,7 +49,7 @@ public class DataLoader {
 			this.transitions = transitions;
 		}
 	}
-	private static final int MAX_TRAINING_SENTENCES = 5000;
+	private static final int MAX_TRAINING_SENTENCES = Integer.MAX_VALUE;
 	
 	public static DataSummary loadData(int order) {
 		

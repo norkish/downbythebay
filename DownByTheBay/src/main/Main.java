@@ -8,6 +8,7 @@ import java.util.List;
 import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
 import constraint.EndOfWordConstraint;
+import constraint.PartOfSpeechConstraint;
 import constraint.PartOfSpeechInSegmentConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.StartOfWordConstraint;
@@ -34,7 +35,6 @@ public class Main {
 
 		setupRootPath();
 
-//		int[] rhythmicSuperTemplate = new int[]{1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0};
 		int[] rhythmicSuperTemplate = new int[]{0,1,0,1,0,1,0,1,0,1,0};
 		
 		// a constraint is a {syllable position, feature index, value}
@@ -45,26 +45,12 @@ public class Main {
 			constraintsForPosition.add(new StressConstraint<>(rhythmicSuperTemplate[i]));
 		}
 		
-		// Add primer constraints (i.e., "Have you ever seen")
-//		allConstraints.get(HAVE).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.HH, PhonemeEnum.AE, PhonemeEnum.V)));
-//		allConstraints.get(YOU).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.Y, PhonemeEnum.UW)));
-//		allConstraints.get(EV).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.EH)));
-//		allConstraints.get(ER).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.V, PhonemeEnum.ER)));
-//		allConstraints.get(SEEN).add(new PhonemesConstraint<SyllableToken>(Arrays.asList(PhonemeEnum.S, PhonemeEnum.IY, PhonemeEnum.N)));
-		
 		// Add rest of constraints
-//		constraints.get(A).add(new PartOfSpeechConstraint<SyllableToken>(Pos.DT));
-		allConstraints.get(A).add(new StartOfWordConstraint<>());
-		allConstraints.get(A).add(new EndOfWordConstraint<>());
-		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
+		allConstraints.get(A).add(new PartOfSpeechConstraint<>(Pos.DT));
 		allConstraints.get(LLA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
 		allConstraints.get(JA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
 		
-		// train a variable-order markov model on a corpus
-		// NOTE: we could choose the order as a function of the rhythmic template (e.g., rhythmic
-		// templates with fewer syllables between dynamically constrained syllables could have a lower order),
-		// but this would require retraining the Markov model for each rhythmic template. 
-		
+		// train a high-order markov model on a corpus
 		
 		int[][] allRhythmicTemplates = new int[][] {
 			new int[]{0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
@@ -99,6 +85,10 @@ public class Main {
 				}
 				templateLength += 1;
 			}
+			
+			allConstraints.get(0).add(new StartOfWordConstraint<>());
+			allConstraints.get(templateLength-1).add(new EndOfWordConstraint<>());
+			
 			markovOrder = rhymeDistance;
 			DataSummary summary = DataLoader.loadData(markovOrder); // TODO: replace with actual data loader
 			
