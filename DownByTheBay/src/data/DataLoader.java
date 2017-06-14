@@ -127,6 +127,7 @@ public class DataLoader {
 			if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
 				break;
 			}
+			break;
 		}
 		System.err.println("Trained on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		Utils.normalizeByFirstDimension(transitions);
@@ -156,8 +157,10 @@ public class DataLoader {
 
 	private static List<List<SyllableToken>> convertToSyllableTokens(String trainingSentence) {
 		if (trainingSentence == null || trainingSentence.trim().isEmpty()) return null;
+		System.out.println(trainingSentence);
 		List<CoreMap> taggedSentences = nlp.parseTextToCoreMaps(trainingSentence);
 		List<Pair<String,Pos>> taggedWords = nlp.parseCoreMapsToPairs(taggedSentences.get(0));
+		if (1.0 == 1) return null;
 		//TODO deal with instances where Stanford tagger splits words, like "don't" -> "do" + "n't"
 //		final String[] words = trainingSentence.split("\\s+");
 

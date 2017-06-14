@@ -27,6 +27,7 @@ public class NonHierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Toke
 		
 		Integer id = prefixToIDMap.get(prefix);
 		if (id == null) {
+			System.out.println("nextID:" + nextID);
 			id = nextID++;
 			final LinkedList<Token> prefixCopy = new LinkedList<Token>(prefix);
 			prefixToIDMap.put(prefixCopy, id);
