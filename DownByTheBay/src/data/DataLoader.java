@@ -127,6 +127,7 @@ public class DataLoader {
 			if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
 				break;
 			}
+			break;
 		}
 		System.err.println("Trained on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		Utils.normalizeByFirstDimension(transitions);
