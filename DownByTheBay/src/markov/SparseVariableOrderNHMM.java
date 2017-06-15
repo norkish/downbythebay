@@ -38,9 +38,8 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			for (int i = 0; i < length; i++) {
 				this.inSupport.add(new HashMap<Integer, Integer>());
 			}
-			for (int i = 0; i < length; i++) {
-				logTransitions.add(deepCopy(model.logTransitions));
-			}
+				
+			logTransitions.add(deepCopy(model.logTransitions));
 		
 			Map<Integer, Integer> inSupportAtPosLessOne, inSupportAtPos = inSupport.get(0);
 			for (Map<Integer, Double> toTokenMap : model.logTransitions.values()) {
@@ -55,6 +54,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			Integer pathsToFromState;
 			// for each possible transition (fromState -> toState) from the original naive transition matrix
 			for (int i = 1; i < length; i++) {
+				logTransitions.add(deepCopy(model.logTransitions));
 				System.out.print(".");
 				inSupportAtPos = inSupport.get(i);
 				inSupportAtPosLessOne = inSupport.get(i-1);
@@ -81,15 +81,15 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 						posStateToRemove.add(new PositionedState(i-1, prevToState));
 					}
 				}
+				// remove states marked for removal because they result in premature terminations
+				while(!posStateToRemove.isEmpty())
+				{
+					PositionedState stateToRemove = posStateToRemove.iterator().next();
+					posStateToRemove.remove(stateToRemove);
+					posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStateIndex()));
+				}
 			}
 			
-			// remove states marked for removal because they result in premature terminations
-			while(!posStateToRemove.isEmpty())
-			{
-				PositionedState stateToRemove = posStateToRemove.iterator().next();
-				posStateToRemove.remove(stateToRemove);
-				posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStateIndex()));
-			}
 			
 			if(!satisfiable())
 			{
