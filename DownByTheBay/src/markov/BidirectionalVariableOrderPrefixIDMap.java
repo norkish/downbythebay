@@ -34,4 +34,7 @@ public abstract class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 
 	public abstract List<LinkedList<Token>> getIDToPrefixMap();
 
+	public int getPrefixCount() {
+		return nextID;
+	}
 }

@@ -94,7 +94,7 @@ public class HierarchicalBidirectionalVariableOrderPrefixIDMap<T extends Token> 
 
 	public List<LinkedList<Token>> getIDToPrefixMap() {
 		if (iDToPrefixMap == null || newPrefixesAdded) {
-			iDToPrefixMap = new ArrayList<>(nextID);
+			iDToPrefixMap = new ArrayList<>(getPrefixCount());
 			addAllIDsToIDToPrefixMap(prefixToIDMap, new LinkedList<>());
 			newPrefixesAdded = false;
 		}

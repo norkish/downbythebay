@@ -100,7 +100,9 @@ public class Main {
 			
 			if (markovOrder != prevOrder) {
 				DataSummary summary = DataLoader.loadData(markovOrder);
+				System.out.println("Data loaded for Main.java");
 				markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.transitions);
+				System.out.println("Creating Markov Model");
 			}
 
 			System.out.println("For Rhythmic Template: " + Arrays.toString(rhythmicTemplate));

@@ -107,6 +107,7 @@ public class DataLoader {
 				if (trainingTokensSentences == null) continue;
 				// for each pronunciation
 				boolean foundValidPronunciation = false;
+				System.out.println("PRON COUNT:" + trainingTokensSentences.size());
 				for (List<SyllableToken> trainingSentenceTokens : trainingTokensSentences) {
 					if (trainingSentenceTokens.isEmpty()) continue;
 					foundValidPronunciation = true;
@@ -121,6 +122,7 @@ public class DataLoader {
 					}
 					sentencePronunciationsTrainedOn++;
 				}
+				System.out.println("sentencesTrainedOn:" + sentencesTrainedOn + ", sentencePronunciationsTrainedOn:" + sentencePronunciationsTrainedOn + " transitions.size()=" + transitions.size() + " prefixIDMap.getPrefixCount()=" + prefixIDMap.getPrefixCount());
 				if (foundValidPronunciation)
 					sentencesTrainedOn++;
 			}
@@ -138,6 +140,7 @@ public class DataLoader {
 
 	final private static String[] suffixes = new String[]{" n't "," ' "," 's "," 've ", " 'd ", " 'll ", " 're ", " 't "," 'm "};
 	private static String cleanSentence(String trainingSentence) {
+		System.out.println("CLEAN:" + trainingSentence);
 		trainingSentence = " " + trainingSentence + " ";
 		for (String suffix : suffixes) {
 			if (trainingSentence.contains(suffix)) {
@@ -156,6 +159,7 @@ public class DataLoader {
 	}
 
 	private static List<List<SyllableToken>> convertToSyllableTokens(String trainingSentence) {
+		System.out.println("CONVERT:" + trainingSentence);
 		if (trainingSentence == null || trainingSentence.trim().isEmpty()) return null;
 		List<CoreMap> taggedSentences = nlp.parseTextToCoreMaps(trainingSentence);
 		List<Pair<String,Pos>> taggedWords = nlp.parseCoreMapsToPairs(taggedSentences.get(0));
