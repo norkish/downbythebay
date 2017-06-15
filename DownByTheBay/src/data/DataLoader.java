@@ -95,7 +95,7 @@ public class DataLoader {
 			String fileContents = str.toString();
 			fileContents = fileContents.replaceAll("##\\d+(?= )", "");
 			fileContents = fileContents.replaceAll("<p> ", "");
-			String[] trainingSentences = fileContents.split(" [[\\.,;:!\\-\")(?@]+ ]+");
+			String[] trainingSentences = fileContents.split(" [[^a-zA-Z']+ ]+");
 			
 			for (String trainingSentence : trainingSentences) {
 				if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
@@ -127,7 +127,6 @@ public class DataLoader {
 			if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
 				break;
 			}
-			break;
 		}
 		System.err.println("Trained on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		Utils.normalizeByFirstDimension(transitions);
