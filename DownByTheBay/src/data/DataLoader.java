@@ -55,6 +55,7 @@ public class DataLoader {
 		}
 	}
 	private static final long MAX_TRAINING_SENTENCES = 50000; // -1 for no limit
+	private static final long MAX_TOKENS_PER_SENTENCE = 40; // keeps Stanford NLP fast
 	private static final int DEBUG = 1; 
 	private static final boolean USE_DUMMY_DATA = false; 
 	
@@ -103,6 +104,7 @@ public class DataLoader {
 				
 				String fileContents = str.toString();
 				fileContents = fileContents.replaceAll("##\\d+(?= )", "");
+				fileContents = fileContents.replaceAll("-## ", "");
 				fileContents = fileContents.replaceAll("<p> ", "");
 				trainingSentences = fileContents.split(" [[^a-zA-Z']+ ]+");
 			}
@@ -163,6 +165,10 @@ public class DataLoader {
 		trainingSentence = trainingSentence.trim();
 		
 		if (trainingSentence.isEmpty()) {
+			return null;
+		}
+		
+		if (trainingSentence.split("\\s+").length > MAX_TOKENS_PER_SENTENCE) {
 			return null;
 		}
 		
