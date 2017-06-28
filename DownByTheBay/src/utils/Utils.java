@@ -116,21 +116,30 @@ public class Utils {
         return sortedMap;
     }
 
-	public static <T> void incrementValueForKey(Map<T, Integer> map, T key) {
-		Integer count = map.get(key);
-		map.put(key, count == null ? 1 : count + 1);		
+	public static <T> void incrementValueForKey(Map<T, Double> map, T key) {
+		incrementValueForKey(map, key, 1.0);
+	}
+	
+	public static <T> void incrementValueForKey(Map<T, Double> map, T key, Double incrementAmount) {
+		Double count = map.get(key);
+		map.put(key, count == null ? incrementAmount : count + incrementAmount);		
 	}
 
 	public static <S, T> void incrementValueForKeys(Map<S, Map<T, Double>> map2d, S key1,
 			T key2) {
+		incrementValueForKeys(map2d, key1, key2, 1.0);
+	}
+	
+	public static <S, T> void incrementValueForKeys(Map<S, Map<T, Double>> map2d, S key1,
+			T key2, Double incrementAmount) {
 		Map<T,Double> map1d = map2d.get(key1);
 		if (map1d == null) { // never even seen prevState
 			map1d = new HashMap<T,Double>();
-			map1d.put(key2, 1.);
+			map1d.put(key2, incrementAmount);
 			map2d.put(key1, map1d);
 		} else { // seen prev state
 			Double count = map1d.get(key2);
-			map1d.put(key2, count == null ? 1 : count + 1.);
+			map1d.put(key2, count == null ? 1 : count + incrementAmount);
 		}		
 	}
 

@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ import linguistic.phonetic.syllabic.WordSyllables;
 import linguistic.syntactic.Pos;
 import linguistic.syntactic.StanfordNlpInterface;
 import markov.BidirectionalVariableOrderPrefixIDMap;
-import markov.NonHierarchicalBidirectionalVariableOrderPrefixIDMap;
 import markov.Token;
 import utils.Pair;
 import utils.Utils;
@@ -48,34 +46,39 @@ public class DataLoader {
 		 */
 		public Map<Integer, Map<Integer, Double>> transitions;
 
-		public DataSummary(BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex, Map<Integer, Map<Integer, Double>> transitions) {
+		public Map<Integer, Double> priors;
+
+		public DataSummary(BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex, Map<Integer, Double> priors, Map<Integer, Map<Integer, Double>> transitions) {
 			this.statesByIndex = statesByIndex;
 			this.transitions = transitions;
+			this.priors = priors;
 		}
 	}
-	private static final long MAX_TRAINING_SENTENCES = 5000; // -1 for no limit
+	private static final long MAX_TRAINING_SENTENCES = 50000; // -1 for no limit
 	private static final int DEBUG = 1; 
-	private static final boolean USE_DUMMY_DATA = true; 
+	private static final boolean USE_DUMMY_DATA = false; 
 	
 	public static DataSummary loadData(int order) {
 		
 		String[] trainingSentences;
 		if (USE_DUMMY_DATA) {
 			trainingSentences = new String[]{
+					"iced cakes inside The Bake",
 					"Have you seen a moose with a pair of new shoes?",
 					"Have you ever seen a bear combing his hair?",
-	//				"Have you ever seen a llama wearing polka dot pajamas?",
-	//				"Have you ever seen a llama wearing pajamas?",
-	//				"Have you ever seen a moose with a pair of new shoes?",
-	//				"Have you ever seen a pirate that just ate a veggie diet?",
-					"I'm a bear combin' his hair?",
-					"Why is it so weird to think about a llama wearing polka dot pajamas?",
-					"I have a llama wearing pajamas.",
-					"Have you a pirate that just ate a veggie diet?",
+					"Have you ever seen a llama wearing polka dot pajamas?",
+					"Have you ever seen a llama wearing pajamas?",
+					"Have you ever seen a moose with a pair of new shoes?",
+					"Have you ever seen a pirate that just ate a veggie diet?",
+//					"I'm a bear combin' his hair?",
+//					"Why is it so weird to think about a llama wearing polka dot pajamas?",
+//					"I have a llama wearing pajamas.",
+//					"Have you a pirate that just ate a veggie diet?",
 			};
 		}
 
-		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new NonHierarchicalBidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
+		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new BidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
+		Map<Integer, Double> priors = new HashMap<Integer, Double>();
 		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
 		
 		Integer fromTokenID, toTokenID;
@@ -115,6 +118,7 @@ public class DataLoader {
 				// for each pronunciation
 				boolean foundValidPronunciation = false;
 				if (DEBUG > 1) System.out.println("PRON COUNT:" + trainingTokensSentences.size());
+				final double trainingWeight = 1.0/trainingTokensSentences.size();
 				for (List<SyllableToken> trainingSentenceTokens : trainingTokensSentences) {
 					if (trainingSentenceTokens.isEmpty()) continue;
 					foundValidPronunciation = true;
@@ -124,7 +128,8 @@ public class DataLoader {
 						prefix.removeFirst();
 						prefix.addLast(syllableToken);
 						toTokenID = prefixIDMap.addPrefix(prefix);
-						Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID);
+						Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID, trainingWeight);
+						Utils.incrementValueForKey(priors, fromTokenID, trainingWeight);
 						fromTokenID = toTokenID;
 					}
 					sentencePronunciationsTrainedOn++;
@@ -140,7 +145,7 @@ public class DataLoader {
 		System.err.println("Trained on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		Utils.normalizeByFirstDimension(transitions);
 		
-		DataSummary summary = new DataSummary(prefixIDMap, transitions);
+		DataSummary summary = new DataSummary(prefixIDMap, priors, transitions);
 		return summary;
 	}
 

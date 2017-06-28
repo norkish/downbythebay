@@ -13,7 +13,7 @@ import constraint.BinaryRhymeConstraint;
 import constraint.StaticConstraint;
 import utils.MathUtils;
 
-public class SparseNHMM<T extends Token> extends AbstractMarkovModel<T>{
+public class SparseSingleOrderNHMM<T extends Token> extends AbstractMarkovModel<T>{
 
 	T [] states;
 	Map<Integer, Double> logPriors;
@@ -22,7 +22,7 @@ public class SparseNHMM<T extends Token> extends AbstractMarkovModel<T>{
 	Map<T, Integer> stateIndex;
 	Random rand = new Random();
 	
-	public SparseNHMM(SparseSingleOrderMarkovModel<T> model, int length, List<List<StaticConstraint<T>>> constraints) {
+	public SparseSingleOrderNHMM(SparseSingleOrderMarkovModel<T> model, int length, List<List<StaticConstraint<T>>> constraints) {
 		this.states = model.states;
 		this.stateIndex = model.stateIndex;
 		this.logPriors = model.logPriors;
@@ -301,7 +301,7 @@ public class SparseNHMM<T extends Token> extends AbstractMarkovModel<T>{
 	}
 
 	public double probabilityOfSequence(T[] seq) {
-	double logProb = 0;
+		double logProb = 0;
 		
 		if(seq.length == 0)
 			return Double.NaN;
