@@ -1,5 +1,10 @@
 package genetic;
 
+import linguistic.phonetic.Phoneticizer;
+import linguistic.phonetic.syllabic.Rhymer;
+import linguistic.phonetic.syllabic.Syllable;
+import linguistic.phonetic.syllabic.WordSyllables;
+
 import java.util.*;
 
 public class GeneticMain {
@@ -7,7 +12,7 @@ public class GeneticMain {
 	public static Random r = new Random();
 	private final static int topIndividualN = 10;
 	private final static int offspringN = 100;
-	//rhyme score threshold is anything greater than 0, up to 1.0. Anything 0 to -1 is a bad rhyme
+	private final static int maxGenerations = 1000000000;
 
 	public static void main(String[] args) {
 		Map<String, Double> values = new HashMap<>();
@@ -15,13 +20,15 @@ public class GeneticMain {
 		values.put("frontness", 1.0);
 		values.put("height", 1.0);
 
-		values.put("place_of_articulation", 1.0);
-		values.put("manner_of_articulation", 1.0);
-		values.put("voicing", 1.0);
+		values.put("place_of_articulation", 100.0);
+		values.put("manner_of_articulation", 100.0);
+		values.put("voicing", 100.0);
 
 		values.put("onset", 1.0);
 		values.put("nucleus", 1.0);
 		values.put("coda", 1.0);
+
+		values.put("stress_diff", 1.0);
 
 		TreeSet<Individual> topIndividuals = new TreeSet<>();
 		for (int i = 0; i < topIndividualN; i++) {
@@ -31,7 +38,6 @@ public class GeneticMain {
 
 		double highestFitness = -1;
 		int generation = 0;
-		final int maxGenerations = 1000000000;
 
 		while (highestFitness < 1.0 && generation < maxGenerations) {
 			generation++;
@@ -39,8 +45,13 @@ public class GeneticMain {
 			//top individuals mate
 			List<Individual> allIndividualsOfNewGeneration = mateTopIndividuals(topIndividuals);
 
+			//OPTIONAL -- mix parents and new generation
+			List<Individual> pool = new ArrayList<>();
+			pool.addAll(allIndividualsOfNewGeneration);
+			pool.addAll(topIndividuals);
+
 			//find top topIndividualN individuals of new generation
-			topIndividuals = findTopIndividuals(allIndividualsOfNewGeneration);
+			topIndividuals = findTopIndividuals(pool);
 
 			//update highestFitness
 			highestFitness = topIndividuals.last().getFitness();
@@ -53,20 +64,6 @@ public class GeneticMain {
 		}
 
 	}
-	/*
-Vowel attribs
-	Frontness weight
-	Height weight
-Consonant attribs
-	Place of articulation weight
-	Manner of articulation weight
-	Voicing weight
-Syllable attribs
-	Onset weight
-	Nucleus weight
-	Coda weight
-
-	 */
 
 	public static List<Individual> mateTopIndividuals(Collection<Individual> topIndividuals) {
 		//TODO optimize so only lists come in? or they stay as treesets for sorting?
@@ -106,22 +103,69 @@ Syllable attribs
 		TreeSet<Individual> result = new TreeSet<>();
 		//sort by fitness, return the top topIndividualN
 		for (Individual i : allIndividuals) {
-			double score = calculateFitness(i);
-			i.setFitness(score);
+			double fitnessScore = calculateFitness(i);
+			i.setFitness(fitnessScore);
 		}
 		return result;
 	}
 
-	public static double calculateFitness(Individual ind1) {
-		IndividualResults results = classifyIndividual(ind1);
+	public static double calculateFitness(Individual ind) {
+		IndividualResults results = classifyIndividual(ind);
 		double precision = calculatePrecision(results.truePositives, results.falsePositives);
 		double recall = calculateRecall(results.truePositives, results.falseNegatives);
 		double fScore = calculateFScore(precision, recall);
 		return fScore;
 	}
 
-	public static IndividualResults classifyIndividual(Individual ind1) {
-		//dictionary is all words in CMU pronouncing dictionary
+	public static IndividualResults classifyIndividual(Individual ind) {
+		Map<String, List<WordSyllables>> dictionary = new HashMap<>(Phoneticizer.syllableDict);
+//		dictionary.keySet().retainAll(valid-cmu-words); // not necessary if using updated cmu dictionary
+		int truePositives = 0;
+		int trueNegatives = 0;
+		int falsePositives = 0;
+		int falseNegatives = 0;
+		for (Map.Entry<String, List<WordSyllables>> entry : dictionary.entrySet()) {
+			for (WordSyllables pronunciation : entry.getValue()) {
+				boolean pronunciationIsValid = true;
+				for (Syllable syllable : pronunciation) {
+					if (syllable.getOnset().size() > 1 || syllable.getCoda().size() > 1) {
+						pronunciationIsValid = false;
+						break;
+					}
+				}
+				if (pronunciationIsValid) {
+					Set<String> positives = null;//get all words datamuse says rhyme with it removing ones outside of valid cmu dictionary
+					Set<String> negatives = new HashSet<>(dictionary.keySet());
+					negatives.removeAll(negatives);
+
+					Rhymer temp = new Rhymer(ind);
+					Set<String> tempTruePositives = new HashSet<>();
+					Set<String> tempTrueNegatives = new HashSet<>();
+					Set<String> tempFalsePositives = new HashSet<>();
+					Set<String> tempFalseNegatives = new HashSet<>();
+					for (String positive : positives) {
+						double score = 0;// = temp.score2Syllables();
+						if (score > 0)
+							tempTruePositives.add(positive);
+						else
+							tempFalsePositives.add(positive);
+					}
+					for (String negative : negatives) {
+						double score = 0;// = temp.score2Syllables();
+						if (score > 0)
+							tempFalseNegatives.add(negative);
+						else
+							tempTrueNegatives.add(negative);
+					}
+					//inspect results here
+
+					truePositives += tempTruePositives.size();
+					trueNegatives += tempTrueNegatives.size();
+					falsePositives += tempFalsePositives.size();
+					falseNegatives += tempFalseNegatives.size();
+				}
+			}
+		}
 		//for each word in dictionary:
 			// if it contains syllable w/ an onset or coda of length > 1, continue
 			// count all words Datamuse says rhyme with it -> positives (rhymes)
@@ -129,7 +173,7 @@ Syllable attribs
 			// count all words (last syllable) my algorithm says rhymes with it -> (if rhyme, true positive. if non-rhyme, false positive)
 			// count all other words in dictionary -> (if rhyme, false negative. if non-rhyme, true negative)
 
-		return null;
+		return new IndividualResults(truePositives, trueNegatives, falsePositives, falseNegatives);
 	}
 
 	public static Individual crossover(Individual ind1, Individual ind2) {
@@ -145,7 +189,7 @@ Syllable attribs
 	}
 
 	public static double calculateFScore(double precision, double recall) {
-		return 2 * (precision * recall) / (precision + recall);
+		return 2 * ((precision * recall) / (precision + recall));
 	}
 
 	public static double calculatePrecision(double truePositives, double falsePositives) {

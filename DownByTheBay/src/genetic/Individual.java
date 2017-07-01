@@ -5,7 +5,6 @@ import java.util.Map;
 public class Individual implements Comparable<Individual> {
 
 	private Map<String,Double> values;
-	private IndividualResults results;
 	private double fitness = -1;
 
 	public Individual(Map<String, Double> values) {
@@ -38,14 +37,6 @@ public class Individual implements Comparable<Individual> {
 
 	public void setFitness(double fitness) {
 		this.fitness = fitness;
-	}
-
-	public IndividualResults getResults() {
-		return results;
-	}
-
-	public void setResults(IndividualResults results) {
-		this.results = results;
 	}
 
 	@Override
