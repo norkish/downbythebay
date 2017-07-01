@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ import linguistic.phonetic.syllabic.WordSyllables;
 import linguistic.syntactic.Pos;
 import linguistic.syntactic.StanfordNlpInterface;
 import markov.BidirectionalVariableOrderPrefixIDMap;
-import markov.NonHierarchicalBidirectionalVariableOrderPrefixIDMap;
 import markov.Token;
 import utils.Pair;
 import utils.Utils;
@@ -48,29 +46,40 @@ public class DataLoader {
 		 */
 		public Map<Integer, Map<Integer, Double>> transitions;
 
-		public DataSummary(BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex, Map<Integer, Map<Integer, Double>> transitions) {
+		public Map<Integer, Double> priors;
+
+		public DataSummary(BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex, Map<Integer, Double> priors, Map<Integer, Map<Integer, Double>> transitions) {
 			this.statesByIndex = statesByIndex;
 			this.transitions = transitions;
+			this.priors = priors;
 		}
 	}
-	private static final long MAX_TRAINING_SENTENCES = -1; // -1 for no limit
+	private static final long MAX_TRAINING_SENTENCES = 50000; // -1 for no limit
+	private static final long MAX_TOKENS_PER_SENTENCE = 40; // keeps Stanford NLP fast
+	private static final int DEBUG = 1; 
+	private static final boolean USE_DUMMY_DATA = false; 
 	
 	public static DataSummary loadData(int order) {
 		
-//		String[] trainingSentences = new String[]{
-////				"Have you ever seen a bear combing his hair?",
-////				"Have you ever seen a llama wearing polka dot pajamas?",
-////				"Have you ever seen a llama wearing pajamas?",
-////				"Have you ever seen a moose with a pair of new shoes?",
-////				"Have you ever seen a pirate that just ate a veggie diet?",
-//				"I'm a bear combin' his hair?",
-//				"Why is it so weird to think about a llama wearing polka dot pajamas?",
-//				"I have a llama wearing pajamas.",
-//				"Have you seen a moose with a pair of new shoes?",
-//				"Have you a pirate that just ate a veggie diet?",
-//		};
+		String[] trainingSentences;
+		if (USE_DUMMY_DATA) {
+			trainingSentences = new String[]{
+					"iced cakes inside The Bake",
+					"Have you seen a moose with a pair of new shoes?",
+					"Have you ever seen a bear combing his hair?",
+					"Have you ever seen a llama wearing polka dot pajamas?",
+					"Have you ever seen a llama wearing pajamas?",
+					"Have you ever seen a moose with a pair of new shoes?",
+					"Have you ever seen a pirate that just ate a veggie diet?",
+//					"I'm a bear combin' his hair?",
+//					"Why is it so weird to think about a llama wearing polka dot pajamas?",
+//					"I have a llama wearing pajamas.",
+//					"Have you a pirate that just ate a veggie diet?",
+			};
+		}
 
-		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new NonHierarchicalBidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
+		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap = new BidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
+		Map<Integer, Double> priors = new HashMap<Integer, Double>();
 		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
 		
 		Integer fromTokenID, toTokenID;
@@ -78,24 +87,27 @@ public class DataLoader {
 		long sentencePronunciationsTrainedOn = 0;
 
 		for (int i = 1990; i <= 2012; i++) {
-			StringBuilder str = new StringBuilder();
-			try {
-				final String fileName = "data/text_fiction_awq/w_fic_" + i + ".txt";
-				System.out.println("Now training on " + fileName);
-				BufferedReader br = new BufferedReader(new FileReader(fileName));
-				String currLine;
-				while ((currLine = br.readLine()) != null) {
-					str.append(currLine);
+			if (!USE_DUMMY_DATA) {
+				StringBuilder str = new StringBuilder();
+				try {
+					final String fileName = "data/text_fiction_awq/w_fic_" + i + ".txt";
+					if (DEBUG > 0) System.out.println("Now training on " + fileName);
+					BufferedReader br = new BufferedReader(new FileReader(fileName));
+					String currLine;
+					while ((currLine = br.readLine()) != null) {
+						str.append(currLine);
+					}
+					br.close();
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
-				br.close();
-			} catch (Exception e) {
-				e.printStackTrace();
+				
+				String fileContents = str.toString();
+				fileContents = fileContents.replaceAll("##\\d+(?= )", "");
+				fileContents = fileContents.replaceAll("-## ", "");
+				fileContents = fileContents.replaceAll("<p> ", "");
+				trainingSentences = fileContents.split(" [[^a-zA-Z']+ ]+");
 			}
-			
-			String fileContents = str.toString();
-			fileContents = fileContents.replaceAll("##\\d+(?= )", "");
-			fileContents = fileContents.replaceAll("<p> ", "");
-			String[] trainingSentences = fileContents.split(" [[\\.,;:!\\-\")(?@]+ ]+");
 			
 			for (String trainingSentence : trainingSentences) {
 				if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
@@ -107,6 +119,8 @@ public class DataLoader {
 				if (trainingTokensSentences == null) continue;
 				// for each pronunciation
 				boolean foundValidPronunciation = false;
+				if (DEBUG > 1) System.out.println("PRON COUNT:" + trainingTokensSentences.size());
+				final double trainingWeight = 1.0/trainingTokensSentences.size();
 				for (List<SyllableToken> trainingSentenceTokens : trainingTokensSentences) {
 					if (trainingSentenceTokens.isEmpty()) continue;
 					foundValidPronunciation = true;
@@ -116,27 +130,30 @@ public class DataLoader {
 						prefix.removeFirst();
 						prefix.addLast(syllableToken);
 						toTokenID = prefixIDMap.addPrefix(prefix);
-						Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID);
+						Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID, trainingWeight);
+						Utils.incrementValueForKey(priors, fromTokenID, trainingWeight);
 						fromTokenID = toTokenID;
 					}
 					sentencePronunciationsTrainedOn++;
 				}
+				if (DEBUG > 1) System.out.println("sentencesTrainedOn:" + sentencesTrainedOn + ", sentencePronunciationsTrainedOn:" + sentencePronunciationsTrainedOn + " transitions.size()=" + transitions.size() + " prefixIDMap.getPrefixCount()=" + prefixIDMap.getPrefixCount());
 				if (foundValidPronunciation)
 					sentencesTrainedOn++;
 			}
-			if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
+			if (sentencesTrainedOn == MAX_TRAINING_SENTENCES || USE_DUMMY_DATA) {
 				break;
 			}
 		}
 		System.err.println("Trained on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		Utils.normalizeByFirstDimension(transitions);
 		
-		DataSummary summary = new DataSummary(prefixIDMap, transitions);
+		DataSummary summary = new DataSummary(prefixIDMap, priors, transitions);
 		return summary;
 	}
 
 	final private static String[] suffixes = new String[]{" n't "," ' "," 's "," 've ", " 'd ", " 'll ", " 're ", " 't "," 'm "};
 	private static String cleanSentence(String trainingSentence) {
+		if (DEBUG > 1) System.out.println("CLEAN:" + trainingSentence);
 		trainingSentence = " " + trainingSentence + " ";
 		for (String suffix : suffixes) {
 			if (trainingSentence.contains(suffix)) {
@@ -151,10 +168,15 @@ public class DataLoader {
 			return null;
 		}
 		
+		if (trainingSentence.split("\\s+").length > MAX_TOKENS_PER_SENTENCE) {
+			return null;
+		}
+		
 		return trainingSentence;
 	}
 
 	private static List<List<SyllableToken>> convertToSyllableTokens(String trainingSentence) {
+		if (DEBUG > 1) System.out.println("CONVERT:" + trainingSentence);
 		if (trainingSentence == null || trainingSentence.trim().isEmpty()) return null;
 		List<CoreMap> taggedSentences = nlp.parseTextToCoreMaps(trainingSentence);
 		List<Pair<String,Pos>> taggedWords = nlp.parseCoreMapsToPairs(taggedSentences.get(0));
@@ -195,6 +217,12 @@ public class DataLoader {
 		return allTokensSentences;
 	}
 
+	/**
+	 * Looks for instances where pronunciations are redundant. For example "with" can be stressed and unstressed.
+	 * We want to keep the stressed version since in our stress constraint we care only that viable pronunciations
+	 * have at least as great a stress as the constraint mandates
+	 * @param pronunciations
+	 */
 	private static void reduceUnnecessaryPronunciations(List<WordSyllables> pronunciations) {
 		Set<Integer> idxsToRemove = new HashSet<Integer>();
 		List<Phoneme> wordSyllables1, wordSyllables2;
@@ -236,12 +264,12 @@ public class DataLoader {
 					if (wordSyllable1hasLessStressedSyllables) {
 						if (!wordSyllable2hasLessStressedSyllables) {
 							// they're all the same and wordSyllable2 is strictly more stressed, so we can get away with using just the first
-							idxsToRemove.add(j);
+							idxsToRemove.add(i);
 						}
 					} else {
 						if (wordSyllable2hasLessStressedSyllables) {
 							// they're all the same and wordSyllable1 is strictly more stressed, so we can get away with using just the second
-							idxsToRemove.add(i);
+							idxsToRemove.add(j);
 						}
 					}
 				}

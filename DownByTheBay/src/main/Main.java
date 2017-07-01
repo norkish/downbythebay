@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.commons.lang3.time.StopWatch;
+
 import constraint.BinaryRhymeConstraint;
 import constraint.Constraint;
 import constraint.EndOfWordConstraint;
@@ -19,6 +21,7 @@ import data.SyllableToken;
 import linguistic.syntactic.Pos;
 import markov.SparseVariableOrderMarkovModel;
 import markov.SparseVariableOrderNHMM;
+import markov.Token;
 import markov.UnsatisfiableConstraintSetException;
 
 public class Main {
@@ -100,12 +103,16 @@ public class Main {
 			
 			if (markovOrder != prevOrder) {
 				DataSummary summary = DataLoader.loadData(markovOrder);
-				markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.transitions);
+				System.out.println("Data loaded for Main.java");
+				markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.priors, summary.transitions);
+				System.out.println("Creating Markov Model");
 			}
 
 			System.out.println("For Rhythmic Template: " + Arrays.toString(rhythmicTemplate));
 			// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
 			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel;
+			StopWatch watch = new StopWatch();
+			watch.start();
 			try {
 				System.out.println("Creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
 				for (int i = 0; i < constraints.size(); i++) {
@@ -118,18 +125,23 @@ public class Main {
 				System.out.println();
 			} catch (UnsatisfiableConstraintSetException e) {
 				System.out.println("\t" + e.getMessage());
+				watch.stop();
+				System.out.println("Time to build model:" + watch.getTime());
 				continue;
 			}
+			watch.stop();
+			System.out.println("Time to build model:" + watch.getTime());
 			
-			for (int i = 0; i < 5; i++) {
+			for (int i = 0; i < 8; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
-				List<SyllableToken> generatedSequence = constrainedMarkovModel.generateWithAnyPrefix(templateLength);
+				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
 				// convert the sequence of syllable tokens to a human-readable string
 				System.out.print("\tHave you ever seen ");
 				for (SyllableToken syllableToken : generatedSequence) {
 					System.out.print(syllableToken.getStringRepresentationIfFirstSyllable() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":""));
 				}
 				System.out.println("down by the bay?");
+				System.out.println("\t\t" + generatedSequence + "\tProb:" + constrainedMarkovModel.probabilityOfSequence(generatedSequence.toArray(new Token[0])));
 			}
 			
 			prevOrder = markovOrder;

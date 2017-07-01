@@ -17,11 +17,18 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	BidirectionalVariableOrderPrefixIDMap<T> stateIndex;
 	private Random rand = new Random();
 	int order;
+	HashMap<Integer, Double> logPriors;
 	
 	@SuppressWarnings("unchecked")
-	public SparseVariableOrderMarkovModel(BidirectionalVariableOrderPrefixIDMap<T> statesByIndex, Map<Integer, Map<Integer, Double>> transitions) {
+	public SparseVariableOrderMarkovModel(BidirectionalVariableOrderPrefixIDMap<T> statesByIndex, Map<Integer, Double> priors, Map<Integer, Map<Integer, Double>> transitions) {
 		this.stateIndex = statesByIndex;
 		this.order = stateIndex.getOrder();
+		this.logPriors = new HashMap<Integer,Double>(priors.size());
+		
+		for (Entry<Integer, Double> priorEntry : priors.entrySet()) {
+			this.logPriors.put(priorEntry.getKey(), Math.log(priorEntry.getValue()));
+		}
+
 		this.logTransitions = new HashMap<Integer, Map<Integer, Double>>(transitions.size());
 		
 		Map<Integer, Double> newInnerMap, oldInnerMap;
@@ -43,12 +50,18 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 		if(seq.length == 0)
 			return Double.NaN;
 		
-		LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
+		LinkedList<Token> prefix = new LinkedList<Token>(Arrays.asList(seq).subList(0, order));
 		
-		Integer toStateIdx, fromStateIdx = stateIndex.getIDForPrefix(prefix);
+		Integer toStateIdx, fromStateIdx  = stateIndex.getIDForPrefix(prefix);
+		Double value = logPriors.get(fromStateIdx);
+		if (value == null) {
+			return 0.;
+		} else { 
+			logProb += value;
+		}
+		
 		Map<Integer, Double> innerMap;
-		Double value;
-		for (int i = 0; i < seq.length; i++) {
+		for (int i = order; i < seq.length; i++) {
 			innerMap = logTransitions.get(fromStateIdx);
 			if (innerMap == null)
 				return 0.;
@@ -71,6 +84,16 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	public String toString()
 	{
 		StringBuilder str = new StringBuilder();
+		
+		str.append("logPriors:");
+		str.append("[");
+		for (Entry<Integer, Double> entry : logPriors.entrySet()) {
+			str.append("\n\t");
+			str.append(entry.getKey());
+			str.append(", ");
+			str.append(Math.exp(entry.getValue()));
+		}
+		str.append("\n]\n\n");
 		
 		str.append("logTransitions:");
 		for (Entry<Integer, Map<Integer, Double>> entry: logTransitions.entrySet()) {
@@ -96,11 +119,20 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 		T toState;
 		
 		List<T> newSeq = new ArrayList<T>();
-		LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
-		fromStateIdx = stateIndex.getIDForPrefix(prefix);
-
+		
+		fromStateIdx = sampleStartStateIdx();
+		LinkedList<Token> prefixForID = stateIndex.getPrefixForID(fromStateIdx);
+		
+		final Token startToken = Token.getStartToken();
 		final Token endToken = Token.getEndToken();
-		for (int i = 0; i < length; i++) {
+		for (Token token : prefixForID) {
+			if (token == startToken) continue;
+			if (token == endToken) return newSeq;
+				
+			newSeq.add((T) token);
+		}
+
+		while (newSeq.size() < length) {
 
 			toStateIdx = sampleNextStateIdx(fromStateIdx);
 			toState = (T) stateIndex.getPrefixFinaleForID(toStateIdx);
@@ -130,6 +162,22 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 				{
 					return entry.getKey();
 				}
+			}
+		}
+		
+		return -1;
+	}
+	
+	private int sampleStartStateIdx() {
+		double randomDouble = rand.nextDouble();
+		
+		double accumulativeProbability = 0.;
+		
+		for (Entry<Integer, Double> entry : logPriors.entrySet()) {
+			accumulativeProbability += Math.exp(entry.getValue());
+			if (accumulativeProbability >= randomDouble)
+			{
+				return entry.getKey();
 			}
 		}
 		
@@ -221,9 +269,8 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	public static void main(String[] args) {
 		// following example in pachet paper
 		int order = 1;
-		BidirectionalVariableOrderPrefixIDMap<CharacterToken> statesByIndex = new HierarchicalBidirectionalVariableOrderPrefixIDMap<CharacterToken>(order);
+		BidirectionalVariableOrderPrefixIDMap<CharacterToken> statesByIndex = new BidirectionalVariableOrderPrefixIDMap<CharacterToken>(order);
 		
-		int startID = statesByIndex.addPrefix(new LinkedList<Token>(Arrays.asList(Token.getStartToken())));
 		final CharacterToken cToken = new CharacterToken('C');
 		int cID = statesByIndex.addPrefix(new LinkedList<Token>(Arrays.asList(cToken)));
 		final CharacterToken dToken = new CharacterToken('D');
@@ -233,11 +280,10 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 		
 		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
 		
-		final HashMap<Integer, Double> transFromStart = new HashMap<Integer, Double>();
-		transFromStart.put(cID, .5);
-		transFromStart.put(dID, 1.0/6);
-		transFromStart.put(eID, 1.0/3);
-		transitions.put(startID, transFromStart);
+		Map<Integer, Double> priors = new HashMap<Integer, Double>();
+		priors.put(cID, .5);
+		priors.put(dID, 1.0/6);
+		priors.put(eID, 1.0/3);
 
 		final HashMap<Integer, Double> transFromC = new HashMap<Integer, Double>();
 		transFromC.put(cID, .5);
@@ -247,7 +293,7 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 		
 		final HashMap<Integer, Double> transFromD = new HashMap<Integer, Double>();
 		transFromD.put(cID, .5);
-		transFromD.put(dID, 0.);
+//		transFromD.put(dID, 0.);
 		transFromD.put(eID, .5);
 		transitions.put(dID, transFromD);
 		
@@ -257,7 +303,7 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 		transFromE.put(eID, .25);
 		transitions.put(eID, transFromE);
 		
-		SparseVariableOrderMarkovModel<CharacterToken> model = new SparseVariableOrderMarkovModel<CharacterToken>(statesByIndex, transitions);
+		SparseVariableOrderMarkovModel<CharacterToken> model = new SparseVariableOrderMarkovModel<CharacterToken>(statesByIndex, priors, transitions);
 		
 		CharacterToken[][] seqs = new CharacterToken[][] {
 			new CharacterToken[]{cToken, cToken, cToken, dToken},

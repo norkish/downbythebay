@@ -1,8 +1,8 @@
 package linguistic.syntactic;
 
-import data.SyllableToken;
-import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.process.DocumentPreprocessor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 import edu.stanford.nlp.ie.AbstractSequenceClassifier;
 import edu.stanford.nlp.ling.CoreAnnotations;
@@ -16,13 +16,11 @@ import edu.stanford.nlp.process.TokenizerFactory;
 import edu.stanford.nlp.util.CoreMap;
 import utils.Pair;
 
-import java.util.*;
-
 public class StanfordNlpInterface {
 
 	private static StanfordCoreNLP pipeline;
 	private static final String INPUT_TYPE = "annotators";
-	private static final String ANNOTATORS = "tokenize, ssplit, pos, lemma, ner";
+	private static final String ANNOTATORS = "tokenize, ssplit, pos";
 	//    private final String ANNOTATORS = "tokenize, ssplit, pos, lemma, ner, parse, dcoref";
 	//private static final MaxentTagger tagger = new MaxentTagger(U.rootPath + "lib/stanford-parser/3.6.0/libexec/models/wsj-0-18-bidirectional-nodistsim.tagger");
 	//private final MaxentTagger tagger = new MaxentTagger(U.rootPath + "local-data/models/wordsToPos-tagger/english-left3words/english-bidirectional-distsim.tagger");
