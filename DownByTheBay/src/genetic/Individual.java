@@ -19,6 +19,9 @@ public class Individual implements Comparable<Individual> {
 		for (Map.Entry<String,Double> entry : this.getValues().entrySet()) {
 			if (GeneticMain.r.nextBoolean()) {
 				entry.setValue(entry.getValue() + (GeneticMain.r.nextDouble() - 0.5));
+				if (entry.getValue() <= 0) {
+					entry.setValue(0d);
+				}
 			}
 		}
 	}

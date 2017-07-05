@@ -17,18 +17,18 @@ public class GeneticMain {
 	public static void main(String[] args) {
 		Map<String, Double> values = new HashMap<>();
 
-		values.put("frontness", 1.0);
-		values.put("height", 1.0);
+		values.put("frontness", 10.0);
+		values.put("height", 10.0);
 
-		values.put("place_of_articulation", 100.0);
-		values.put("manner_of_articulation", 100.0);
-		values.put("voicing", 100.0);
+		values.put("place_of_articulation", 20.0);
+		values.put("manner_of_articulation", 20.0);
+		values.put("voicing", 5.0);
 
-		values.put("onset", 1.0);
-		values.put("nucleus", 1.0);
-		values.put("coda", 1.0);
+		values.put("onset", 10.0);
+		values.put("nucleus", 10.0);
+		values.put("coda", 10.0);
 
-		values.put("stress_diff", 1.0);
+		values.put("stress", 1.0);
 
 		TreeSet<Individual> topIndividuals = new TreeSet<>();
 		for (int i = 0; i < topIndividualN; i++) {
@@ -100,11 +100,17 @@ public class GeneticMain {
 	}
 
 	public static TreeSet<Individual> findTopIndividuals(Collection<Individual> allIndividuals) {
-		TreeSet<Individual> result = new TreeSet<>();
+		TreeSet<Individual> calculatedIndividuals = new TreeSet<>();
 		//sort by fitness, return the top topIndividualN
-		for (Individual i : allIndividuals) {
-			double fitnessScore = calculateFitness(i);
-			i.setFitness(fitnessScore);
+		for (Individual ind : allIndividuals) {
+			double fitnessScore = calculateFitness(ind);
+			ind.setFitness(fitnessScore);
+			calculatedIndividuals.add(ind);
+		}
+		TreeSet<Individual> result = new TreeSet<>();
+		for (int i = 0; i < topIndividualN; i++) {
+			result.add(calculatedIndividuals.last());
+			calculatedIndividuals.remove(calculatedIndividuals.last());
 		}
 		return result;
 	}

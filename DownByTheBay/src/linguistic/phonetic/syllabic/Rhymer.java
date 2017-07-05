@@ -8,6 +8,7 @@ import java.util.*;
 import data.SyllableToken;
 import genetic.Individual;
 import linguistic.phonetic.*;
+import main.Main;
 import utils.Utils;
 
 public class Rhymer {
@@ -44,7 +45,17 @@ public class Rhymer {
 		this.onsetWeight = map.get("onset");
 		this.nucleusWeight = map.get("nucleus");
 		this.codaWeight = map.get("coda");
-		this.stressWeight = map.get("stress_diff");
+		this.stressWeight = map.get("stress");
+	}
+
+	public static void main(String[] args) {
+		Main.setupRootPath();
+
+		List<WordSyllables> w1 = (Phoneticizer.getSyllables("fate"));
+		List<WordSyllables> w2 = (Phoneticizer.getSyllables("cat"));
+		Rhymer temp = new Rhymer(100,1,4,5,6,7,8,9,10);
+		double score = temp.score2Syllables(w1.get(0).get(0),w2.get(0).get(0));
+		System.out.println(score);
 	}
 
 	public static double score2SyllablesByClassicWeights(Syllable s1, Syllable s2) {
@@ -57,48 +68,52 @@ public class Rhymer {
 
 		List<ConsonantPhoneme> o1 = s1.getOnset();
 		List<ConsonantPhoneme> o2 = s2.getOnset();
+		double tempOnsetWeight = onsetWeight;
 		double onsetScore;
 		if (Utils.isNullorEmpty(o1) && Utils.isNullorEmpty(o2)) {
 			n--;
 			onsetScore = 0;
-//			onsetWeight = 0;
+			tempOnsetWeight = 0;
 		}
 		else
 			onsetScore = scoreConsonantPronunciations(o1,o2);
 
 		VowelPhoneme n1 = s1.getNucleus();
 		VowelPhoneme n2 = s2.getNucleus();
+		double tempNucleusWeight = nucleusWeight;
 		double nucleusScore;
 		if (n1 == null && n2 == null) {
 			n--;
 			nucleusScore = 0;
-//			nucleusWeight = 0;
+			tempNucleusWeight = 0;
 		}
 		else
 			nucleusScore = score2Vowels(n1,n2);
 
 		List<ConsonantPhoneme> c1 = s1.getCoda();
 		List<ConsonantPhoneme> c2 = s2.getCoda();
+		double tempCodaWeight = codaWeight;
 		double codaScore;
 		if (Utils.isNullorEmpty(c1) && Utils.isNullorEmpty(c2)) {
 			n--;
 			codaScore = 0;
-//			codaWeight = 0;
+			tempCodaWeight = 0;
 		}
 		else
 			codaScore = scoreConsonantPronunciations(c1,c2);
 
 
-		double total = (onsetWeight + nucleusWeight + codaWeight) / n;
+		double total = (tempOnsetWeight + tempNucleusWeight + tempCodaWeight) / n;
 
-		double onsetMult = onsetWeight / total;
-		double nucleusMult = nucleusWeight / total;
-		double codaMult = codaWeight / total;
+		double onsetMult = tempOnsetWeight / total;
+		double nucleusMult = tempNucleusWeight / total;
+		double codaMult = tempCodaWeight / total;
 
 		double syllableAlignmentScore = ((onsetMult * onsetScore) + (nucleusMult * nucleusScore) + (codaMult * codaScore)) / n;
 
 		int stressDiff = Math.abs(s1.getStress() - s2.getStress());
-		syllableAlignmentScore -= (stressDiff * stressWeight);
+		if (stressDiff > 0)
+			syllableAlignmentScore /= (stressDiff * stressWeight + 1);
 
 		return syllableAlignmentScore;
 	}
@@ -133,12 +148,13 @@ public class Rhymer {
 		double[] coord2 = PhonemeEnum.getCoord(n2.phonemeEnum);
 		if (coord1 == null || coord2 == null)
 			return 0;
-		double frontnessDiff = Math.abs(coord1[0] - coord2[0]);
-		double hightDiff = Math.abs(coord1[1] - coord2[1]);
+		double frontnessDiff = Math.abs(coord1[0] - coord2[0]) * frontnessWeight;
+		double hightDiff = Math.abs(coord1[1] - coord2[1]) * heightWeight;
 		double frontScore = Math.pow(frontnessDiff, 2);
 		double heightScore = Math.pow(hightDiff, 2);
-		double euclidianDistance = Math.sqrt(frontScore + heightScore);//TODO weight frontness and height
-		double normalizedDistance = euclidianDistance / 20;
+		double euclidianDistance = Math.sqrt(frontScore + heightScore);
+		double normalizingConstant = Math.sqrt(Math.pow(10 * frontnessWeight,2) + Math.pow(10 * heightWeight,2));//TODO does this normalizing constant work?
+		double normalizedDistance = euclidianDistance / normalizingConstant;
 		double vowelMatchScore = 1 - normalizedDistance;
 		return vowelMatchScore;
 	}
@@ -157,6 +173,7 @@ public class Rhymer {
 		PlaceOfArticulation p2 = PhonemeEnum.getPlace(ph2.phonemeEnum);
 		boolean v1 = ph1.isVoiced();
 		boolean v2 = ph2.isVoiced();
+		double maxScore = voicingWeight + mannerOfArticulationWeight + placeOfArticulationWeight;
 		double score = 0;
 		if (v1 == v2)
 			score += voicingWeight;
@@ -164,7 +181,8 @@ public class Rhymer {
 			score += mannerOfArticulationWeight;
 		if (p1 == p2)
 			score += placeOfArticulationWeight;
-		return score;
+		double result = score / maxScore;
+		return result;
 	}
 
 }

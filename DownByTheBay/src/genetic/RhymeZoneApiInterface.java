@@ -8,13 +8,12 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
 import java.io.*;
 import java.util.*;
 
-public class HttpInterface {
+public class RhymeZoneApiInterface {
 
-	private static Map<String,Set<String>> rhymeZoneRhymes = new HashMap<>();
+	private static Map<String,Set<RzWord>> rhymeZoneRhymes = new HashMap<>();
 	private final static String rhymeZone = "https://api.datamuse.com/words?rel_rhy=";
 
 	public static void main(String[] args) throws IOException {
@@ -24,7 +23,6 @@ public class HttpInterface {
 	}
 
 	public static List<JSONObject> get(String query) throws IOException {
-		query = query.replaceAll("[^\\w]","");
 		HttpClient client = new DefaultHttpClient();
 		HttpGet request = new HttpGet(query);
 		HttpResponse response = client.execute(request);
@@ -39,27 +37,39 @@ public class HttpInterface {
 		return parseJson(sb.toString());
 	}
 
-	public static Map<String,Set<String>> loadRhymeZoneRhymes() throws IOException {
-		Map<String,Set<String>> result = new HashMap<>();
+	public static Map<String,Set<RzWord>> loadRhymeZoneRhymes() throws IOException {
+		Map<String,Set<RzWord>> result = new HashMap<>();
+		int i = 0;
 		for (String word : Phoneticizer.syllableDict.keySet()) {
-			List<JSONObject> o = get(rhymeZone + word.toLowerCase());
-			Set<String> rhymes = new HashSet<>();
+			word = word.replaceAll("[^\\w]","");
+			word = word.toLowerCase();
+			List<JSONObject> o = get(rhymeZone + word);
+			Set<RzWord> rhymes = new HashSet<>();
 			for (JSONObject object : o) {
-				rhymes.add(object.getString("word"));
+				int score = -1;
+				if (object.has("score")) {
+					score = object.getInt("score");
+				}
+				RzWord tempWord = new RzWord(object.getString("word"),object.getInt("numSyllables"),score);
+				rhymes.add(tempWord);
 			}
 			result.put(word,rhymes);
+			if (i % 1000 == 0) {
+				System.out.println("SERIALIZING FIRST " + i + " RHYMES");
+				serializePerfRhymes(result);
+			}
+			i++;
 		}
-		serializePerfRhymes(result);
 		return result;
 	}
 
-	public static Map<String,Set<String>> deserializePerfRhymes() {
+	public static Map<String,Set<RzWord>> deserializePerfRhymes() {
         System.out.println("Deserializing rhymezone rhymes");
         try {
             FileInputStream fileIn = new FileInputStream(Main.rootPath + "data/rhymezone.ser");
             ObjectInputStream in = new ObjectInputStream(fileIn);
 			rhymeZoneRhymes = null;
-			rhymeZoneRhymes = (Map<String,Set<String>>) in.readObject();
+			rhymeZoneRhymes = (Map<String,Set<RzWord>>) in.readObject();
             in.close();
             fileIn.close();
         }
@@ -73,7 +83,7 @@ public class HttpInterface {
         return rhymeZoneRhymes;
     }
 
-	private static void serializePerfRhymes(Map<String,Set<String>> rhymeZoneRhymes) {
+	private static void serializePerfRhymes(Map<String,Set<RzWord>> rhymeZoneRhymes) {
 		System.out.println("Serializing rhymezone rhymes");
 		try {
 			FileOutputStream fileOut = new FileOutputStream(Main.rootPath + "data/rhymezone.ser");
