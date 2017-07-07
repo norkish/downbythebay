@@ -6,12 +6,14 @@ public class GeneticMain {
 
 	public static Random r = new Random();
 	private final static int topIndividualN = 10;
-	private final static int offspringN = 100;
+	private final static int offspringN = 20;
 	private final static int maxGenerations = 10000;
 	public final static double fitnessThreshold = 0.75;
-	private final static int rzCorpusSize = 100;
+	private final static int rzCorpusSize = 500;
 
 	public static void main(String[] args) {
+		//TODO try simulated annealing on mutation amount?
+
 		long startTime = System.nanoTime();
 
 		RhymeZoneApiInterface.deserializeRhymes(rzCorpusSize);

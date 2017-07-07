@@ -57,7 +57,7 @@ public class RhymeZoneApiInterface {
 				rhymes.add(tempWord);
 			}
 			result.put(word,rhymes);
-			if (i % 10 == 0) {
+			if (i % 500 == 0) {
 				System.out.println("SERIALIZING FIRST " + i + " RHYMES");
 				serializeRhymes(result);
 			}
