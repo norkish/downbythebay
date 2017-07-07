@@ -9,7 +9,7 @@ public class GeneticMain {
 	private final static int offspringN = 100;
 	private final static int maxGenerations = 10000;
 	public final static double fitnessThreshold = 0.75;
-	private final static int rzCorpusSize = 100;
+	private final static int rzCorpusSize = 10;
 	public static double temp = 10.000;
 	private final static double coolingRate = 0.001;
 

@@ -34,7 +34,7 @@ public class Individual implements Comparable<Individual> {
 	public void mutate() {
 		for (Map.Entry<String,Double> entry : this.getValues().entrySet()) {
 			if (GeneticMain.r.nextBoolean()) {
-				entry.setValue(entry.getValue() + (GeneticMain.r.nextDouble() - 0.5 * GeneticMain.temp));
+				entry.setValue(entry.getValue() + ((GeneticMain.r.nextDouble() - 0.5) * GeneticMain.temp));
 				if (entry.getValue() <= 0) {
 					entry.setValue(0d);
 				}
