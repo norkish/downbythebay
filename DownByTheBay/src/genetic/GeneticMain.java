@@ -1,10 +1,5 @@
 package genetic;
 
-import linguistic.phonetic.Phoneticizer;
-import linguistic.phonetic.syllabic.Rhymer;
-import linguistic.phonetic.syllabic.Syllable;
-import linguistic.phonetic.syllabic.WordSyllables;
-
 import java.util.*;
 
 public class GeneticMain {
@@ -12,67 +7,134 @@ public class GeneticMain {
 	public static Random r = new Random();
 	private final static int topIndividualN = 10;
 	private final static int offspringN = 100;
-	private final static int maxGenerations = 1000000000;
+	private final static int maxGenerations = 10000;
+	public final static double fitnessThreshold = 0.75;
+	private final static int rzCorpusSize = 100;
 
 	public static void main(String[] args) {
+		long startTime = System.nanoTime();
+
+		RhymeZoneApiInterface.deserializeRhymes(rzCorpusSize);
+
 		Map<String, Double> values = new HashMap<>();
 
-		values.put("frontness", 10.0);
-		values.put("height", 10.0);
+//		New best individual for 100: 0.9106901217861975
+//
+// 		frontness: 125.85064944028905
+//		height: 66.31743773925848
+//
+//		place_of_articulation: 108.18860203149124
+//		manner_of_articulation: 98.01522428944162
+//		voicing: 15.508342021886682
+//
+//		onset: 20.284123584145814
+//		nucleus: 60.65245740265866
+//		coda: 127.75846797910884
+//
+//		stress: 0.6026471314006965
 
-		values.put("place_of_articulation", 20.0);
-		values.put("manner_of_articulation", 20.0);
-		values.put("voicing", 5.0);
+		//values.put("frontness", 125.0);//always 100
+		values.put("height", 70.0);
 
-		values.put("onset", 10.0);
-		values.put("nucleus", 10.0);
-		values.put("coda", 10.0);
+		//values.put("place_of_articulation", 110.0);//always 100
+		values.put("manner_of_articulation", 100.0);
+		values.put("voicing", 15.0);
 
-		values.put("stress", 1.0);
+		values.put("onset", 20.0);
+		//values.put("nucleus", 60.0);//always 100
+		values.put("coda", 130.0);
+
+		values.put("stress", 50.0);
 
 		TreeSet<Individual> topIndividuals = new TreeSet<>();
 		for (int i = 0; i < topIndividualN; i++) {
 			Individual temp = new Individual(values);
 			temp.mutate();
+			temp.calculateFitness();
+			topIndividuals.add(temp);
 		}
 
-		double highestFitness = -1;
+		double bestFitnessYet = -1;
+		double bestOfGeneration = -1;
+		double generationalAverage;
+		Individual bestIndividualYet;
 		int generation = 0;
 
-		while (highestFitness < 1.0 && generation < maxGenerations) {
+		while (bestOfGeneration < 1.0 && generation < maxGenerations) {
 			generation++;
+			System.out.println("Generation " + generation + "...");
 
 			//top individuals mate
 			List<Individual> allIndividualsOfNewGeneration = mateTopIndividuals(topIndividuals);
+			List<Individual> pool = new ArrayList<>(allIndividualsOfNewGeneration);
 
 			//OPTIONAL -- mix parents and new generation
-			List<Individual> pool = new ArrayList<>();
-			pool.addAll(allIndividualsOfNewGeneration);
 			pool.addAll(topIndividuals);
+
+			generationalAverage = generationalAverage(pool);
 
 			//find top topIndividualN individuals of new generation
 			topIndividuals = findTopIndividuals(pool);
 
 			//update highestFitness
-			highestFitness = topIndividuals.last().getFitness();
-		}
-		System.out.println("Generations: " + generation);
-		System.out.println("Best fitness: " + highestFitness);
-		System.out.println("Values: " + highestFitness);
-		for (Map.Entry<String,Double> entry : topIndividuals.last().getValues().entrySet()) {
-			System.out.println("\t" + entry.getKey() + ": " + entry.getValue());
-		}
+			bestOfGeneration = topIndividuals.last().getFitness();
 
+			//update absolutes
+			if (bestOfGeneration > bestFitnessYet) {
+				bestFitnessYet = bestOfGeneration;
+				bestIndividualYet = topIndividuals.last();
+				System.out.println("\tNew best individual for " + rzCorpusSize + ": " + bestIndividualYet.getFitness());
+				Map<String,Double> map = bestIndividualYet.getValues();
+//		System.out.println("\t\tfrontness: " + map.get("frontness"));
+				System.out.println("\t\tfrontness: 100");
+				System.out.println("\t\theight: " + map.get("height") + "\n");
+//		System.out.println("\t\tplace of articulation: " + map.get("place_of_articulation"));
+				System.out.println("\t\tplace of articulation: 100");
+				System.out.println("\t\tmanner of articulation: " + map.get("manner_of_articulation"));
+				System.out.println("\t\tvoicing: " + map.get("voicing") + "\n");
+				System.out.println("\t\tonset: " + map.get("onset"));
+//		System.out.println("\t\tnucleus: " + map.get("nucleus"));
+				System.out.println("\t\tnucleus: 100");
+				System.out.println("\t\tcoda: " + map.get("coda") + "\n");
+				System.out.println("\t\tstress: " + map.get("stress") + "\n");
+			}
+
+			System.out.println("\tAvrg fitness for Gen" + generation + ": " + generationalAverage);
+			System.out.println("\tBest fitness for Gen" + generation + ": " + bestOfGeneration);
+			System.out.println("\tBest fitness of all: " + bestFitnessYet);
+		}
+		System.out.println("\tBest individual of final generation: " + topIndividuals.last().getFitness());
+		Map<String,Double> map = topIndividuals.last().getValues();
+//		System.out.println("\t\tfrontness: " + map.get("frontness"));
+		System.out.println("\t\tfrontness: 100");
+		System.out.println("\t\theight: " + map.get("height") + "\n");
+//		System.out.println("\t\tplace of articulation: " + map.get("place_of_articulation"));
+		System.out.println("\t\tplace of articulation: 100");
+		System.out.println("\t\tmanner of articulation: " + map.get("manner_of_articulation"));
+		System.out.println("\t\tvoicing: " + map.get("voicing") + "\n");
+		System.out.println("\t\tonset: " + map.get("onset"));
+//		System.out.println("\t\tnucleus: " + map.get("nucleus"));
+		System.out.println("\t\tnucleus: 100");
+		System.out.println("\t\tcoda: " + map.get("coda") + "\n");
+		System.out.println("\t\tstress: " + map.get("stress") + "\n");
+		long endTime = System.nanoTime();
+		long totalTime = endTime - startTime;
+		if (totalTime / 1000000000 > 59) {
+			int minutes = (int) (totalTime / 1000000000 / 60);
+			int seconds = (int) (totalTime / 1000000000);
+			System.out.println("TIME:" + minutes + " minutes " + seconds + " seconds");
+		} else
+			System.out.println(("TIME:" + (totalTime / 1000000000) + " seconds"));
 	}
 
 	public static List<Individual> mateTopIndividuals(Collection<Individual> topIndividuals) {
 		//TODO optimize so only lists come in? or they stay as treesets for sorting?
 		List<Individual> result = new ArrayList<>();
-		for (int i = 0; i > offspringN; i++) {
-			int n1 = r.nextInt(topIndividualN);
+		for (int i = 0; i < offspringN; i++) {
+			int n1 = r.nextInt(topIndividuals.size());
 			int n2 = n1;
 			while (n2 == n1) {
-				n2 = r.nextInt(topIndividualN);
+				n2 = r.nextInt(topIndividuals.size());
 			}
 			Individual mater1 = null;
 			int j = 0;
@@ -92,8 +154,9 @@ public class GeneticMain {
 				}
 				j++;
 			}
-			Individual child = crossover(mater1, mater2);
+			Individual child = mater1.crossover(mater2);
 			child.mutate();
+			child.calculateFitness();
 			result.add(child);
 		}
 		return result;
@@ -103,107 +166,31 @@ public class GeneticMain {
 		TreeSet<Individual> calculatedIndividuals = new TreeSet<>();
 		//sort by fitness, return the top topIndividualN
 		for (Individual ind : allIndividuals) {
-			double fitnessScore = calculateFitness(ind);
-			ind.setFitness(fitnessScore);
+			if (ind.getFitness() == -1)
+				ind.calculateFitness();
 			calculatedIndividuals.add(ind);
 		}
+
 		TreeSet<Individual> result = new TreeSet<>();
-		for (int i = 0; i < topIndividualN; i++) {
-			result.add(calculatedIndividuals.last());
-			calculatedIndividuals.remove(calculatedIndividuals.last());
+		try {
+			for (int i = 0; i < topIndividualN; i++) {
+				if (!calculatedIndividuals.isEmpty()) {
+					result.add(calculatedIndividuals.last());
+					calculatedIndividuals.remove(calculatedIndividuals.last());
+				} else break;
+			}
+		} catch (NoSuchElementException e) {
+			e.printStackTrace();
 		}
 		return result;
 	}
 
-	public static double calculateFitness(Individual ind) {
-		IndividualResults results = classifyIndividual(ind);
-		double precision = calculatePrecision(results.truePositives, results.falsePositives);
-		double recall = calculateRecall(results.truePositives, results.falseNegatives);
-		double fScore = calculateFScore(precision, recall);
-		return fScore;
-	}
-
-	public static IndividualResults classifyIndividual(Individual ind) {
-		Map<String, List<WordSyllables>> dictionary = new HashMap<>(Phoneticizer.syllableDict);
-//		dictionary.keySet().retainAll(valid-cmu-words); // not necessary if using updated cmu dictionary
-		int truePositives = 0;
-		int trueNegatives = 0;
-		int falsePositives = 0;
-		int falseNegatives = 0;
-		for (Map.Entry<String, List<WordSyllables>> entry : dictionary.entrySet()) {
-			for (WordSyllables pronunciation : entry.getValue()) {
-				boolean pronunciationIsValid = true;
-				for (Syllable syllable : pronunciation) {
-					if (syllable.getOnset().size() > 1 || syllable.getCoda().size() > 1) {
-						pronunciationIsValid = false;
-						break;
-					}
-				}
-				if (pronunciationIsValid) {
-					Set<String> positives = null;//get all words datamuse says rhyme with it removing ones outside of valid cmu dictionary
-					Set<String> negatives = new HashSet<>(dictionary.keySet());
-					negatives.removeAll(negatives);
-
-					Rhymer temp = new Rhymer(ind);
-					Set<String> tempTruePositives = new HashSet<>();
-					Set<String> tempTrueNegatives = new HashSet<>();
-					Set<String> tempFalsePositives = new HashSet<>();
-					Set<String> tempFalseNegatives = new HashSet<>();
-					for (String positive : positives) {
-						double score = 0;// = temp.score2Syllables();
-						if (score > 0)
-							tempTruePositives.add(positive);
-						else
-							tempFalsePositives.add(positive);
-					}
-					for (String negative : negatives) {
-						double score = 0;// = temp.score2Syllables();
-						if (score > 0)
-							tempFalseNegatives.add(negative);
-						else
-							tempTrueNegatives.add(negative);
-					}
-					//inspect results here
-
-					truePositives += tempTruePositives.size();
-					trueNegatives += tempTrueNegatives.size();
-					falsePositives += tempFalsePositives.size();
-					falseNegatives += tempFalseNegatives.size();
-				}
-			}
+	public static double generationalAverage(Collection<Individual> inds) {
+		double total = 0;
+		for (Individual ind : inds) {
+			total += ind.getFitness();
 		}
-		//for each word in dictionary:
-			// if it contains syllable w/ an onset or coda of length > 1, continue
-			// count all words Datamuse says rhyme with it -> positives (rhymes)
-			// count all other words in dictionary -> negatives (non-rhymes)
-			// count all words (last syllable) my algorithm says rhymes with it -> (if rhyme, true positive. if non-rhyme, false positive)
-			// count all other words in dictionary -> (if rhyme, false negative. if non-rhyme, true negative)
-
-		return new IndividualResults(truePositives, trueNegatives, falsePositives, falseNegatives);
-	}
-
-	public static Individual crossover(Individual ind1, Individual ind2) {
-		Individual ind3 = new Individual(ind1);
-		ind3.setValues(ind1.getValues());
-
-		for (Map.Entry<String,Double> entry : ind1.getValues().entrySet()) {
-			if (r.nextBoolean()) {
-				ind3.getValues().put(entry.getKey(),ind2.getValues().get(entry.getKey()));
-			}
-		}
-		return ind3;
-	}
-
-	public static double calculateFScore(double precision, double recall) {
-		return 2 * ((precision * recall) / (precision + recall));
-	}
-
-	public static double calculatePrecision(double truePositives, double falsePositives) {
-		return truePositives / (truePositives + falsePositives);
-	}
-
-	public static double calculateRecall(double truePositives, double falseNegatives) {
-		return truePositives / (falseNegatives + truePositives);
+		return total / inds.size();
 	}
 
 }

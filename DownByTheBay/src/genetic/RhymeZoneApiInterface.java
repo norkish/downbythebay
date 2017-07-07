@@ -1,6 +1,8 @@
 package genetic;
 
 import linguistic.phonetic.Phoneticizer;
+import linguistic.phonetic.syllabic.Syllable;
+import linguistic.phonetic.syllabic.WordSyllables;
 import main.Main;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -13,7 +15,8 @@ import java.util.*;
 
 public class RhymeZoneApiInterface {
 
-	private static Map<String,Set<RzWord>> rhymeZoneRhymes = new HashMap<>();
+	public static Map<String,Set<RzWord>> rhymeZoneRhymes = new HashMap<>();
+	public static Map<String,WordSyllables> dictionary = new HashMap<>();
 	private final static String rhymeZone = "https://api.datamuse.com/words?rel_rhy=";
 
 	public static void main(String[] args) throws IOException {
@@ -54,25 +57,26 @@ public class RhymeZoneApiInterface {
 				rhymes.add(tempWord);
 			}
 			result.put(word,rhymes);
-			if (i % 1000 == 0) {
+			if (i % 10 == 0) {
 				System.out.println("SERIALIZING FIRST " + i + " RHYMES");
-				serializePerfRhymes(result);
+				serializeRhymes(result);
 			}
 			i++;
 		}
 		return result;
 	}
 
-	public static Map<String,Set<RzWord>> deserializePerfRhymes() {
-        System.out.println("Deserializing rhymezone rhymes");
+	public static Map<String,Set<RzWord>> deserializeRhymes(int size) {
+        System.out.print("Deserializing rhymezone rhymes...");
         try {
-            FileInputStream fileIn = new FileInputStream(Main.rootPath + "data/rhymezone.ser");
+            FileInputStream fileIn = new FileInputStream(Main.rootPath + "data/rhymezone-" + size + ".ser");
             ObjectInputStream in = new ObjectInputStream(fileIn);
 			rhymeZoneRhymes = null;
 			rhymeZoneRhymes = (Map<String,Set<RzWord>>) in.readObject();
             in.close();
             fileIn.close();
-        }
+			System.out.println("done!");
+		}
         catch(IOException i) {
             i.printStackTrace();
         }
@@ -80,11 +84,12 @@ public class RhymeZoneApiInterface {
             System.out.println("perfect rhyme class not found");
             c.printStackTrace();
         }
+		cleanRhymeZoneRhymes();
         return rhymeZoneRhymes;
     }
 
-	private static void serializePerfRhymes(Map<String,Set<RzWord>> rhymeZoneRhymes) {
-		System.out.println("Serializing rhymezone rhymes");
+	private static void serializeRhymes(Map<String,Set<RzWord>> rhymeZoneRhymes) {
+		System.out.print("Serializing rhymezone rhymes...");
 		try {
 			FileOutputStream fileOut = new FileOutputStream(Main.rootPath + "data/rhymezone.ser");
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);
@@ -107,6 +112,81 @@ public class RhymeZoneApiInterface {
 			result.add(entry);
 		}
 		return result;
+	}
+
+	public static Set<String> getStrings(Set<RzWord> rzWords) {
+		Set<String> result = new HashSet<>();
+		if (rzWords == null) {
+			return result;
+		}
+		for (RzWord rzWord : rzWords) {
+			result.add(rzWord.word);
+		}
+		return result;
+	}
+
+	public static void cleanRhymeZoneRhymes() {
+		//clean CMU entries
+		Map<String,List<WordSyllables>> cmu = Phoneticizer.syllableDict;
+		Map<String,List<WordSyllables>> lowerCmu = new HashMap<>();
+
+		//lowercase all CMU keys
+		for (Map.Entry<String,List<WordSyllables>> entry : cmu.entrySet()) {
+			lowerCmu.put(entry.getKey().toLowerCase(),entry.getValue());
+		}
+
+		Set<String> badCmuWords = new HashSet<>();
+		for (Map.Entry<String,List<WordSyllables>> entry : lowerCmu.entrySet()) {
+			//remove all CMU entries with more than one pronunciation
+			if (entry.getValue().size() != 1) {
+				badCmuWords.add(entry.getKey());
+			}
+			//remove all CMU entries with keys with white space or special characters
+			else if (entry.getKey().matches(".*[^\\w].*")) {
+				badCmuWords.add(entry.getKey());
+			}
+			else {
+				WordSyllables pronunciation = entry.getValue().get(0);
+				for (Syllable syllable : pronunciation) {
+					//remove all CMU words w/ multi-consonant chains
+					if (syllable.getOnset().size() > 1 || syllable.getCoda().size() > 1) {
+						badCmuWords.add(entry.getKey());
+						break;
+					}
+				}
+			}
+		}
+
+		//finalize dictionary
+		for (Map.Entry<String,List<WordSyllables>> entry : lowerCmu.entrySet()) {
+			if (!badCmuWords.contains(entry.getKey())) {
+				dictionary.put(entry.getKey(),entry.getValue().get(0));
+			}
+		}
+
+		//clean Rhyme Zone entry's rhymes that aren't in CMU dict
+		for (Map.Entry<String,Set<RzWord>> entry : rhymeZoneRhymes.entrySet()) {
+			Set<RzWord> originals = entry.getValue();
+			originals.removeAll(badCmuWords);//TODO won't work because String and RzWord are different objects
+			rhymeZoneRhymes.put(entry.getKey(), originals);//TODO concurrent modification?
+		}
+
+		//clean Rhyme Zone keys
+		Set<String> badRzWords = new HashSet<>();
+		for (Map.Entry<String,Set<RzWord>> entry : rhymeZoneRhymes.entrySet()) {
+			//remove all rhyme zone entries w/ 0 rhymes
+			if (entry.getValue() == null || entry.getValue().isEmpty()) {
+				badRzWords.add(entry.getKey());
+			}
+			//remove rhyme zone entries w/ keys that aren't in CMU dict
+			else if (!lowerCmu.containsKey(entry.getKey().toLowerCase())) {
+				badRzWords.add(entry.getKey());
+			}
+		}
+		rhymeZoneRhymes.keySet().removeAll(badCmuWords);
+		rhymeZoneRhymes.keySet().removeAll(badRzWords);
+		rhymeZoneRhymes.keySet().retainAll(dictionary.keySet());
+		dictionary.keySet().retainAll(rhymeZoneRhymes.keySet());
 	}
 
 }

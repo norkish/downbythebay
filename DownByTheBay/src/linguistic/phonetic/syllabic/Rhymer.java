@@ -13,37 +13,37 @@ import utils.Utils;
 
 public class Rhymer {
 
-	private final double frontnessWeight;
+	private final double frontnessWeight = 100;
 	private final double heightWeight;
-	private final double placeOfArticulationWeight;
+	private final double placeOfArticulationWeight = 100;
 	private final double mannerOfArticulationWeight;
 	private final double voicingWeight;
 	private final double onsetWeight;
-	private final double nucleusWeight;
+	private final double nucleusWeight = 100;
 	private final double codaWeight;
 	private final double stressWeight;
 
 	public Rhymer(double frontnessWeight, double heightWeight, double placeOfArticulationWeight, double mannerOfArticulationWeight, double voicingWeight, double onsetWeight, double nucleusWeight, double codaWeight, double stressWeight) {
-		this.frontnessWeight = frontnessWeight;
+//		this.frontnessWeight = frontnessWeight;
 		this.heightWeight = heightWeight;
-		this.placeOfArticulationWeight = placeOfArticulationWeight;
+//		this.placeOfArticulationWeight = placeOfArticulationWeight;
 		this.mannerOfArticulationWeight = mannerOfArticulationWeight;
 		this.voicingWeight = voicingWeight;
 		this.onsetWeight = onsetWeight;
-		this.nucleusWeight = nucleusWeight;
+//		this.nucleusWeight = nucleusWeight;
 		this.codaWeight = codaWeight;
 		this.stressWeight = stressWeight;
 	}
 
 	public Rhymer(Individual weights) {
 		Map<String,Double> map = weights.getValues();
-		this.frontnessWeight = map.get("frontness");
+//		this.frontnessWeight = map.get("frontness");
 		this.heightWeight = map.get("height");
-		this.placeOfArticulationWeight = map.get("place_of_articulation");
+//		this.placeOfArticulationWeight = map.get("place_of_articulation");
 		this.mannerOfArticulationWeight = map.get("manner_of_articulation");
 		this.voicingWeight = map.get("voicing");
 		this.onsetWeight = map.get("onset");
-		this.nucleusWeight = map.get("nucleus");
+//		this.nucleusWeight = map.get("nucleus");
 		this.codaWeight = map.get("coda");
 		this.stressWeight = map.get("stress");
 	}
@@ -113,7 +113,7 @@ public class Rhymer {
 
 		int stressDiff = Math.abs(s1.getStress() - s2.getStress());
 		if (stressDiff > 0)
-			syllableAlignmentScore /= (stressDiff * stressWeight + 1);
+			syllableAlignmentScore /= (stressDiff * (stressWeight / 100) + 1);
 
 		return syllableAlignmentScore;
 	}
