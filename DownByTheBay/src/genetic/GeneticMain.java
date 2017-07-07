@@ -4,12 +4,14 @@ import java.util.*;
 
 public class GeneticMain {
 
-	public static Random r = new Random();
+	public final static Random r = new Random();
 	private final static int topIndividualN = 10;
-	private final static int offspringN = 20;
+	private final static int offspringN = 100;
 	private final static int maxGenerations = 10000;
 	public final static double fitnessThreshold = 0.75;
-	private final static int rzCorpusSize = 500;
+	private final static int rzCorpusSize = 100;
+	public static double temp = 10.000;
+	private final static double coolingRate = 0.001;
 
 	public static void main(String[] args) {
 		//TODO try simulated annealing on mutation amount?
@@ -101,9 +103,14 @@ public class GeneticMain {
 				System.out.println("\t\tstress: " + map.get("stress") + "\n");
 			}
 
+			System.out.println("\tTemp: " + temp);
 			System.out.println("\tAvrg fitness for Gen" + generation + ": " + generationalAverage);
 			System.out.println("\tBest fitness for Gen" + generation + ": " + bestOfGeneration);
 			System.out.println("\tBest fitness of all: " + bestFitnessYet);
+
+			//cool mutation rate
+			if (temp > 1)
+				temp -= coolingRate;
 		}
 		System.out.println("\tBest individual of final generation: " + topIndividuals.last().getFitness());
 		Map<String,Double> map = topIndividuals.last().getValues();
