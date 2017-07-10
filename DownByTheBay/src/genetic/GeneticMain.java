@@ -9,13 +9,11 @@ public class GeneticMain {
 	private final static int offspringN = 100;
 	private final static int maxGenerations = 10000;
 	public final static double fitnessThreshold = 0.75;
-	private final static int rzCorpusSize = 10;
-	public static double temp = 10.000;
+	private final static int rzCorpusSize = 1000;
+	public static double temp = 10.00;
 	private final static double coolingRate = 0.001;
 
 	public static void main(String[] args) {
-		//TODO try simulated annealing on mutation amount?
-
 		long startTime = System.nanoTime();
 
 		RhymeZoneApiInterface.deserializeRhymes(rzCorpusSize);
@@ -131,9 +129,9 @@ public class GeneticMain {
 		if (totalTime / 1000000000 > 59) {
 			int minutes = (int) (totalTime / 1000000000 / 60);
 			int seconds = (int) (totalTime / 1000000000);
-			System.out.println("TIME:" + minutes + " minutes " + seconds + " seconds");
+			System.out.println("TIME: " + minutes + " minutes " + seconds + " seconds");
 		} else
-			System.out.println(("TIME:" + (totalTime / 1000000000) + " seconds"));
+			System.out.println(("TIME: " + (totalTime / 1000000000) % 60 + " seconds"));
 	}
 
 	public static List<Individual> mateTopIndividuals(Collection<Individual> topIndividuals) {
