@@ -16,6 +16,7 @@ public class Individual implements Comparable<Individual> {
 	private Map<String,Double> values;
 	private double fitness = -1;
 	public int id = 0;
+	private boolean mutated = false;
 
 //	public static void main(String[] args) {
 //		Individual test = new Individual();
@@ -32,13 +33,16 @@ public class Individual implements Comparable<Individual> {
 	}
 
 	public void mutate() {
-		for (Map.Entry<String,Double> entry : this.getValues().entrySet()) {
-			if (GeneticMain.r.nextBoolean()) {
-				entry.setValue(entry.getValue() + ((GeneticMain.r.nextDouble() - 0.5) * GeneticMain.temp));
-				if (entry.getValue() <= 0) {
-					entry.setValue(0d);
+		if (!mutated) {
+			for (Map.Entry<String, Double> entry : this.getValues().entrySet()) {
+				if (GeneticMain.r.nextBoolean()) {
+					entry.setValue(entry.getValue() + ((GeneticMain.r.nextDouble() - 0.5) * GeneticMain.temp));
+					if (entry.getValue() <= 0) {
+						entry.setValue(0d);
+					}
 				}
 			}
+			mutated = true;
 		}
 	}
 
@@ -184,3 +188,15 @@ public class Individual implements Comparable<Individual> {
 	}
 
 }
+
+/*
+Look at average of the top 10
+Ask Dan: balance positive:negative ratio
+Ask Dan: simulated annealing
+Ask Dan: adjust mutation rate based on F-score
+Make sure The function is the function that solves the problem I care about
+Consider: Add a penalty for difference between end syllable status
+Consider: Let the system learn whether something should be positive or negative
+Ensure no individual calls mutate twice
+Fix stress variable, change 1 to 2 and 2 to 1 (verify this is correct)
+ */

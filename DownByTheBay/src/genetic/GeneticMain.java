@@ -9,7 +9,7 @@ public class GeneticMain {
 	private final static int offspringN = 100;
 	private final static int maxGenerations = 10000;
 	public final static double fitnessThreshold = 0.75;
-	private final static int rzCorpusSize = 1000;
+	private final static int rzCorpusSize = 100;
 	public static double temp = 10.00;
 	private final static double coolingRate = 0.001;
 
@@ -58,7 +58,7 @@ public class GeneticMain {
 
 		double bestFitnessYet = -1;
 		double bestOfGeneration = -1;
-		double generationalAverage;
+		double generationalTop10Average;
 		Individual bestIndividualYet;
 		int generation = 0;
 
@@ -73,10 +73,10 @@ public class GeneticMain {
 			//OPTIONAL -- mix parents and new generation
 			pool.addAll(topIndividuals);
 
-			generationalAverage = generationalAverage(pool);
-
 			//find top topIndividualN individuals of new generation
 			topIndividuals = findTopIndividuals(pool);
+
+			generationalTop10Average = generationalAverage(topIndividuals);
 
 			//update highestFitness
 			bestOfGeneration = topIndividuals.last().getFitness();
@@ -102,7 +102,7 @@ public class GeneticMain {
 			}
 
 			System.out.println("\tTemp: " + temp);
-			System.out.println("\tAvrg fitness for Gen" + generation + ": " + generationalAverage);
+			System.out.println("\tAvrg fitness for Gen" + generation + ": " + generationalTop10Average);
 			System.out.println("\tBest fitness for Gen" + generation + ": " + bestOfGeneration);
 			System.out.println("\tBest fitness of all: " + bestFitnessYet);
 
