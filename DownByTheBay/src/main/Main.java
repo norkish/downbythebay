@@ -8,6 +8,7 @@ import java.util.List;
 import org.apache.commons.lang3.time.StopWatch;
 
 import constraint.BinaryRhymeConstraint;
+import constraint.ConditionedConstraint;
 import constraint.Constraint;
 import constraint.EndOfWordConstraint;
 import constraint.PartOfSpeechConstraint;
@@ -41,18 +42,18 @@ public class Main {
 		int[] rhythmicSuperTemplate = new int[]{0,1,0,1,0,1,0,1,0,1,0};
 		
 		// a constraint is a {syllable position, feature index, value}
-		List<List<Constraint<SyllableToken>>> generalConstraints = new ArrayList<>();
+		List<List<ConditionedConstraint<SyllableToken>>> generalConstraints = new ArrayList<>();
 		for (int i = 0; i < rhythmicSuperTemplate.length; i++) {
-			final ArrayList<Constraint<SyllableToken>> constraintsForPosition = new ArrayList<>();
+			final ArrayList<ConditionedConstraint<SyllableToken>> constraintsForPosition = new ArrayList<>();
 			generalConstraints.add(constraintsForPosition);
-			constraintsForPosition.add(new StressConstraint<>(rhythmicSuperTemplate[i]));
+			constraintsForPosition.add(new ConditionedConstraint<>(new StressConstraint<>(rhythmicSuperTemplate[i])));
 		}
 		
 		// Add rest of constraints
-		generalConstraints.get(A).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.NN, Pos.JJ))));
-		generalConstraints.get(LLA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))));
-		generalConstraints.get(JA).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
-		generalConstraints.get(MAS).add(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB))));
+		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.NN, Pos.JJ)))));
+		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
+		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB)))));
+		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB)))));
 		
 		// train a high-order markov model on a corpus
 		
@@ -66,8 +67,8 @@ public class Main {
 		int prevOrder = -1;
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = null;
 		for (int[] rhythmicTemplate : allRhythmicTemplates) {
-			List<List<Constraint<SyllableToken>>> constraints = new ArrayList<>();
-			for (List<Constraint<SyllableToken>> allConstraintsAtPosition : generalConstraints) {
+			List<List<ConditionedConstraint<SyllableToken>>> constraints = new ArrayList<>();
+			for (List<ConditionedConstraint<SyllableToken>> allConstraintsAtPosition : generalConstraints) {
 				constraints.add(new ArrayList<>(allConstraintsAtPosition));
 			}
 			int templateLength = 0;
@@ -78,7 +79,7 @@ public class Main {
 				int stress = rhythmicTemplate[i];
 				if (stress == -1){
 					constraints.remove(templateLength);
-					if (prevStress != -1) constraints.get(templateLength-1).add(new EndOfWordConstraint<>());
+					if (prevStress != -1) constraints.get(templateLength-1).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
 					prevStress = stress;
 					continue;
 				}
@@ -87,17 +88,17 @@ public class Main {
 					rhymeDistance++;
 				
 				if (i == JA) {
-					constraints.get(templateLength).add(new BinaryRhymeConstraint<>(rhymeDistance));
-					constraints.get(templateLength-1).add(new PartOfSpeechInSegmentConstraint<SyllableToken>(rhymeDistance-2, new HashSet<>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))));
+					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
+					constraints.get(templateLength-1).add(new ConditionedConstraint<>(new PartOfSpeechInSegmentConstraint<SyllableToken>(rhymeDistance-2, new HashSet<>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN)))));
 				} else if (i == MAS) {
-					constraints.get(templateLength).add(new BinaryRhymeConstraint<>(rhymeDistance));
+					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
 				}
 				templateLength += 1;
 				prevStress = stress;
 			}
 			
-			constraints.get(0).add(new StartOfWordConstraint<>()); // ensure starts at beginning of a word
-			if (prevStress != -1) constraints.get(templateLength-1).add(new EndOfWordConstraint<>()); // ensure ends at end of a word
+			constraints.get(0).add(new ConditionedConstraint<>(new StartOfWordConstraint<>())); // ensure starts at beginning of a word
+			if (prevStress != -1) constraints.get(templateLength-1).add(new ConditionedConstraint<>(new EndOfWordConstraint<>())); // ensure ends at end of a word
 			
 			markovOrder = rhymeDistance;
 			
@@ -117,7 +118,7 @@ public class Main {
 				System.out.println("Creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
 				for (int i = 0; i < constraints.size(); i++) {
 					System.out.println("\tAt position " + i + ":");
-					for (Constraint<SyllableToken> constraint : constraints.get(i)) {
+					for (ConditionedConstraint<SyllableToken> constraint : constraints.get(i)) {
 						System.out.println("\t\t" + constraint);
 					}
 				}

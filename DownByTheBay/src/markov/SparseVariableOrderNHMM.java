@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
+import constraint.ConditionedConstraint;
 import constraint.Constraint;
 import constraint.DynamicConstraint;
 import constraint.StaticConstraint;
@@ -28,7 +29,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 	int order;
 	private HashMap<Integer, Double> logPriors;
 	
-	public SparseVariableOrderNHMM(SparseVariableOrderMarkovModel<T> model, int length, List<List<Constraint<T>>> constraints) throws UnsatisfiableConstraintSetException {
+	public SparseVariableOrderNHMM(SparseVariableOrderMarkovModel<T> model, int length, List<List<ConditionedConstraint<T>>> constraints) throws UnsatisfiableConstraintSetException {
 		this.stateIndex = model.stateIndex;
 		this.order = model.order;
 		List<LinkedList<Token>> tokens = stateIndex.getIDToPrefixMap();
@@ -52,19 +53,23 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			System.out.print(".");
 			LinkedList<Token> priorState;
 			Token priorStateToken;
+			Constraint<T> constraint;
+			boolean desiredConstraintCondition;
 			for(Integer priorStateIdx : model.logPriors.keySet()) {
 				priorState = tokens.get(priorStateIdx);
 				satisfiable = true;
 
 				for (int i = 0; i < priorState.size(); i++) {
 					priorStateToken = priorState.get(i);
-					for (Constraint<T> constraint : constraints.get(i)) {
+					for (ConditionedConstraint<T> conditionedConstraint : constraints.get(i)) {
+						constraint = conditionedConstraint.getConstraint();
+						desiredConstraintCondition = conditionedConstraint.getDesiredConditionState();
 						if (constraint instanceof DynamicConstraint) {
 							// this could change, but for now dynamic constraints are designed to take a fromToken and a toToken.
 							// the change would require constraints to be placed solely on one token...
 							throw new RuntimeException("Can't have dynamic constaints on position before order length");
 						} else {
-							if(!((StaticConstraint<T>)constraint).isSatisfiedBy(priorStateToken)) {
+							if(((StaticConstraint<T>)constraint).isSatisfiedBy(priorStateToken) ^ desiredConstraintCondition) {
 								satisfiable = false;
 								break;
 							}
@@ -99,14 +104,16 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 							toStateIdx = innerEntry.getKey();
 							toStateLast = tokens.get(toStateIdx).getLast();
 							satisfiable = true;
-							for (Constraint<T> constraint : constraints.get(i+order)) {
+							for (ConditionedConstraint<T> conditionedConstraint : constraints.get(i+order)) {
+								constraint = conditionedConstraint.getConstraint();
+								desiredConstraintCondition = conditionedConstraint.getDesiredConditionState();
 								if (constraint instanceof DynamicConstraint) {
-									if (!((DynamicConstraint<T>) constraint).isSatisfiedBy(fromState, toStateLast)) {
+									if (((DynamicConstraint<T>) constraint).isSatisfiedBy(fromState, toStateLast) ^ desiredConstraintCondition) {
 										satisfiable = false;
 										break;
 									}
 								} else {
-									if(!((StaticConstraint<T>)constraint).isSatisfiedBy(toStateLast)) 
+									if(((StaticConstraint<T>)constraint).isSatisfiedBy(toStateLast) ^ desiredConstraintCondition) 
 									{
 										satisfiable = false;
 										break;
@@ -577,11 +584,11 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		System.out.println("CONSTRAINED:");
 		
 		int length = 4;
-		List<List<Constraint<CharacterToken>>> constraints = new ArrayList<List<Constraint<CharacterToken>>>(); 
+		List<List<ConditionedConstraint<CharacterToken>>> constraints = new ArrayList<List<ConditionedConstraint<CharacterToken>>>(); 
 		for (int i = 0; i < length; i++) {
-			constraints.add(new ArrayList<Constraint<CharacterToken>>());
+			constraints.add(new ArrayList<ConditionedConstraint<CharacterToken>>());
 		}
-		constraints.get(3).add(new CharacterTokenConstraint<CharacterToken>(new CharacterToken('D')));
+		constraints.get(3).add(new ConditionedConstraint<>(new CharacterTokenConstraint<CharacterToken>(new CharacterToken('D')),true));
 		
 		SparseVariableOrderNHMM<CharacterToken> constrainedModel = new SparseVariableOrderNHMM<CharacterToken>(model, length, constraints);
 		
