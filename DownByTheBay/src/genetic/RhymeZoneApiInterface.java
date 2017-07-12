@@ -9,6 +9,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.*;
 import java.util.*;
@@ -19,13 +20,13 @@ public class RhymeZoneApiInterface {
 	public static Map<String,WordSyllables> dictionary = new HashMap<>();
 	private final static String rhymeZone = "https://api.datamuse.com/words?rel_rhy=";
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, JSONException {
 		Main.setupRootPath();
 //		List<JSONObject> o = get("wind");
 		loadRhymeZoneRhymes();
 	}
 
-	public static List<JSONObject> get(String query) throws IOException {
+	public static List<JSONObject> get(String query) throws IOException, JSONException {
 		HttpClient client = new DefaultHttpClient();
 		HttpGet request = new HttpGet(query);
 		HttpResponse response = client.execute(request);
@@ -40,7 +41,7 @@ public class RhymeZoneApiInterface {
 		return parseJson(sb.toString());
 	}
 
-	public static Map<String,Set<RzWord>> loadRhymeZoneRhymes() throws IOException {
+	public static Map<String,Set<RzWord>> loadRhymeZoneRhymes() throws IOException, JSONException {
 		Map<String,Set<RzWord>> result = new HashMap<>();
 		int i = 0;
 		for (String word : Phoneticizer.syllableDict.keySet()) {
@@ -103,7 +104,7 @@ public class RhymeZoneApiInterface {
 		}
 	}
 
-	public static List<JSONObject> parseJson(String jsonData) {
+	public static List<JSONObject> parseJson(String jsonData) throws JSONException {
 		final List<JSONObject> result = new ArrayList<>();
 		final JSONArray array = new JSONArray(jsonData);
 		final int n = array.length();
