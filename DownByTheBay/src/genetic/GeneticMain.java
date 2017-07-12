@@ -46,7 +46,7 @@ public class GeneticMain {
 		//values.put("nucleus", 60.0);//always 100
 		values.put("coda", 130.0);
 
-		values.put("stress", 50.0);
+		values.put("stress", 00.0);
 
 		TreeSet<Individual> topIndividuals = new TreeSet<>();
 		for (int i = 0; i < topIndividualN; i++) {

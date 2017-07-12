@@ -199,4 +199,11 @@ Consider: Add a penalty for difference between end syllable status
 Consider: Let the system learn whether something should be positive or negative
 Ensure no individual calls mutate twice
 Fix stress variable, change 1 to 2 and 2 to 1 (verify this is correct)
+> Only do last syllables
+> Add single-point crossover, where there are 2 kids
+> Make crossover and mutation rate anneal a bit
+> Lower mutation rate, only mutate 1 gene, pick a normal distribution centered on the value
+> Cool via F-score
+> Do weighted chance to go on to reproduce, like tournaments or something
+>> Randomly select 1000 words from CMU dictionary
  */
