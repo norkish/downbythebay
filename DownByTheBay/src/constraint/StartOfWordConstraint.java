@@ -3,7 +3,7 @@ package constraint;
 import data.SyllableToken;
 import markov.Token;
 
-public class StartOfWordConstraint<T> implements StaticConstraint<SyllableToken> {
+public class StartOfWordConstraint<T> implements StaticConstraint<T> {
 
 	@Override
 	public boolean isSatisfiedBy(Token token) {

@@ -25,7 +25,7 @@ public class FloatingConstraint<T> implements DynamicConstraint<SyllableToken> {
 
 	@Override
 	public String toString() {
-		return "Current or one of previous " + lengthOfSegment + " syllables must satisfy constraint:" + staticConstraint;
+		return "Current or one of previous " + lengthOfSegment + " syllables must satisfy constraint: " + staticConstraint;
 	}
 
 	@Override

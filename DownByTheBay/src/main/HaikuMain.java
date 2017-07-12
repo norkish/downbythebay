@@ -10,6 +10,7 @@ import constraint.Constraint;
 import constraint.EndOfWordConstraint;
 import constraint.FloatingConstraint;
 import constraint.PartsOfSpeechConstraint;
+import constraint.SemanticMeaningConstraint;
 import constraint.StartOfWordConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
@@ -42,16 +43,20 @@ public class HaikuMain {
 			constraints.add(constraintsForPosition);
 		}
 		
+		markovOrder = 4;
 		// train a high-order markov model on a corpus
 		constraints.get(0).add(new ConditionedConstraint<>(new StartOfWordConstraint<>()));
 		constraints.get(4).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
-		constraints.get(4).add(new ConditionedConstraint<>(new FloatingConstraint<>(markovOrder, 
-				new PartsOfSpeechConstraint<>(new HashSet<Pos>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))))));
+		constraints.get(5).add(new ConditionedConstraint<>(new FloatingConstraint<>(markovOrder, 
+				new SemanticMeaningConstraint<>("nature"))));
 		constraints.get(11).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
+//		constraints.get(11).add(new ConditionedConstraint<>(new FloatingConstraint<>(markovOrder, 
+//				new SemanticMeaningConstraint<>("nature"))));
 		constraints.get(16).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
+//		constraints.get(16).add(new ConditionedConstraint<>(new FloatingConstraint<>(markovOrder, 
+//				new SemanticMeaningConstraint<>("nature"))));
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = null;
 		
-		markovOrder = 5;
 		
 		DataSummary summary = DataLoader.loadData(markovOrder);
 		System.out.println("Data loaded for HaikuMain.java");
