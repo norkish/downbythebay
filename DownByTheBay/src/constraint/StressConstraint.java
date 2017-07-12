@@ -21,7 +21,7 @@ public class StressConstraint<T> implements StaticConstraint<T> {
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			return ((SyllableToken) token).getStress() >= constraintStress;
+			return (((SyllableToken) token).getStress() > 0) == (constraintStress > 0);
 		}
 	}
 
