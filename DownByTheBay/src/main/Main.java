@@ -12,7 +12,7 @@ import constraint.ConditionedConstraint;
 import constraint.Constraint;
 import constraint.EndOfWordConstraint;
 import constraint.PartOfSpeechConstraint;
-import constraint.PartOfSpeechInSegmentConstraint;
+import constraint.FloatingConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.StartOfWordConstraint;
 import constraint.StressConstraint;
@@ -89,7 +89,8 @@ public class Main {
 				
 				if (i == JA) {
 					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
-					constraints.get(templateLength-1).add(new ConditionedConstraint<>(new PartOfSpeechInSegmentConstraint<SyllableToken>(rhymeDistance-2, new HashSet<>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN)))));
+					constraints.get(templateLength-1).add(new ConditionedConstraint<>(new FloatingConstraint<>(rhymeDistance-2, 
+							new PartsOfSpeechConstraint<>(new HashSet<Pos>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))))));
 				} else if (i == MAS) {
 					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
 				}

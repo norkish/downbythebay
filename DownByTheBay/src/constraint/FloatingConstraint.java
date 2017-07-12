@@ -2,18 +2,14 @@ package constraint;
 
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.Set;
-
-import org.apache.commons.lang3.StringUtils;
 
 import data.SyllableToken;
-import linguistic.syntactic.Pos;
 import markov.Token;
 
-public class PartOfSpeechInSegmentConstraint<T> implements DynamicConstraint<SyllableToken> {
+public class FloatingConstraint<T> implements DynamicConstraint<SyllableToken> {
 
 	private int lengthOfSegment;
-	private Set<Pos> partsOfSpeech;
+	private StaticConstraint<T> staticConstraint;
 	
 	/**
 	 * 
@@ -22,14 +18,14 @@ public class PartOfSpeechInSegmentConstraint<T> implements DynamicConstraint<Syl
 	 * @param partsOfSpeech, parts of speech that validate the constraint if one of the tokens
 	 * in the segment is in this set
 	 */
-	public PartOfSpeechInSegmentConstraint(int lengthOfSegment, Set<Pos> partsOfSpeech) {
+	public FloatingConstraint(int lengthOfSegment, StaticConstraint<T> staticConstraint) {
 		this.lengthOfSegment = lengthOfSegment;
-		this.partsOfSpeech = partsOfSpeech;
+		this.staticConstraint = staticConstraint;
 	}
 
 	@Override
 	public String toString() {
-		return "Current or one of previous " + lengthOfSegment + " syllables must be in " + StringUtils.join(partsOfSpeech);
+		return "Current or one of previous " + lengthOfSegment + " syllables must satisfy constraint:" + staticConstraint;
 	}
 
 	@Override
@@ -37,13 +33,13 @@ public class PartOfSpeechInSegmentConstraint<T> implements DynamicConstraint<Syl
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			if (partsOfSpeech.contains(((SyllableToken) token).getPos())) {
+			if (staticConstraint.isSatisfiedBy(token)){
 				return true;
 			}
 			
 			Iterator<Token> descendingIterator = fromState.descendingIterator();
 			for (int i = 0; i < lengthOfSegment && descendingIterator.hasNext(); i++) {
-				if (partsOfSpeech.contains(((SyllableToken) descendingIterator.next()).getPos())) {
+				if (staticConstraint.isSatisfiedBy((SyllableToken) descendingIterator.next())) {
 					return true;
 				}
 			}

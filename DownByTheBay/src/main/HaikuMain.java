@@ -1,14 +1,19 @@
 package main;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import constraint.ConditionedConstraint;
 import constraint.Constraint;
 import constraint.EndOfWordConstraint;
+import constraint.FloatingConstraint;
+import constraint.PartsOfSpeechConstraint;
 import constraint.StartOfWordConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
+import linguistic.syntactic.Pos;
 import data.SyllableToken;
 import markov.SparseVariableOrderMarkovModel;
 import markov.SparseVariableOrderNHMM;
@@ -38,10 +43,12 @@ public class HaikuMain {
 		}
 		
 		// train a high-order markov model on a corpus
-		constraints.get(0).add(new ConditionedConstraint<>(new StartOfWordConstraint<>(), true));
-		constraints.get(4).add(new ConditionedConstraint<>(new EndOfWordConstraint<>(), true));
-		constraints.get(11).add(new ConditionedConstraint<>(new EndOfWordConstraint<>(), true));
-		constraints.get(16).add(new ConditionedConstraint<>(new EndOfWordConstraint<>(), true));
+		constraints.get(0).add(new ConditionedConstraint<>(new StartOfWordConstraint<>()));
+		constraints.get(4).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
+		constraints.get(4).add(new ConditionedConstraint<>(new FloatingConstraint<>(markovOrder, 
+				new PartsOfSpeechConstraint<>(new HashSet<Pos>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))))));
+		constraints.get(11).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
+		constraints.get(16).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = null;
 		
 		markovOrder = 5;
