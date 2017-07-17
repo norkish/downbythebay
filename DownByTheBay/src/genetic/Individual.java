@@ -17,6 +17,7 @@ public class Individual implements Comparable<Individual> {
 	private double fitness = -1;
 	public int id = 0;
 	private boolean mutated = false;
+	private static final int sampleSize = 100;
 
 //	public static void main(String[] args) {
 //		Individual test = new Individual();
@@ -34,12 +35,19 @@ public class Individual implements Comparable<Individual> {
 
 	public void mutate() {
 		if (!mutated) {
-			for (Map.Entry<String, Double> entry : this.getValues().entrySet()) {
-				if (GeneticMain.r.nextBoolean()) {
-					entry.setValue(entry.getValue() + ((GeneticMain.r.nextDouble() - 0.5) * GeneticMain.temp));
-					if (entry.getValue() <= 0) {
-						entry.setValue(0d);
+			int rnd = GeneticMain.r.nextInt(5);
+			if (rnd == 0) {
+				int chosenIndex = GeneticMain.r.nextInt(this.getValues().entrySet().size());
+				int i = 0;
+				for (Map.Entry<String,Double> entry : this.getValues().entrySet()) {
+					if (i == chosenIndex) {
+						entry.setValue(entry.getValue() + ((GeneticMain.r.nextDouble() - 0.5) * GeneticMain.temp));
+						if (entry.getValue() <= 0) {
+							entry.setValue(0d);
+						}
+						break;
 					}
+					i++;
 				}
 			}
 			mutated = true;
@@ -108,60 +116,106 @@ public class Individual implements Comparable<Individual> {
 	}
 
 	public IndividualResults classify() {
+
+		//get random sample of n dictionary entries
+		Set<Integer> randomSampleInts = new HashSet<>();
+		while (randomSampleInts.size() < sampleSize) {
+			int i = GeneticMain.r.nextInt(RhymeZoneApiInterface.dictionary.entrySet().size());
+			randomSampleInts.add(i);
+		}
+		Set<Map.Entry<String,WordSyllables>> randomSamples = new HashSet<>();
+		int i = 0;
+		for (Map.Entry<String,WordSyllables> entry : RhymeZoneApiInterface.dictionary.entrySet()) {
+			if (randomSampleInts.contains(i)) {
+				randomSamples.add(entry);
+			}
+			i++;
+		}
+
+		//initialize return values
 		int truePositives = 0;
 		int trueNegatives = 0;
 		int falsePositives = 0;
 		int falseNegatives = 0;
-		for (Map.Entry<String, WordSyllables> testDictWord : RhymeZoneApiInterface.dictionary.entrySet()) {
+
+		for (Map.Entry<String,WordSyllables> testDictWord : randomSamples) {
+			if (testDictWord.getValue().isEmpty()) continue;
+
 			Set<String> positives = RhymeZoneApiInterface.getStrings(RhymeZoneApiInterface.rhymeZoneRhymes.get(testDictWord.getKey().toLowerCase()));//get all words datamuse says rhyme with it removing ones outside of valid cmu dictionary
-			Set<String> negatives = new HashSet<>(RhymeZoneApiInterface.dictionary.keySet());//TODO idea: randomly shorten negatives list to the size of positives for speed-up?
+			Set<String> negatives = new HashSet<>(RhymeZoneApiInterface.dictionary.keySet());
 			negatives.removeAll(positives);
 
+			//equalize size of positive and negative sample
+			int sampleDiff = negatives.size() - positives.size();
+			if (sampleDiff > 0) {
+				Set<String> newNegatives = new HashSet<>();
+				Set<Integer> toInclude = new HashSet<>();
+				for (i = 0; i < positives.size(); i++) {
+					int temp = GeneticMain.r.nextInt(negatives.size());
+					while (toInclude.contains(temp)) {
+						temp = GeneticMain.r.nextInt(negatives.size());
+					}
+					toInclude.add(temp);
+				}
+				i = 0;
+				for (String negative : negatives) {
+					if (toInclude.contains(i)) {
+						newNegatives.add(negative);
+					}
+					i++;
+				}
+				negatives = newNegatives;
+			}
+
 			Rhymer temp = new Rhymer(this);
-			Set<String> tempTruePositives = new HashSet<>();
-			Set<String> tempTrueNegatives = new HashSet<>();
-			Set<String> tempFalsePositives = new HashSet<>();
-			Set<String> tempFalseNegatives = new HashSet<>();
+			int tempTruePositives = 0;
+			int tempTrueNegatives = 0;
+			int tempFalsePositives = 0;
+			int tempFalseNegatives = 0;
+//			Set<String> tempTruePositives = new HashSet<>();
+//			Set<String> tempTrueNegatives = new HashSet<>();
+//			Set<String> tempFalsePositives = new HashSet<>();
+//			Set<String> tempFalseNegatives = new HashSet<>();
 			for (String positive : positives) {
 				List<WordSyllables> positivePronunciations = Phoneticizer.getSyllables(positive);
 				if (positivePronunciations == null || positivePronunciations.isEmpty()) continue;
 				WordSyllables positivePronunciation = positivePronunciations.get(0);
 				//only test positives w/ same # syllables
-				if (positivePronunciation.size() != testDictWord.getValue().size()) continue;
-				double wordsScore = 0;
-				for (int s = 0; s < positivePronunciation.size(); s++) {
-					double syllablesScore = temp.score2Syllables(positivePronunciation.get(s), testDictWord.getValue().get(s));
-					wordsScore += syllablesScore;
-				}
-				wordsScore /= positivePronunciation.size();
-				if (wordsScore >= GeneticMain.fitnessThreshold)
-					tempTruePositives.add(positive);
+				if (positivePronunciation.isEmpty()) continue;
+//				double wordsScore = 0;
+//				for (int s = 0; s < positivePronunciation.size(); s++) {
+					double endSyllablesScore = temp.score2Syllables(positivePronunciation.get(positivePronunciation.size()-1), testDictWord.getValue().get(testDictWord.getValue().size()-1));
+//					wordsScore += syllablesScore;
+//				}
+//				wordsScore /= positivePronunciation.size();
+				if (endSyllablesScore >= GeneticMain.fitnessThreshold)
+					tempTruePositives++;
 				else
-					tempFalsePositives.add(positive);
+					tempFalsePositives++;
 			}
 			for (String negative : negatives) {
 				List<WordSyllables> negativePronunciations = Phoneticizer.getSyllables(negative);
 				if (negativePronunciations == null || negativePronunciations.isEmpty()) continue;
 				WordSyllables negativePronunciation = negativePronunciations.get(0);
 				//only test negatives w/ same # syllables
-				if (negativePronunciation.size() != testDictWord.getValue().size()) continue;
-				double wordsScore = 0;
-				for (int s = 0; s < negativePronunciation.size(); s++) {
-					double syllablesScore = temp.score2Syllables(negativePronunciation.get(s), testDictWord.getValue().get(s));
-					wordsScore += syllablesScore;
-				}
-				wordsScore /= negativePronunciation.size();
-				if (wordsScore >= GeneticMain.fitnessThreshold)
-					tempFalseNegatives.add(negative);
+				if (negativePronunciation.isEmpty()) continue;
+//				double wordsScore = 0;
+//				for (int s = 0; s < negativePronunciation.size(); s++) {
+					double endSyllablesScore = temp.score2Syllables(negativePronunciation.get(negativePronunciation.size()-1), testDictWord.getValue().get(testDictWord.getValue().size()-1));
+//					wordsScore += endSyllablesScore;
+//				}
+//				wordsScore /= negativePronunciation.size();
+				if (endSyllablesScore >= GeneticMain.fitnessThreshold)
+					tempFalseNegatives++;
 				else
-					tempTrueNegatives.add(negative);
+					tempTrueNegatives++;
 			}
 			//inspect results here
 
-			truePositives += tempTruePositives.size();
-			trueNegatives += tempTrueNegatives.size();
-			falsePositives += tempFalsePositives.size();
-			falseNegatives += tempFalseNegatives.size();
+			truePositives += tempTruePositives;
+			trueNegatives += tempTrueNegatives;
+			falsePositives += tempFalsePositives;
+			falseNegatives += tempFalseNegatives;
 		}
 		return new IndividualResults(truePositives, trueNegatives, falsePositives, falseNegatives);
 	}
@@ -184,26 +238,37 @@ public class Individual implements Comparable<Individual> {
 	}
 
 	public static double calculateRecall(double truePositives, double falseNegatives) {
-		return truePositives / (falseNegatives + truePositives);
+		return truePositives / (truePositives + falseNegatives);
 	}
 
 }
 
 /*
-Look at average of the top 10
-Ask Dan: balance positive:negative ratio
-Ask Dan: simulated annealing
-Ask Dan: adjust mutation rate based on F-score
-Make sure The function is the function that solves the problem I care about
-Consider: Add a penalty for difference between end syllable status
-Consider: Let the system learn whether something should be positive or negative
-Ensure no individual calls mutate twice
-Fix stress variable, change 1 to 2 and 2 to 1 (verify this is correct)
-> Only do last syllables
+@Look at average of the top 10
+@balance positive:negative ratio
+#Make sure The function is the function that solves the problem I care about
+#Consider: Let the system learn whether something should be positive or negative
+@Ensure no individual calls mutate twice
+@Fix stress variable, change 1 to 2 and 2 to 1 (verify this is correct)
+@> Only do last syllables
 > Add single-point crossover, where there are 2 kids
 > Make crossover and mutation rate anneal a bit
-> Lower mutation rate, only mutate 1 gene, pick a normal distribution centered on the value
+@> Lower mutation rate
+@> only mutate 1 gene
+> pick a normal distribution centered on the value
 > Cool via F-score
 > Do weighted chance to go on to reproduce, like tournaments or something
->> Randomly select 1000 words from CMU dictionary
+@> Randomly select 1000 words from CMU dictionary
  */
+
+
+
+
+
+
+
+
+
+
+
+

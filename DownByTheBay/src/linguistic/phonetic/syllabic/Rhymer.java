@@ -64,6 +64,9 @@ public class Rhymer {
 	}
 
 	public double score2Syllables(Syllable s1, Syllable s2) {
+		if (s1 == null || s2 == null) return 0;
+		if (s1.equals(s2)) return 1.0;
+
 		int n = 3;
 
 		List<ConsonantPhoneme> o1 = s1.getOnset();
@@ -120,9 +123,10 @@ public class Rhymer {
 
 	private double scoreConsonantPronunciations(List<ConsonantPhoneme> o1, List<ConsonantPhoneme> o2) {
 		if (Utils.isNullorEmpty(o1) && Utils.isNullorEmpty(o2))
-			return 1;
+			return 1.0;
 		if (Utils.isNullorEmpty(o1) || Utils.isNullorEmpty(o2))
 			return 0;
+		if (o1.equals(o2)) return 1.0;
 		//TODO ACTUALLY ALIGN consonants here
 		double alignmentScore = 0;
 		List<ConsonantPhoneme> shortest = o1;
@@ -142,8 +146,8 @@ public class Rhymer {
 	}
 
 	private double score2Vowels(VowelPhoneme n1, VowelPhoneme n2) {
-		if (n1 == null || n2 == null)
-			return 0;
+		if (n1.getPhonemeEnum() == n2.getPhonemeEnum()) return 1.0;
+		if (n1 == null || n2 == null) return 0;
 		double[] coord1 = PhonemeEnum.getCoord(n1.phonemeEnum);
 		double[] coord2 = PhonemeEnum.getCoord(n2.phonemeEnum);
 		if (coord1 == null || coord2 == null)
@@ -155,18 +159,13 @@ public class Rhymer {
 		double euclidianDistance = Math.sqrt(frontScore + heightScore);
 		double normalizingConstant = Math.sqrt(Math.pow(10 * frontnessWeight,2) + Math.pow(10 * heightWeight,2));//TODO does this normalizing constant work?
 		double normalizedDistance = euclidianDistance / normalizingConstant;
-		double vowelMatchScore = 1 - normalizedDistance;
+		double vowelMatchScore = 1.0 - normalizedDistance;
 		return vowelMatchScore;
 	}
 
-	private double getDistance(double[] p1, double[] p2) {
-		double d = Math.sqrt(Math.pow(p2[0] - p1[0], 2) + Math.pow(p2[1] - p1[1], 2));
-		return d;
-	}
-
 	private double score2Consonants(ConsonantPhoneme ph1, ConsonantPhoneme ph2) {
-		if (ph1 == null || ph2 == null)
-			return 0;
+		if (ph1 == null || ph2 == null) return 0;
+		if (ph1.getPhonemeEnum() == ph2.getPhonemeEnum()) return 1.0;
 		MannerOfArticulation m1 = PhonemeEnum.getManner(ph1.phonemeEnum);
 		MannerOfArticulation m2 = PhonemeEnum.getManner(ph2.phonemeEnum);
 		PlaceOfArticulation p1 = PhonemeEnum.getPlace(ph1.phonemeEnum);
