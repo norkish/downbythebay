@@ -9,9 +9,7 @@ import org.apache.commons.lang3.time.StopWatch;
 
 import constraint.BinaryRhymeConstraint;
 import constraint.ConditionedConstraint;
-import constraint.Constraint;
 import constraint.EndOfWordConstraint;
-import constraint.PartOfSpeechConstraint;
 import constraint.FloatingConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.StartOfWordConstraint;

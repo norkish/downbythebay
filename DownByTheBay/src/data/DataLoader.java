@@ -57,7 +57,7 @@ public class DataLoader {
 	private static final long MAX_TRAINING_SENTENCES = 5000; // -1 for no limit
 	private static final long MAX_TOKENS_PER_SENTENCE = 40; // keeps Stanford NLP fast
 	private static final int DEBUG = 1; 
-	private static final boolean USE_DUMMY_DATA = false; 
+	private static final boolean USE_DUMMY_DATA = true; 
 	
 	public static DataSummary loadData(int order) {
 		

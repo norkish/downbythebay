@@ -42,7 +42,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			Set<Integer> keysWithSupportAtPosLessOne = null;
 			Map<Integer, Integer> inSupportAtPos;
 			
-			Integer fromStateIdx, toStateIdx;
+			Integer toStateIdx;
 			Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 			Map<Integer, Double> toStates;
 			LinkedList<Token> fromState;
@@ -55,12 +55,15 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			Token priorStateToken;
 			Constraint<T> constraint;
 			boolean desiredConstraintCondition;
+			// for each possible prior state
 			for(Integer priorStateIdx : model.logPriors.keySet()) {
 				priorState = tokens.get(priorStateIdx);
 				satisfiable = true;
 
-				for (int i = 0; i < priorState.size(); i++) {
+				// for each token in the state
+				for (int i = 0; i < priorState.size() && satisfiable; i++) {
 					priorStateToken = priorState.get(i);
+					// if it breaks one constraint
 					for (ConditionedConstraint<T> conditionedConstraint : constraints.get(i)) {
 						constraint = conditionedConstraint.getConstraint();
 						desiredConstraintCondition = conditionedConstraint.getDesiredConditionState();
@@ -92,15 +95,15 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				logTransitions.add(logTransitionsAtPosition);
 				
 				keysWithSupportAtPosLessOne = i == 0 ? this.logPriors.keySet() : inSupport.get(i-1).keySet();
-				// for each possible transition (fromState -> toState) from the original naive transition matrix
-				for(Entry<Integer,Map<Integer,Double>> entry : model.logTransitions.entrySet()) {
-					fromStateIdx = entry.getKey();
-					fromState = tokens.get(fromStateIdx);
-					// if there are ANY ways of getting to fromState
-					if (keysWithSupportAtPosLessOne.contains(fromStateIdx)) {
+				// if there are ANY ways of getting to fromState
+				for (Integer fromStateIdx : keysWithSupportAtPosLessOne) {
+					Map<Integer, Double> innerMap = model.logTransitions.get(fromStateIdx);
+					// for each possible transition (fromState -> toState) from the original naive transition matrix
+					if (innerMap != null) {
+						fromState = tokens.get(fromStateIdx);
 						toStates = new HashMap<Integer, Double>();
 						// make note that via this fromState, each of the toStates is accessible via yet one more path
-						for (Entry<Integer, Double> innerEntry : entry.getValue().entrySet()) {
+						for (Entry<Integer, Double> innerEntry : innerMap.entrySet()) {
 							toStateIdx = innerEntry.getKey();
 							toStateLast = tokens.get(toStateIdx).getLast();
 							satisfiable = true;
