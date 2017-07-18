@@ -57,7 +57,7 @@ public class DataLoader {
 	private static final long MAX_TRAINING_SENTENCES = 5000; // -1 for no limit
 	private static final long MAX_TOKENS_PER_SENTENCE = 40; // keeps Stanford NLP fast
 	private static final int DEBUG = 1; 
-	private static final boolean USE_DUMMY_DATA = true; 
+	private static final boolean USE_DUMMY_DATA = false; 
 	
 	public static DataSummary loadData(int order) {
 		
@@ -71,6 +71,7 @@ public class DataLoader {
 					"Have you ever seen a llama wearing pajamas?",
 					"Have you ever seen a moose with a pair of new shoes?",
 					"Have you ever seen a pirate that just ate a veggie diet?",
+					"Have you ever seen the law drinking from a straw?"
 //					"I'm a bear combin' his hair?",
 //					"Why is it so weird to think about a llama wearing polka dot pajamas?",
 //					"I have a llama wearing pajamas.",

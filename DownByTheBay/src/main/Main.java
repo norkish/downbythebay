@@ -50,13 +50,14 @@ public class Main {
 		// Add rest of constraints
 		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.NN, Pos.JJ)))));
 		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
-		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB)))));
-		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB)))));
+		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
+		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
 		
 		// train a high-order markov model on a corpus
 		
 		int[][] allRhythmicTemplates = new int[][] {
 			new int[]{0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
+			new int[]{0,1,-1,-1,-1,1,0,1,0,1,-1}, // "a ma . . . drinking from a straw ."
 			new int[]{0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
 			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1}, //"a moose . with a pair of new . shoes ."
 			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
@@ -132,7 +133,7 @@ public class Main {
 			watch.stop();
 			System.out.println("Time to build model:" + watch.getTime());
 			
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < 5; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
 				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
 				// convert the sequence of syllable tokens to a human-readable string

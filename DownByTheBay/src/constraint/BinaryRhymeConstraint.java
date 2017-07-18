@@ -37,8 +37,8 @@ public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
 		
 		Syllable s1 = Syllabifier.tokenToSyllable(syl1Token);
 		Syllable s2 = Syllabifier.tokenToSyllable(syl2Token);
-//		return HirjeeMatrix.scoreSyllables(s1, s2) > 3.0; // Hirjee threshold
-		return (s1.getNucleus().equals(s2.getNucleus()));
+		return HirjeeMatrix.scoreSyllables(s1, s2) > 2.0;
+//		return (s1.getNucleus().equals(s2.getNucleus()));
 //		double score = Rhymer.score2SyllablesByClassicWeights(s1, s2);
 //		if (score >= .85)
 //			return true;

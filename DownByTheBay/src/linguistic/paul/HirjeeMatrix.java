@@ -39,9 +39,9 @@ public class HirjeeMatrix {
 					lineSplit = line.split("\t");
 					for (int i = lineNum; i < matrixWidth; i++) {
 						if (i + 1 >= lineSplit.length || lineSplit[i + 1].length() == 0) {
-							value = -50.0;
+							value = Double.NEGATIVE_INFINITY;
 						} else {
-							value = Double.parseDouble(lineSplit[i + 1]) * 10.;
+							value = Double.parseDouble(lineSplit[i + 1]);
 						}
 
 						matrix[lineNum][i] = value;
@@ -88,50 +88,54 @@ public class HirjeeMatrix {
 		double codaScore = 0.0;
 		List<ConsonantPhoneme> coda1 = s1.getCoda();
 		List<ConsonantPhoneme> coda2 = s2.getCoda();
-		
-		double[][] matrix = new double[coda1.size()+1][coda2.size()+1];
+		final int maxSize = Math.max(coda1.size(), coda2.size());
 
-		for (int row = 0; row <= coda1.size(); row++) {
-			matrix[row][0] = 0; // set left col to 0
-		}
-		for (int col = 0; col <= coda2.size(); col++) {
-			matrix[0][col] = 0; // set top row to 0
-		}
-		
-		int cons1Idx, cons2Idx;
-		double diag, up, left;
-		for (int row = 1; row <= coda1.size(); row++) {
-			double[] prevMatrixRow = matrix[row-1];
-			double[] currMatrixRow = matrix[row];
-			for (int col = 1; col <= coda2.size(); col++) {
+		if (maxSize > 0) {
+			double[][] alignmentMatrix = new double[coda1.size()+1][coda2.size()+1];
+	
+			for (int row = 0; row <= coda1.size(); row++) {
+				alignmentMatrix[row][0] = 0; // set left col to 0
+			}
+			for (int col = 0; col <= coda2.size(); col++) {
+				alignmentMatrix[0][col] = 0; // set top row to 0
+			}
+			
+			int cons1Idx, cons2Idx;
+			double diag, up, left;
+			for (int row = 1; row <= coda1.size(); row++) {
+				double[] prevMatrixRow = alignmentMatrix[row-1];
+				double[] currMatrixRow = alignmentMatrix[row];
 				cons1Idx = coda1.get(row-1).phonemeEnum.ordinal();
-				cons2Idx = coda2.get(col-1).phonemeEnum.ordinal();
-				
-				diag = prevMatrixRow[col-1] + matrix[cons1Idx][cons2Idx];
-				left = currMatrixRow[col-1] + (row == 0 ? UNMATCHED_CODA_CONSONANT_AT_BEGINNING : (row == coda1.size()? UNMATCHED_CODA_CONSONANT_AT_END : Double.NEGATIVE_INFINITY));
-				up = prevMatrixRow[col] + (col == 0 ? UNMATCHED_CODA_CONSONANT_AT_BEGINNING : (col == coda2.size()? UNMATCHED_CODA_CONSONANT_AT_END : Double.NEGATIVE_INFINITY));
-
-				if (diag >= up) {
-					if (diag >= left) {
-						currMatrixRow[col] = diag;
+				for (int col = 1; col <= coda2.size(); col++) {
+					cons2Idx = coda2.get(col-1).phonemeEnum.ordinal();
+					
+					diag = prevMatrixRow[col-1] + matrix[cons1Idx][cons2Idx];
+					left = currMatrixRow[col-1] + (row == 0 ? matrix[cons1Idx][UNMATCHED_CODA_CONSONANT_AT_BEGINNING] : (row == coda1.size()? matrix[cons1Idx][UNMATCHED_CODA_CONSONANT_AT_END] : Double.NEGATIVE_INFINITY));
+					up = prevMatrixRow[col] + (col == 0 ? matrix[UNMATCHED_CODA_CONSONANT_AT_BEGINNING][cons2Idx] : (col == coda2.size()? matrix[UNMATCHED_CODA_CONSONANT_AT_END][cons2Idx] : Double.NEGATIVE_INFINITY));
+	
+					if (diag >= up) {
+						if (diag >= left) {
+							currMatrixRow[col] = diag;
+						} else {
+							currMatrixRow[col] = left;
+						}
 					} else {
-						currMatrixRow[col] = left;
-					}
-				} else {
-					if (up >= left) {
-						currMatrixRow[col] = up;
-					} else {
-						currMatrixRow[col] = left;
+						if (up >= left) {
+							currMatrixRow[col] = up;
+						} else {
+							currMatrixRow[col] = left;
+						}
 					}
 				}
 			}
+			codaScore = alignmentMatrix[coda1.size()][coda2.size()]/maxSize;
 		}
-		codaScore = matrix[coda1.size()][coda2.size()]/Math.max(coda1.size(), coda2.size());
-		
 		// stress
 		double stressScore = 0.0;
 		
-		return vowelScore + codaScore + stressScore;
+		final double score = vowelScore + codaScore + stressScore;
+//		System.out.println(s1 + "\t" + s2 + "\t" + vowelScore + "\t" + codaScore + "\t" + stressScore + "\t=\t" + score);
+		return score;
 	}
 	
 	public static double score(int phone, int phone2) {
