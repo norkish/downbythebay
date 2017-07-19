@@ -58,9 +58,24 @@ public class Rhymer {
 		System.out.println(score);
 	}
 
-	public static double score2SyllablesByClassicWeights(Syllable s1, Syllable s2) {
-		Rhymer temp = new Rhymer(1,1,.55,.35,.1,.25,6,1,1);
+	public static double score2SyllablesByGaOptimizedWeights(Syllable s1, Syllable s2) {
+		Rhymer temp = new Rhymer(100,87.89145327765064,100,93.74256357399545,27.754425336501495,5.519934718254886,100,125.45080735803514,17.24887448289867);
 		return temp.score2Syllables(s1,s2);
+	 /*
+		New best individual: 0.9665289798059271
+		frontness: 100
+		height: 87.89145327765064
+
+		place of articulation: 100
+		manner of articulation: 93.74256357399545
+		voicing: 27.754425336501495
+
+		onset: 5.519934718254886
+		nucleus: 100
+		coda: 125.45080735803514
+
+		stress: 17.24887448289867
+	 */
 	}
 
 	public double score2Syllables(Syllable s1, Syllable s2) {
