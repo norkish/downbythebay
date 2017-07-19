@@ -1,12 +1,15 @@
 package constraint;
 
+import java.util.LinkedList;
+
 import data.SyllableToken;
 import markov.Token;
 
-public class EndOfWordConstraint<T> implements StaticConstraint<SyllableToken> {
+public class EndOfWordConstraint<T> implements StateConstraint<SyllableToken> {
 
 	@Override
-	public boolean isSatisfiedBy(Token token) {
+	public boolean isSatisfiedBy(LinkedList<Token> state, int i) {
+		Token token = state.get(i);
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {

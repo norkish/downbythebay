@@ -1,15 +1,14 @@
 package constraint;
 
-import java.util.Iterator;
 import java.util.LinkedList;
 
 import data.SyllableToken;
 import markov.Token;
 
-public class FloatingConstraint<T> implements DynamicConstraint<SyllableToken> {
+public class FloatingConstraint<T> implements TransitionalConstraint<SyllableToken> {
 
 	private int lengthOfSegment;
-	private StaticConstraint<T> staticConstraint;
+	private StateConstraint<T> staticConstraint;
 	
 	/**
 	 * 
@@ -18,7 +17,7 @@ public class FloatingConstraint<T> implements DynamicConstraint<SyllableToken> {
 	 * @param partsOfSpeech, parts of speech that validate the constraint if one of the tokens
 	 * in the segment is in this set
 	 */
-	public FloatingConstraint(int lengthOfSegment, StaticConstraint<T> staticConstraint) {
+	public FloatingConstraint(int lengthOfSegment, StateConstraint<T> staticConstraint) {
 		this.lengthOfSegment = lengthOfSegment;
 		this.staticConstraint = staticConstraint;
 	}
@@ -29,22 +28,18 @@ public class FloatingConstraint<T> implements DynamicConstraint<SyllableToken> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> fromState, Token token) {
-		if (!(token instanceof SyllableToken)) {
-			return false;
-		} else {
-			if (staticConstraint.isSatisfiedBy(token)){
+	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> toState) {
+		if (staticConstraint.isSatisfiedBy(toState,toState.size()-1)){
+			return true;
+		}
+		
+		final int furthestStateIdxBackToConsider = Math.max(0, fromState.size()-lengthOfSegment);
+		for (int i = fromState.size()-1; i >= furthestStateIdxBackToConsider; i--) {
+			if (staticConstraint.isSatisfiedBy(fromState, i)) {
 				return true;
 			}
-			
-			Iterator<Token> descendingIterator = fromState.descendingIterator();
-			for (int i = 0; i < lengthOfSegment && descendingIterator.hasNext(); i++) {
-				if (staticConstraint.isSatisfiedBy((SyllableToken) descendingIterator.next())) {
-					return true;
-				}
-			}
-			
-			return false;
 		}
+		
+		return false;
 	}
 }

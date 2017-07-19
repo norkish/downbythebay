@@ -9,7 +9,7 @@ import constraint.EndOfWordConstraint;
 import constraint.FloatingConstraint;
 import constraint.SemanticMeaningConstraint;
 import constraint.StartOfWordConstraint;
-import constraint.StressConstraint;
+import constraint.AbsoluteStressConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
@@ -50,14 +50,14 @@ public class RosesAreRedMain {
 		constraints.get(15).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
 		constraints.get(15).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(8)));
 
-		constraints.get(0).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
-		constraints.get(3).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
-		constraints.get(4).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
-		constraints.get(7).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
-		constraints.get(8).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
-		constraints.get(11).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
-		constraints.get(13).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
-		constraints.get(15).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
+		constraints.get(0).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
+		constraints.get(3).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
+		constraints.get(4).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
+		constraints.get(7).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
+		constraints.get(8).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
+		constraints.get(11).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
+		constraints.get(13).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
+		constraints.get(15).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
 		
 		DataSummary summary = DataLoader.loadData(markovOrder);
 		System.out.println("Data loaded for HaikuMain.java");

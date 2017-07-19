@@ -4,12 +4,11 @@ import java.util.LinkedList;
 
 import data.SyllableToken;
 import linguistic.paul.HirjeeMatrix;
-import linguistic.phonetic.syllabic.Rhymer;
 import linguistic.phonetic.syllabic.Syllabifier;
 import linguistic.phonetic.syllabic.Syllable;
 import markov.Token;
 
-public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
+public class BinaryRhymeConstraint<T> implements TransitionalConstraint<T> {
 
 	// if this value, for example, is 2, then the constraint indicates that the syllable 
 	// under this constraint must rhyme with the syllable 2 positions before it
@@ -21,7 +20,8 @@ public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> fromState, Token token) {
+	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> toState) {
+		Token token = toState.getLast();
 		Token previousToken = fromState.get(fromState.size() - constraintSylsPrevToRhymeWith);
 		
 		if (!(previousToken instanceof SyllableToken) || !(token instanceof SyllableToken)) {
@@ -38,7 +38,7 @@ public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
 		Syllable s1 = Syllabifier.tokenToSyllable(syl1Token);
 		Syllable s2 = Syllabifier.tokenToSyllable(syl2Token);
 		return HirjeeMatrix.scoreSyllables(s1, s2) > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD;
-//		return (s1.getNucleus().equals(s2.getNucleus()));
+//		return (s1.getNucleus().equals(s2.getNucleus()) && s1.getCoda().equals(s2.getCoda()));
 //		double score = Rhymer.score2SyllablesByClassicWeights(s1, s2);
 //		if (score >= .85)
 //			return true;

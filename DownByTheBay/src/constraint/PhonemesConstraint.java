@@ -1,12 +1,13 @@
 package constraint;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
 import markov.Token;
 
-public class PhonemesConstraint<T> implements StaticConstraint<SyllableToken> {
+public class PhonemesConstraint<T> implements StateConstraint<SyllableToken> {
 
 	@Override
 	public String toString() {
@@ -20,7 +21,8 @@ public class PhonemesConstraint<T> implements StaticConstraint<SyllableToken> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(Token token) {
+	public boolean isSatisfiedBy(LinkedList<Token> state, int i) {
+		Token token = state.get(i);
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {

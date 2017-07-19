@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import constraint.StaticConstraint;
+import constraint.StateConstraint;
 
 public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMarkovModel<T>{
 
@@ -207,7 +207,7 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	}
 	
 	public static class CharacterToken extends Token{
-		public static class CharacterTokenConstraint<T> implements StaticConstraint<CharacterToken> {
+		public static class CharacterTokenConstraint<T> implements StateConstraint<CharacterToken> {
 
 			public CharacterToken c;
 
@@ -216,7 +216,8 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 			}
 
 			@Override
-			public boolean isSatisfiedBy(Token state) {
+			public boolean isSatisfiedBy(LinkedList<Token> stateList, int i) {
+				Token state = stateList.get(i);
 				if (c == null) {
 					throw new RuntimeException("Constraint never specified");
 				}

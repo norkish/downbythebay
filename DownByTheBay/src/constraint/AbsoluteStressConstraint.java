@@ -3,20 +3,19 @@ package constraint;
 import java.util.LinkedList;
 
 import data.SyllableToken;
-import linguistic.syntactic.Pos;
 import markov.Token;
 
-public class PartOfSpeechConstraint<T> implements StateConstraint<T> {
+public class AbsoluteStressConstraint<T> implements StateConstraint<T> {
 
 	@Override
 	public String toString() {
-		return "POS:" + constraintPos;
+		return "constraintStress:" + constraintStress;
 	}
 
-	private Pos constraintPos;
+	private int constraintStress;
 	
-	public PartOfSpeechConstraint(Pos pos) {
-		this.constraintPos = pos;
+	public AbsoluteStressConstraint(int stress) {
+		this.constraintStress = stress;
 	}
 
 	@Override
@@ -25,7 +24,7 @@ public class PartOfSpeechConstraint<T> implements StateConstraint<T> {
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			return ((SyllableToken) token).getPos().equals(constraintPos);
+			return (((SyllableToken) token).getStress() == 2) == (constraintStress == 1);
 		}
 	}
 

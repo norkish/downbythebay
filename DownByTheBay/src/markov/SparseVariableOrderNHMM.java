@@ -14,8 +14,8 @@ import java.util.Set;
 
 import constraint.ConditionedConstraint;
 import constraint.Constraint;
-import constraint.DynamicConstraint;
-import constraint.StaticConstraint;
+import constraint.TransitionalConstraint;
+import constraint.StateConstraint;
 import markov.SparseVariableOrderMarkovModel.CharacterToken;
 import markov.SparseVariableOrderMarkovModel.CharacterToken.CharacterTokenConstraint;
 import utils.MathUtils;
@@ -46,13 +46,12 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
 			Map<Integer, Double> toStates;
 			LinkedList<Token> fromState;
-			Token toStateLast;
+			LinkedList<Token> toState;
 			boolean satisfiable;
 			
 			// handle priors first
 			System.out.print(".");
 			LinkedList<Token> priorState;
-			Token priorStateToken;
 			Constraint<T> constraint;
 			boolean desiredConstraintCondition;
 			// for each possible prior state
@@ -62,17 +61,16 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 
 				// for each token in the state
 				for (int i = 0; i < priorState.size() && satisfiable; i++) {
-					priorStateToken = priorState.get(i);
 					// if it breaks one constraint
 					for (ConditionedConstraint<T> conditionedConstraint : constraints.get(i)) {
 						constraint = conditionedConstraint.getConstraint();
 						desiredConstraintCondition = conditionedConstraint.getDesiredConditionState();
-						if (constraint instanceof DynamicConstraint) {
+						if (constraint instanceof TransitionalConstraint) {
 							// this could change, but for now dynamic constraints are designed to take a fromToken and a toToken.
 							// the change would require constraints to be placed solely on one token...
 							throw new RuntimeException("Can't have dynamic constaints on position before order length");
 						} else {
-							if(((StaticConstraint<T>)constraint).isSatisfiedBy(priorStateToken) ^ desiredConstraintCondition) {
+							if(((StateConstraint<T>)constraint).isSatisfiedBy(priorState, i) ^ desiredConstraintCondition) {
 								satisfiable = false;
 								break;
 							}
@@ -105,18 +103,18 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 						// make note that via this fromState, each of the toStates is accessible via yet one more path
 						for (Entry<Integer, Double> innerEntry : innerMap.entrySet()) {
 							toStateIdx = innerEntry.getKey();
-							toStateLast = tokens.get(toStateIdx).getLast();
+							toState = tokens.get(toStateIdx);
 							satisfiable = true;
 							for (ConditionedConstraint<T> conditionedConstraint : constraints.get(i+order)) {
 								constraint = conditionedConstraint.getConstraint();
 								desiredConstraintCondition = conditionedConstraint.getDesiredConditionState();
-								if (constraint instanceof DynamicConstraint) {
-									if (((DynamicConstraint<T>) constraint).isSatisfiedBy(fromState, toStateLast) ^ desiredConstraintCondition) {
+								if (constraint instanceof TransitionalConstraint) {
+									if (((TransitionalConstraint<T>) constraint).isSatisfiedBy(fromState, toState) ^ desiredConstraintCondition) {
 										satisfiable = false;
 										break;
 									}
 								} else {
-									if(((StaticConstraint<T>)constraint).isSatisfiedBy(toStateLast) ^ desiredConstraintCondition) 
+									if(((StateConstraint<T>)constraint).isSatisfiedBy(toState, order-1) ^ desiredConstraintCondition) 
 									{
 										satisfiable = false;
 										break;

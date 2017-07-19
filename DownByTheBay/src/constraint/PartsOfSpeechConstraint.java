@@ -1,5 +1,6 @@
 package constraint;
 
+import java.util.LinkedList;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -8,7 +9,7 @@ import data.SyllableToken;
 import linguistic.syntactic.Pos;
 import markov.Token;
 
-public class PartsOfSpeechConstraint<T> implements StaticConstraint<T> {
+public class PartsOfSpeechConstraint<T> implements StateConstraint<T> {
 
 	private Set<Pos> constraintPosChoices;
 	
@@ -22,7 +23,8 @@ public class PartsOfSpeechConstraint<T> implements StaticConstraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(Token token) {
+	public boolean isSatisfiedBy(LinkedList<Token> state, int i) {
+		Token token = state.get(i);
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {

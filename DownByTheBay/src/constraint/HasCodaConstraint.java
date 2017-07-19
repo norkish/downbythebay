@@ -1,11 +1,13 @@
 package constraint;
 
 import java.util.LinkedList;
+import java.util.List;
 
 import data.SyllableToken;
+import linguistic.phonetic.PhonemeEnum;
 import markov.Token;
 
-public class StartOfWordConstraint<T> implements StateConstraint<T> {
+public class HasCodaConstraint<T> implements StateConstraint<T> {
 
 	@Override
 	public boolean isSatisfiedBy(LinkedList<Token> state, int i) {
@@ -13,14 +15,13 @@ public class StartOfWordConstraint<T> implements StateConstraint<T> {
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			return ((SyllableToken) token).getPositionInContext() == 0;
+			final List<PhonemeEnum> phonemes = ((SyllableToken) token).getPhonemes();
+			return (phonemes.get(phonemes.size()-1).ordinal() > 14);
 		}
 	}
 
-	private final String string = "Must be first syllable in a word";
 	@Override
 	public String toString() {
-		return string;
+		return "Syllable has coda";
 	}
-
 }

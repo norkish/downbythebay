@@ -5,7 +5,7 @@ import markov.Token;
 import java.util.LinkedList;
 import semantic.word2vec.*;
 
-public class SemanticConstraint<T> implements DynamicConstraint<T> {
+public class SemanticConstraint<T> implements TransitionalConstraint<T> {
 
 	private static final double minSimilarity = 0.5;
 	private final String theme;
@@ -37,7 +37,7 @@ public class SemanticConstraint<T> implements DynamicConstraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> fromState, Token token) {
+	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> token) {
 		return false;
 	}
 }

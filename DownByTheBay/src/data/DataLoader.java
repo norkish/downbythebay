@@ -54,7 +54,7 @@ public class DataLoader {
 			this.priors = priors;
 		}
 	}
-	private static final long MAX_TRAINING_SENTENCES = 15000; // -1 for no limit
+	private static final long MAX_TRAINING_SENTENCES = 5000; // -1 for no limit
 	private static final long MAX_TOKENS_PER_SENTENCE = 40; // keeps Stanford NLP fast
 	private static final int DEBUG = 1; 
 	private static final boolean USE_DUMMY_DATA = false; 
@@ -91,7 +91,7 @@ public class DataLoader {
 			if (!USE_DUMMY_DATA) {
 				StringBuilder str = new StringBuilder();
 				try {
-					final String fileName = "data/text_fiction_awq/w_fic_" + i + ".txt";
+					final String fileName = "data/text_magazine_qrb/w_mag_" + i + ".txt";
 					if (DEBUG > 0) System.out.println("Now training on " + fileName);
 					BufferedReader br = new BufferedReader(new FileReader(fileName));
 					String currLine;

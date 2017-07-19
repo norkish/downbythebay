@@ -10,7 +10,7 @@ import constraint.EndOfWordConstraint;
 import constraint.FloatingConstraint;
 import constraint.SemanticMeaningConstraint;
 import constraint.StartOfWordConstraint;
-import constraint.StressConstraint;
+import constraint.AbsoluteStressConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
@@ -55,7 +55,7 @@ public class FreeStyleMain {
 		constraints.get((LINE1_LEN+LINE2_LEN+LINE3_LEN+LINE4_LEN)-1).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(LINE4_LEN)));
 
 		for(Integer position: new Integer[]{LINE1_LEN-1,(LINE1_LEN+LINE2_LEN)-1,(LINE1_LEN+LINE2_LEN+LINE3_LEN)-1,(LINE1_LEN+LINE2_LEN+LINE3_LEN+LINE4_LEN)-1})
-			constraints.get(position).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
+			constraints.get(position).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
 		
 		DataSummary summary = DataLoader.loadData(markovOrder);
 		System.out.println("Data loaded for HaikuMain.java");

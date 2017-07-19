@@ -171,8 +171,8 @@ public class HirjeeMatrix {
 		double stressScore = 0.0;
 		
 		final double score = vowelScore + codaScore + stressScore;
-		if (score > HIRJEE_RHYME_THRESHOLD)
-			System.out.println(s1 + " + " + s2 + " + " + vowelScore + " + " + codaScore + " + " + stressScore + " = " + score);
+//		if (score > HIRJEE_RHYME_THRESHOLD)
+//			System.out.println(s1 + " + " + s2 + " + " + vowelScore + " + " + codaScore + " + " + stressScore + " = " + score);
 		return score;
 	}
 	

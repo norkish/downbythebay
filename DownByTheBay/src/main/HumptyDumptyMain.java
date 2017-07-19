@@ -9,7 +9,7 @@ import constraint.EndOfWordConstraint;
 import constraint.FloatingConstraint;
 import constraint.SemanticMeaningConstraint;
 import constraint.StartOfWordConstraint;
-import constraint.StressConstraint;
+import constraint.AbsoluteStressConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;

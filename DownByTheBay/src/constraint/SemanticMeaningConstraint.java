@@ -1,12 +1,13 @@
 package constraint;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Set;
 
 import data.SyllableToken;
 import markov.Token;
 
-public class SemanticMeaningConstraint<T> implements StaticConstraint<T>{
+public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 
 	String theme;
 	private Set<String> choices = new HashSet<String>();
@@ -43,7 +44,8 @@ public class SemanticMeaningConstraint<T> implements StaticConstraint<T>{
 	}
 
 	@Override
-	public boolean isSatisfiedBy(Token token) {
+	public boolean isSatisfiedBy(LinkedList<Token> state, int i) {
+		Token token = state.get(i);
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
