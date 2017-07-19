@@ -129,7 +129,16 @@ public class Rhymer {
 
 		double syllableAlignmentScore = ((onsetMult * onsetScore) + (nucleusMult * nucleusScore) + (codaMult * codaScore)) / n;
 
-		int stressDiff = Math.abs(s1.getStress() - s2.getStress());
+		//stress constraint
+		int stress1 = s1.getStress();
+		int stress2 = s2.getStress();
+
+		if (stress1 == 1) stress1 = 2;
+		else if (stress1 == 2) stress1 = 1;
+		if (stress2 == 1) stress2 = 2;
+		else if (stress2 == 2) stress2 = 1;
+
+		int stressDiff = Math.abs(stress1 - stress2);
 		if (stressDiff > 0)
 			syllableAlignmentScore /= (stressDiff * (stressWeight / 100) + 1);
 

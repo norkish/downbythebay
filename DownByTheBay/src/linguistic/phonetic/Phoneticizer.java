@@ -63,8 +63,6 @@ public class Phoneticizer {
 						else
 							stress = -1;
 						if (PhonemeEnum.valueOf(phone).isVowel()) {
-							if (stress == 1) stress = 2;
-							else if (stress == 2) stress = 1;
 							sPhone = new VowelPhoneme(PhonemeEnum.valueOf(phone), stress);
 						}
 						else
