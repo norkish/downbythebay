@@ -14,9 +14,10 @@ import utils.Pair;
 public class HirjeeMatrix {
 
 	private static double[][] matrix = load();
-	private static final String hirjeeFilePath = "data/hirjeeMatrix.txt";
-	private static final int UNMATCHED_CODA_CONSONANT_AT_BEGINNING = 38;
-	private static final int UNMATCHED_CODA_CONSONANT_AT_END = 39;
+	private static final String hirjeeFilePath = "data/hirjeeMatrix_withY.txt";
+	private static final int UNMATCHED_CODA_CONSONANT_AT_BEGINNING = 39;
+	private static final int UNMATCHED_CODA_CONSONANT_AT_END = 40;
+	public final static double HIRJEE_RHYME_THRESHOLD = 3.0;
 
 	public static double[][] load() {
 		if (matrix == null) {
@@ -75,7 +76,7 @@ public class HirjeeMatrix {
 					+ matrix[phonesDict.get(phone).getFirst()][phonesDict.get("AA").getFirst()]);
 		}
 	}
-
+	
 	public static double scoreSyllables(Syllable s1, Syllable s2) {
 		
 		// vowel
@@ -83,7 +84,7 @@ public class HirjeeMatrix {
 		VowelPhoneme vowel1 = s1.getVowel();
 		VowelPhoneme vowel2 = s2.getVowel();
 		vowelScore += matrix[vowel1.phonemeEnum.ordinal()][vowel2.phonemeEnum.ordinal()];
-		
+//		System.out.println("VOWEL:" + vowel1.phonemeEnum + " " + vowel1.phonemeEnum.ordinal() + ", " + vowel2.phonemeEnum + " " + vowel2.phonemeEnum.ordinal());
 		// coda
 		double codaScore = 0.0;
 		List<ConsonantPhoneme> coda1 = s1.getCoda();
@@ -92,49 +93,86 @@ public class HirjeeMatrix {
 
 		if (maxSize > 0) {
 			double[][] alignmentMatrix = new double[coda1.size()+1][coda2.size()+1];
-	
-			for (int row = 0; row <= coda1.size(); row++) {
-				alignmentMatrix[row][0] = 0; // set left col to 0
+			alignmentMatrix[0][0] = 0;
+			char[][] backtrack = new char[coda1.size()+1][coda2.size()+1];
+
+			int cons1Idx, cons2Idx;
+			for (int row = 1; row <= coda1.size(); row++) {
+				cons1Idx = coda1.get(row-1).phonemeEnum.ordinal();
+				alignmentMatrix[row][0] = alignmentMatrix[row-1][0] + matrix[cons1Idx][UNMATCHED_CODA_CONSONANT_AT_BEGINNING];
+				backtrack[row][0] = 'U';
 			}
-			for (int col = 0; col <= coda2.size(); col++) {
-				alignmentMatrix[0][col] = 0; // set top row to 0
+			for (int col = 1; col <= coda2.size(); col++) {
+				cons2Idx = coda2.get(col-1).phonemeEnum.ordinal();
+				alignmentMatrix[0][col] = matrix[UNMATCHED_CODA_CONSONANT_AT_BEGINNING][cons2Idx];
+				backtrack[0][col] = 'L';
 			}
 			
-			int cons1Idx, cons2Idx;
 			double diag, up, left;
 			for (int row = 1; row <= coda1.size(); row++) {
 				double[] prevMatrixRow = alignmentMatrix[row-1];
 				double[] currMatrixRow = alignmentMatrix[row];
+				char[] currBackTrackRow = backtrack[row];
 				cons1Idx = coda1.get(row-1).phonemeEnum.ordinal();
 				for (int col = 1; col <= coda2.size(); col++) {
 					cons2Idx = coda2.get(col-1).phonemeEnum.ordinal();
-					
+//					System.out.println("CONSONANT:" + coda1.get(row-1).phonemeEnum + " " + coda1.get(row-1).phonemeEnum.ordinal() + ", " + coda2.get(col-1).phonemeEnum + " " + coda2.get(col-1).phonemeEnum.ordinal());
+
 					diag = prevMatrixRow[col-1] + matrix[cons1Idx][cons2Idx];
-					left = currMatrixRow[col-1] + (row == 0 ? matrix[cons1Idx][UNMATCHED_CODA_CONSONANT_AT_BEGINNING] : (row == coda1.size()? matrix[cons1Idx][UNMATCHED_CODA_CONSONANT_AT_END] : Double.NEGATIVE_INFINITY));
-					up = prevMatrixRow[col] + (col == 0 ? matrix[UNMATCHED_CODA_CONSONANT_AT_BEGINNING][cons2Idx] : (col == coda2.size()? matrix[UNMATCHED_CODA_CONSONANT_AT_END][cons2Idx] : Double.NEGATIVE_INFINITY));
+					left = currMatrixRow[col-1] + (row == coda1.size()? matrix[UNMATCHED_CODA_CONSONANT_AT_END][cons2Idx] : Double.NEGATIVE_INFINITY);
+					up = prevMatrixRow[col] + (col == coda2.size()? matrix[cons1Idx][UNMATCHED_CODA_CONSONANT_AT_END] : Double.NEGATIVE_INFINITY);
 	
 					if (diag >= up) {
 						if (diag >= left) {
 							currMatrixRow[col] = diag;
+							currBackTrackRow[col] = 'D';
 						} else {
 							currMatrixRow[col] = left;
+							currBackTrackRow[col] = 'L';
 						}
 					} else {
 						if (up >= left) {
 							currMatrixRow[col] = up;
+							currBackTrackRow[col] = 'U';
 						} else {
 							currMatrixRow[col] = left;
+							currBackTrackRow[col] = 'L';
 						}
 					}
 				}
 			}
-			codaScore = alignmentMatrix[coda1.size()][coda2.size()]/maxSize;
+			
+			int pathLen = 0;
+			int row = coda1.size();
+			int col = coda2.size();
+			while(row != 0 || col != 0) {
+				pathLen++;
+				switch(backtrack[row][col]) {
+				case 'D':
+					row--;
+					col--;
+					break;
+				case 'L':
+					col--;
+					break;
+				case 'U':
+					row--;
+					break;
+				}
+			}
+			
+			codaScore = alignmentMatrix[coda1.size()][coda2.size()]/pathLen;
+//			for (double[] ds : alignmentMatrix) {
+//				System.out.println(Arrays.toString(ds));
+//			}
 		}
+		
 		// stress
 		double stressScore = 0.0;
 		
 		final double score = vowelScore + codaScore + stressScore;
-//		System.out.println(s1 + "\t" + s2 + "\t" + vowelScore + "\t" + codaScore + "\t" + stressScore + "\t=\t" + score);
+		if (score > HIRJEE_RHYME_THRESHOLD)
+			System.out.println(s1 + " + " + s2 + " + " + vowelScore + " + " + codaScore + " + " + stressScore + " = " + score);
 		return score;
 	}
 	

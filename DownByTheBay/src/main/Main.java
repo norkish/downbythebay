@@ -44,7 +44,8 @@ public class Main {
 		for (int i = 0; i < rhythmicSuperTemplate.length; i++) {
 			final ArrayList<ConditionedConstraint<SyllableToken>> constraintsForPosition = new ArrayList<>();
 			generalConstraints.add(constraintsForPosition);
-			constraintsForPosition.add(new ConditionedConstraint<>(new StressConstraint<>(rhythmicSuperTemplate[i])));
+//			if (i < 2 || i > rhythmicSuperTemplate.length-2) 
+				constraintsForPosition.add(new ConditionedConstraint<>(new StressConstraint<>(rhythmicSuperTemplate[i])));
 		}
 		
 		// Add rest of constraints
@@ -133,7 +134,7 @@ public class Main {
 			watch.stop();
 			System.out.println("Time to build model:" + watch.getTime());
 			
-			for (int i = 0; i < 5; i++) {
+			for (int i = 0; i < 10; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
 				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
 				// convert the sequence of syllable tokens to a human-readable string
