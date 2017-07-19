@@ -125,6 +125,7 @@ public class DataLoader {
 					if (trainingSentenceTokens.isEmpty()) continue;
 					foundValidPronunciation = true;
 					LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
+					//TODO add string associated w/ prefix to set for Word2Vec
 					fromTokenID = prefixIDMap.addPrefix(prefix);
 					for (SyllableToken syllableToken : trainingSentenceTokens) {
 						prefix.removeFirst();

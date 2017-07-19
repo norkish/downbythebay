@@ -9,8 +9,8 @@ public class GeneticMain {
 	private final static int offspringN = 100;
 	private final static int maxGenerations = 10000;
 	public final static double fitnessThreshold = 0.75;
-	private final static int rzCorpusSize = 1000;
-	public static double temp = 10.00;
+	private final static int rzCorpusSize = 56000;
+	public static double temp = 1.00;
 	private final static double coolingRate = 0.001;
 
 	public static void main(String[] args) {
@@ -35,32 +35,32 @@ public class GeneticMain {
 //
 //		stress: 0.6026471314006965
 
+//		//values.put("frontness", 125.0);//always 100
+//		values.put("height", 00.0);
+//
+//		//values.put("place_of_articulation", 110.0);//always 100
+//		values.put("manner_of_articulation", 000.0);
+//		values.put("voicing", 00.0);
+//
+//		values.put("onset", 00.0);
+//		//values.put("nucleus", 60.0);//always 100
+//		values.put("coda", 000.0);
+//
+//		values.put("stress", 00.0);
+
 		//values.put("frontness", 125.0);//always 100
-		values.put("height", 00.0);
+		values.put("height", 70.0);
 
 		//values.put("place_of_articulation", 110.0);//always 100
-		values.put("manner_of_articulation", 000.0);
-		values.put("voicing", 00.0);
+		values.put("manner_of_articulation", 100.0);
+		values.put("voicing", 15.0);
 
-		values.put("onset", 00.0);
+		values.put("onset", 20.0);
 		//values.put("nucleus", 60.0);//always 100
-		values.put("coda", 000.0);
+		values.put("coda", 130.0);
 
 		values.put("stress", 00.0);
 
-//		//values.put("frontness", 125.0);//always 100
-//		values.put("height", 70.0);
-//
-//		//values.put("place_of_articulation", 110.0);//always 100
-//		values.put("manner_of_articulation", 100.0);
-//		values.put("voicing", 15.0);
-//
-//		values.put("onset", 20.0);
-//		//values.put("nucleus", 60.0);//always 100
-//		values.put("coda", 130.0);
-//
-//		values.put("stress", 00.0);
-//
 		TreeSet<Individual> topIndividuals = new TreeSet<>();
 		for (int i = 0; i < topIndividualN; i++) {
 			Individual temp = new Individual(values);

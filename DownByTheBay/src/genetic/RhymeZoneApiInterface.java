@@ -16,7 +16,8 @@ import java.util.*;
 
 public class RhymeZoneApiInterface {
 
-	public static Map<String,Set<RzWord>> rhymeZoneRhymes = new HashMap<>();
+	public static Map<String,Set<RzWord>> rhymeZoneData = new HashMap<>();
+	public static Map<String,Set<String>> rhymeZoneRhymes = new HashMap<>();
 	public static Map<String,WordSyllables> dictionary = new HashMap<>();
 	private final static String rhymeZone = "https://api.datamuse.com/words?rel_rhy=";
 
@@ -72,10 +73,17 @@ public class RhymeZoneApiInterface {
         try {
             FileInputStream fileIn = new FileInputStream(Main.rootPath + "data/rhymezone-" + size + ".ser");
             ObjectInputStream in = new ObjectInputStream(fileIn);
-			rhymeZoneRhymes = null;
-			rhymeZoneRhymes = (Map<String,Set<RzWord>>) in.readObject();
+			rhymeZoneData = null;
+			rhymeZoneData = (Map<String,Set<RzWord>>) in.readObject();
             in.close();
             fileIn.close();
+            for (Map.Entry<String,Set<RzWord>> entry : rhymeZoneData.entrySet()) {
+            	Set strings = new HashSet();
+            	for (RzWord rzWord : entry.getValue()) {
+            		strings.add(rzWord.word);
+				}
+            	rhymeZoneRhymes.put(entry.getKey(), strings);
+			}
 			System.out.println("done!");
 		}
         catch(IOException i) {
@@ -86,7 +94,7 @@ public class RhymeZoneApiInterface {
             c.printStackTrace();
         }
 		cleanRhymeZoneRhymes();
-        return rhymeZoneRhymes;
+        return rhymeZoneData;
     }
 
 	private static void serializeRhymes(Map<String,Set<RzWord>> rhymeZoneRhymes) {
@@ -166,15 +174,16 @@ public class RhymeZoneApiInterface {
 		}
 
 		//clean Rhyme Zone entry's rhymes that aren't in CMU dict
-		for (Map.Entry<String,Set<RzWord>> entry : rhymeZoneRhymes.entrySet()) {
-			Set<RzWord> originals = entry.getValue();
-			originals.removeAll(badCmuWords);//TODO won't work because String and RzWord are different objects
-			rhymeZoneRhymes.put(entry.getKey(), originals);//TODO concurrent modification?
+		for (Map.Entry<String,Set<String>> entry : rhymeZoneRhymes.entrySet()) {
+			Set<String> originals = entry.getValue();
+			originals.retainAll(lowerCmu.keySet());
+			originals.removeAll(badCmuWords);
+			rhymeZoneRhymes.put(entry.getKey(), originals);
 		}
 
 		//clean Rhyme Zone keys
 		Set<String> badRzWords = new HashSet<>();
-		for (Map.Entry<String,Set<RzWord>> entry : rhymeZoneRhymes.entrySet()) {
+		for (Map.Entry<String,Set<String>> entry : rhymeZoneRhymes.entrySet()) {
 			//remove all rhyme zone entries w/ 0 rhymes
 			if (entry.getValue() == null || entry.getValue().isEmpty()) {
 				badRzWords.add(entry.getKey());
@@ -182,6 +191,14 @@ public class RhymeZoneApiInterface {
 			//remove rhyme zone entries w/ keys that aren't in CMU dict
 			else if (!lowerCmu.containsKey(entry.getKey().toLowerCase())) {
 				badRzWords.add(entry.getKey());
+			}
+			else {
+				Set<String> goodEntryRhymes = new HashSet<>();
+				for (String w : entry.getValue()) {
+					if (!w.matches(".*\\s.*"))
+						goodEntryRhymes.add(w); //TODO filter rhymes;
+				}
+				entry.setValue(goodEntryRhymes);
 			}
 		}
 		rhymeZoneRhymes.keySet().removeAll(badCmuWords);

@@ -3,11 +3,7 @@ package genetic;
 import linguistic.phonetic.Phoneticizer;
 import linguistic.phonetic.syllabic.Rhymer;
 import linguistic.phonetic.syllabic.WordSyllables;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class Individual implements Comparable<Individual> {
 
@@ -17,11 +13,7 @@ public class Individual implements Comparable<Individual> {
 	private double fitness = -1;
 	public int id = 0;
 	private boolean mutated = false;
-	private static final int sampleSize = 100;
-
-//	public static void main(String[] args) {
-//		Individual test = new Individual();
-//	}
+	private static final int sampleSize = 1000;
 
 	public Individual(Map<String, Double> values) {
 		this.values = values;
@@ -59,7 +51,7 @@ public class Individual implements Comparable<Individual> {
 		offspring.setValues(this.getValues());
 		for (Map.Entry<String,Double> entry : this.getValues().entrySet()) {
 			if (GeneticMain.r.nextBoolean()) {
-				offspring.getValues().put(entry.getKey(), mate.getValues().get(entry.getKey()));
+				offspring.getValues().put(new String(entry.getKey()), new Double(mate.getValues().get(entry.getKey())));
 			}
 		}
 		return offspring;
@@ -115,103 +107,61 @@ public class Individual implements Comparable<Individual> {
 		return result;
 	}
 
+	Iterator<Map.Entry<String,WordSyllables>> sampleIterator = RhymeZoneApiInterface.dictionary.entrySet().iterator();
+	Iterator<String> negIterator = RhymeZoneApiInterface.dictionary.keySet().iterator();
+
 	public IndividualResults classify() {
-
-		//get random sample of n dictionary entries
-		Set<Integer> randomSampleInts = new HashSet<>();
-		while (randomSampleInts.size() < sampleSize) {
-			int i = GeneticMain.r.nextInt(RhymeZoneApiInterface.dictionary.entrySet().size());
-			randomSampleInts.add(i);
-		}
-		Set<Map.Entry<String,WordSyllables>> randomSamples = new HashSet<>();
-		int i = 0;
-		for (Map.Entry<String,WordSyllables> entry : RhymeZoneApiInterface.dictionary.entrySet()) {
-			if (randomSampleInts.contains(i)) {
-				randomSamples.add(entry);
-			}
-			i++;
-		}
-
 		//initialize return values
 		int truePositives = 0;
 		int trueNegatives = 0;
 		int falsePositives = 0;
 		int falseNegatives = 0;
 
-		for (Map.Entry<String,WordSyllables> testDictWord : randomSamples) {
-			if (testDictWord.getValue().isEmpty()) continue;
-
-			Set<String> positives = RhymeZoneApiInterface.getStrings(RhymeZoneApiInterface.rhymeZoneRhymes.get(testDictWord.getKey().toLowerCase()));//get all words datamuse says rhyme with it removing ones outside of valid cmu dictionary
-			Set<String> negatives = new HashSet<>(RhymeZoneApiInterface.dictionary.keySet());
-			negatives.removeAll(positives);
-
-			//equalize size of positive and negative sample
-			int sampleDiff = negatives.size() - positives.size();
-			if (sampleDiff > 0) {
-				Set<String> newNegatives = new HashSet<>();
-				Set<Integer> toInclude = new HashSet<>();
-				for (i = 0; i < positives.size(); i++) {
-					int temp = GeneticMain.r.nextInt(negatives.size());
-					while (toInclude.contains(temp)) {
-						temp = GeneticMain.r.nextInt(negatives.size());
-					}
-					toInclude.add(temp);
-				}
-				i = 0;
-				for (String negative : negatives) {
-					if (toInclude.contains(i)) {
-						newNegatives.add(negative);
-					}
-					i++;
-				}
-				negatives = newNegatives;
+		for (int sampleN = 0; sampleN < sampleSize; sampleN++) {
+			if (!sampleIterator.hasNext()) {
+				sampleIterator = RhymeZoneApiInterface.dictionary.entrySet().iterator();
 			}
+			Map.Entry<String,WordSyllables> testDictWord = sampleIterator.next();
+
+			Set<String> positives = RhymeZoneApiInterface.rhymeZoneRhymes.get(testDictWord.getKey());//get all words datamuse says rhyme with it removing ones outside of valid cmu dictionary
 
 			Rhymer temp = new Rhymer(this);
 			int tempTruePositives = 0;
 			int tempTrueNegatives = 0;
 			int tempFalsePositives = 0;
 			int tempFalseNegatives = 0;
-//			Set<String> tempTruePositives = new HashSet<>();
-//			Set<String> tempTrueNegatives = new HashSet<>();
-//			Set<String> tempFalsePositives = new HashSet<>();
-//			Set<String> tempFalseNegatives = new HashSet<>();
 			for (String positive : positives) {
 				List<WordSyllables> positivePronunciations = Phoneticizer.getSyllables(positive);
 				if (positivePronunciations == null || positivePronunciations.isEmpty()) continue;
 				WordSyllables positivePronunciation = positivePronunciations.get(0);
-				//only test positives w/ same # syllables
 				if (positivePronunciation.isEmpty()) continue;
-//				double wordsScore = 0;
-//				for (int s = 0; s < positivePronunciation.size(); s++) {
-					double endSyllablesScore = temp.score2Syllables(positivePronunciation.get(positivePronunciation.size()-1), testDictWord.getValue().get(testDictWord.getValue().size()-1));
-//					wordsScore += syllablesScore;
-//				}
-//				wordsScore /= positivePronunciation.size();
+				double endSyllablesScore = temp.score2Syllables(positivePronunciation.get(positivePronunciation.size()-1), testDictWord.getValue().get(testDictWord.getValue().size()-1));
 				if (endSyllablesScore >= GeneticMain.fitnessThreshold)
 					tempTruePositives++;
 				else
 					tempFalsePositives++;
 			}
-			for (String negative : negatives) {
+			for (int i = 0; i < positives.size(); i++) {
+				if (!negIterator.hasNext()) {
+					negIterator = RhymeZoneApiInterface.dictionary.keySet().iterator();
+				}
+				String negative = negIterator.next();
+				while (positives.contains(negative)) {
+					if (!negIterator.hasNext()) {
+						negIterator = RhymeZoneApiInterface.dictionary.keySet().iterator();
+					}
+					negative = negIterator.next();
+				}
 				List<WordSyllables> negativePronunciations = Phoneticizer.getSyllables(negative);
 				if (negativePronunciations == null || negativePronunciations.isEmpty()) continue;
 				WordSyllables negativePronunciation = negativePronunciations.get(0);
-				//only test negatives w/ same # syllables
 				if (negativePronunciation.isEmpty()) continue;
-//				double wordsScore = 0;
-//				for (int s = 0; s < negativePronunciation.size(); s++) {
-					double endSyllablesScore = temp.score2Syllables(negativePronunciation.get(negativePronunciation.size()-1), testDictWord.getValue().get(testDictWord.getValue().size()-1));
-//					wordsScore += endSyllablesScore;
-//				}
-//				wordsScore /= negativePronunciation.size();
+				double endSyllablesScore = temp.score2Syllables(negativePronunciation.get(negativePronunciation.size()-1), testDictWord.getValue().get(testDictWord.getValue().size()-1));
 				if (endSyllablesScore >= GeneticMain.fitnessThreshold)
 					tempFalseNegatives++;
 				else
 					tempTrueNegatives++;
 			}
-			//inspect results here
-
 			truePositives += tempTruePositives;
 			trueNegatives += tempTrueNegatives;
 			falsePositives += tempFalsePositives;
@@ -262,13 +212,14 @@ public class Individual implements Comparable<Individual> {
  */
 
 
+/*
+> Keep track of worst F-score
+ */
 
 
 
 
 
 
-
-
-
-
+// @>> Do negatives differently
+// @>> Don't actually be random (try it)
