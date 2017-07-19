@@ -9,9 +9,7 @@ import org.apache.commons.lang3.time.StopWatch;
 
 import constraint.BinaryRhymeConstraint;
 import constraint.ConditionedConstraint;
-import constraint.Constraint;
 import constraint.EndOfWordConstraint;
-import constraint.PartOfSpeechConstraint;
 import constraint.FloatingConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.StartOfWordConstraint;
@@ -46,19 +44,21 @@ public class Main {
 		for (int i = 0; i < rhythmicSuperTemplate.length; i++) {
 			final ArrayList<ConditionedConstraint<SyllableToken>> constraintsForPosition = new ArrayList<>();
 			generalConstraints.add(constraintsForPosition);
-			constraintsForPosition.add(new ConditionedConstraint<>(new StressConstraint<>(rhythmicSuperTemplate[i])));
+//			if (i < 2 || i > rhythmicSuperTemplate.length-2) 
+				constraintsForPosition.add(new ConditionedConstraint<>(new StressConstraint<>(rhythmicSuperTemplate[i])));
 		}
 		
 		// Add rest of constraints
 		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.NN, Pos.JJ)))));
 		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
-		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB)))));
-		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.VBG, Pos.JJ, Pos.RB)))));
+		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
+		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
 		
 		// train a high-order markov model on a corpus
 		
 		int[][] allRhythmicTemplates = new int[][] {
 			new int[]{0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
+			new int[]{0,1,-1,-1,-1,1,0,1,0,1,-1}, // "a ma . . . drinking from a straw ."
 			new int[]{0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
 			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1}, //"a moose . with a pair of new . shoes ."
 			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
@@ -134,7 +134,7 @@ public class Main {
 			watch.stop();
 			System.out.println("Time to build model:" + watch.getTime());
 			
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < 10; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
 				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
 				// convert the sequence of syllable tokens to a human-readable string

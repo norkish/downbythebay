@@ -3,6 +3,7 @@ package constraint;
 import java.util.LinkedList;
 
 import data.SyllableToken;
+import linguistic.paul.HirjeeMatrix;
 import linguistic.phonetic.syllabic.Rhymer;
 import linguistic.phonetic.syllabic.Syllabifier;
 import linguistic.phonetic.syllabic.Syllable;
@@ -36,7 +37,8 @@ public class BinaryRhymeConstraint<T> implements DynamicConstraint<T> {
 		
 		Syllable s1 = Syllabifier.tokenToSyllable(syl1Token);
 		Syllable s2 = Syllabifier.tokenToSyllable(syl2Token);
-		return (s1.getNucleus().equals(s2.getNucleus()));
+		return HirjeeMatrix.scoreSyllables(s1, s2) > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD;
+//		return (s1.getNucleus().equals(s2.getNucleus()));
 //		double score = Rhymer.score2SyllablesByClassicWeights(s1, s2);
 //		if (score >= .85)
 //			return true;
