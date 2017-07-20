@@ -54,7 +54,8 @@ public class DataLoader {
 			this.priors = priors;
 		}
 	}
-	private static final long MAX_TRAINING_SENTENCES = 5000; // -1 for no limit
+	
+	private static final long MAX_TRAINING_SENTENCES = -1; // -1 for no limit
 	private static final long MAX_TOKENS_PER_SENTENCE = 40; // keeps Stanford NLP fast
 	private static final int DEBUG = 1; 
 	private static final boolean USE_DUMMY_DATA = false; 
@@ -91,7 +92,8 @@ public class DataLoader {
 			if (!USE_DUMMY_DATA) {
 				StringBuilder str = new StringBuilder();
 				try {
-					final String fileName = "data/text_magazine_qrb/w_mag_" + i + ".txt";
+//					final String fileName = "data/text_magazine_qrb/w_mag_" + i + ".txt";
+					final String fileName = "data/text_fiction_awq/w_fic_" + i + ".txt";
 					if (DEBUG > 0) System.out.println("Now training on " + fileName);
 					BufferedReader br = new BufferedReader(new FileReader(fileName));
 					String currLine;
@@ -111,7 +113,7 @@ public class DataLoader {
 			}
 			
 			for (String trainingSentence : trainingSentences) {
-				if (sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
+				if (memoryAvailable() ||sentencesTrainedOn == MAX_TRAINING_SENTENCES) {
 					break;
 				}
 				// get syllable tokens for all unique pronunciations of the sentence
@@ -142,7 +144,7 @@ public class DataLoader {
 				if (foundValidPronunciation)
 					sentencesTrainedOn++;
 			}
-			if (sentencesTrainedOn == MAX_TRAINING_SENTENCES || USE_DUMMY_DATA) {
+			if (memoryAvailable() || sentencesTrainedOn == MAX_TRAINING_SENTENCES || USE_DUMMY_DATA) {
 				break;
 			}
 		}
@@ -151,6 +153,10 @@ public class DataLoader {
 		
 		DataSummary summary = new DataSummary(prefixIDMap, priors, transitions);
 		return summary;
+	}
+
+	private static boolean memoryAvailable() {
+		return Runtime.getRuntime().maxMemory() < 2 * (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
 	}
 
 	final private static String[] suffixes = new String[]{" n't "," ' "," 's "," 've ", " 'd ", " 'll ", " 're ", " 't "," 'm "};

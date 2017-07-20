@@ -41,10 +41,10 @@ public class RelativeStressConstraint<T> implements StateConstraint<T> {
 		int stress1 = s1.getStress();
 		int stress2 = s2.getStress();
 		
-//		if (stress1 == 1) stress1 = 2;
-//		else if (stress1 == 2) stress1 = 1;
-//		if (stress2 == 1) stress2 = 2;
-//		else if (stress2 == 2) stress2 = 1;
+		if (stress1 == 1) stress1 = 2;
+		else if (stress1 == 2) stress1 = 1;
+		if (stress2 == 1) stress2 = 2;
+		else if (stress2 == 2) stress2 = 1;
 		
 		if (compareValue > 0)
 			return stress2 > stress1;

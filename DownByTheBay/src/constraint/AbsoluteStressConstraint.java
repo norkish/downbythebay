@@ -24,7 +24,7 @@ public class AbsoluteStressConstraint<T> implements StateConstraint<T> {
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			return (((SyllableToken) token).getStress() == 2) == (constraintStress == 1);
+			return (((SyllableToken) token).getStress() == 1) == (constraintStress == 1);
 		}
 	}
 

@@ -2,21 +2,23 @@ package main;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.commons.lang3.time.StopWatch;
 
+import constraint.AbsoluteStressConstraint;
 import constraint.BinaryRhymeConstraint;
 import constraint.ConditionedConstraint;
 import constraint.EndOfWordConstraint;
 import constraint.HasCodaConstraint;
+import constraint.PartsOfSpeechConstraint;
 import constraint.RelativeStressConstraint;
 import constraint.StartOfWordConstraint;
-import constraint.AbsoluteStressConstraint;
-import constraint.WordConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
+import linguistic.syntactic.Pos;
 import markov.SparseVariableOrderMarkovModel;
 import markov.SparseVariableOrderNHMM;
 import markov.Token;
@@ -43,20 +45,16 @@ public class Main {
 		for (int i = 0; i < rhythmicSuperTemplate.length; i++) {
 			final ArrayList<ConditionedConstraint<SyllableToken>> constraintsForPosition = new ArrayList<>();
 			generalConstraints.add(constraintsForPosition);
-			final int stress = rhythmicSuperTemplate[i];
-			if (stress >= 0) {
-				constraintsForPosition.add(new ConditionedConstraint<>(new RelativeStressConstraint<>(stress, 1)));
-			}
 		}
 		
 		// Add rest of constraints
-//		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.NN, Pos.JJ)))));
+		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.JJ)))));
 //		generalConstraints.get(A).add(new ConditionedConstraint<>(new WordConstraint<>("a", false)));
 		generalConstraints.get(A).add(new ConditionedConstraint<>(new HasCodaConstraint<>(), false));
-//		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
-//		generalConstraints.get(MA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
-//		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
-//		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
+		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
+		generalConstraints.get(MA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
+		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
+		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
 		
 		// train a high-order markov model on a corpus
 		
@@ -71,6 +69,7 @@ public class Main {
 		int prevOrder = -1;
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = null;
 		for (int[] rhythmicTemplate : allRhythmicTemplates) {
+			memoryCheck();
 			List<List<ConditionedConstraint<SyllableToken>>> constraints = new ArrayList<>();
 			for (List<ConditionedConstraint<SyllableToken>> allConstraintsAtPosition : generalConstraints) {
 				constraints.add(new ArrayList<>(allConstraintsAtPosition));
@@ -81,12 +80,23 @@ public class Main {
 			constraints.get(0).add(new ConditionedConstraint<>(new StartOfWordConstraint<>())); // ensure starts at beginning of a word
 			// add end of word constraint after first noun
 			constraints.get(rhythmicTemplate[2] == 0?2:1).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
-
+			
+			int lastNonNegativeStress = -1;
 			for (int i = 0; i < rhythmicTemplate.length; i++) {
 				int stress = rhythmicTemplate[i];
 				if (stress == -1){
 					constraints.remove(templateLength);
 					continue;
+				} else {
+					if (stress == 1) {
+						if (lastNonNegativeStress == 0) {
+							constraints.get(templateLength).add(new ConditionedConstraint<>(new RelativeStressConstraint<>(stress, 1)));
+						} else {
+							constraints.get(templateLength).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(stress)));
+						}
+					}
+					
+					lastNonNegativeStress = stress;
 				}
 				
 				if (i > LLA && i <= JA)
@@ -108,8 +118,10 @@ public class Main {
 			markovOrder = rhymeDistance;
 			
 			if (markovOrder != prevOrder) {
+				memoryCheck();
 				DataSummary summary = DataLoader.loadData(markovOrder);
 				System.out.println("Data loaded for Main.java");
+				memoryCheck();
 				markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.priors, summary.transitions);
 				System.out.println("Creating Markov Model");
 			}
@@ -128,6 +140,8 @@ public class Main {
 					}
 				}
 				constrainedMarkovModel = new SparseVariableOrderNHMM<>(markovModel, templateLength, constraints);
+				memoryCheck();
+
 				System.out.println();
 			} catch (UnsatisfiableConstraintSetException e) {
 				System.out.println("\t" + e.getMessage());
@@ -152,6 +166,10 @@ public class Main {
 			
 			prevOrder = markovOrder;
 		}
+	}
+
+	public static void memoryCheck() {
+		System.out.println("MEMORY CHECK: " + ((1.0*Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/Runtime.getRuntime().maxMemory()) + "% used");
 	}
 
 	public static void setupRootPath() {
