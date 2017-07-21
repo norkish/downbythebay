@@ -214,7 +214,6 @@ public class DataLoader {
 			}
 			watch.stop();
 			System.out.println("Time training with " + NUM_THREADS + " threads: " + watch.getTime());
-			System.exit(0);
 			System.gc();
 
 			return returnStatus; // if 1 is returned, it means the file wasn't fully read.
