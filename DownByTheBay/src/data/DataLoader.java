@@ -29,7 +29,7 @@ import utils.Utils;
 public class DataLoader {
 	
 //	private static final long MAX_TRAINING_SENTENCES = -1; // -1 for no limit - CAN'T USE THIS TO THROTTLE ANY MORE - requires syncing
-	private static final long MAX_TOKENS_PER_SENTENCE = 10; // keeps Stanford NLP fast
+	private static final long MAX_TOKENS_PER_SENTENCE = 40; // keeps Stanford NLP fast
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
 	private static final boolean USE_DUMMY_DATA = false; 
