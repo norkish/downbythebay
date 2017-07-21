@@ -461,10 +461,9 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		
 		List<T> newSeq = new ArrayList<T>();
 		
-		final Token startToken = Token.getStartToken();
 		final Token endToken = Token.getEndToken();
 		for(Token token : stateIndex.getPrefixForID(fromStateIdx)) {
-			if (token != startToken && token != endToken)
+			if (token != endToken)
 				newSeq.add((T) token);
 		}
 

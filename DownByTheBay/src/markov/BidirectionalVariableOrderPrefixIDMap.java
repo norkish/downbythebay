@@ -39,12 +39,17 @@ public class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 		
 		Integer id = prefixToIDMap.get(prefix);
 		if (id == null) {
-			id = nextID++;
 			final LinkedList<Token> prefixCopy = new LinkedList<Token>(prefix);
-			prefixToIDMap.put(prefixCopy, id);
-			iDToPrefixMap.add(prefixCopy);
+			id = addNewPrefix(prefixCopy);
 		}
 		
+		return id;
+	}
+
+	private synchronized Integer addNewPrefix(final LinkedList<Token> prefixCopy) {
+		Integer id = nextID++;
+		prefixToIDMap.put(prefixCopy, id);
+		iDToPrefixMap.add(prefixCopy);
 		return id;
 	}
 	
@@ -63,5 +68,9 @@ public class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 
 	public List<LinkedList<Token>> getIDToPrefixMap() {
 		return iDToPrefixMap;
+	}
+
+	public boolean isEmpty() {
+		return nextID == 0;
 	}
 }

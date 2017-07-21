@@ -32,7 +32,7 @@ public class FreeStyleMain {
 	private static final int LINE4_LEN = LINE3_LEN;
 	private static final int TOT_LEN = LINE1_LEN + LINE2_LEN + LINE3_LEN + LINE4_LEN;
 	
-	public static void main(String[] args){
+	public static void main(String[] args) throws InterruptedException{
 
 		setupRootPath();
 
@@ -57,7 +57,8 @@ public class FreeStyleMain {
 		for(Integer position: new Integer[]{LINE1_LEN-1,(LINE1_LEN+LINE2_LEN)-1,(LINE1_LEN+LINE2_LEN+LINE3_LEN)-1,(LINE1_LEN+LINE2_LEN+LINE3_LEN+LINE4_LEN)-1})
 			constraints.get(position).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(1)));
 		
-		DataSummary summary = DataLoader.loadData(markovOrder);
+		DataLoader dl = new DataLoader(markovOrder);
+		DataSummary summary = dl.loadData();
 		System.out.println("Data loaded for HaikuMain.java");
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.priors, summary.transitions);
 		System.out.println("Creating Markov Model");

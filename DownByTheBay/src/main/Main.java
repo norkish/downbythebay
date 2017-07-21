@@ -34,7 +34,7 @@ public class Main {
 
 	public static String rootPath = "";
 	
-	public static void main(String[] args){
+	public static void main(String[] args) throws InterruptedException{
 
 		setupRootPath();
 
@@ -117,10 +117,17 @@ public class Main {
 			
 			markovOrder = rhymeDistance;
 			
+			StopWatch watch = new StopWatch();
 			if (markovOrder != prevOrder) {
+				markovModel = null; // allow this to get cleaned by the garbage collector before building the next model
 				memoryCheck();
-				DataSummary summary = DataLoader.loadData(markovOrder);
+				watch.start();
+				DataLoader dl = new DataLoader(markovOrder);
+				DataSummary summary = dl.loadData();
 				System.out.println("Data loaded for Main.java");
+				watch.stop();
+				System.out.println("Time to train on data:" + watch.getTime());
+				watch.reset();
 				memoryCheck();
 				markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.priors, summary.transitions);
 				System.out.println("Creating Markov Model");
@@ -129,7 +136,6 @@ public class Main {
 			System.out.println("For Rhythmic Template: " + Arrays.toString(rhythmicTemplate));
 			// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
 			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel;
-			StopWatch watch = new StopWatch();
 			watch.start();
 			try {
 				System.out.println("Creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
@@ -169,7 +175,11 @@ public class Main {
 	}
 
 	public static void memoryCheck() {
-		System.out.println("MEMORY CHECK: " + ((1.0*Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/Runtime.getRuntime().maxMemory()) + "% used");
+		System.out.println("MEMORY CHECK: " + computePercentTotalMemoryUsed() + "% used");
+	}
+
+	public static double computePercentTotalMemoryUsed() {
+		return (1.0*Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/Runtime.getRuntime().maxMemory();
 	}
 
 	public static void setupRootPath() {

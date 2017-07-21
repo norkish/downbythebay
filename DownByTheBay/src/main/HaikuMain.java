@@ -27,7 +27,7 @@ public class HaikuMain {
 	private static final int LINE3_LEN = 5;
 	private static final int HAIKU_LEN = LINE1_LEN + LINE2_LEN + LINE3_LEN;
 	
-	public static void main(String[] args){
+	public static void main(String[] args) throws InterruptedException{
 
 		setupRootPath();
 
@@ -52,7 +52,8 @@ public class HaikuMain {
 //				new SemanticMeaningConstraint<>("nature"))));
 		
 		
-		DataSummary summary = DataLoader.loadData(markovOrder);
+		DataLoader dl = new DataLoader(markovOrder);
+		DataSummary summary = dl.loadData();
 		System.out.println("Data loaded for HaikuMain.java");
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.priors, summary.transitions);
 		System.out.println("Creating Markov Model");

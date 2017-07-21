@@ -30,7 +30,7 @@ public class HumptyDumptyMain {
 	private static final int LINE4_LEN = 10;
 	private static final int TOT_LEN = LINE1_LEN + LINE2_LEN + LINE3_LEN + LINE4_LEN;
 	
-	public static void main(String[] args){
+	public static void main(String[] args) throws InterruptedException{
 
 		setupRootPath();
 
@@ -55,7 +55,8 @@ public class HumptyDumptyMain {
 //		for(Integer position: new Integer[]{0,2,4,7,8,10,12,15,16,19,22,25,26,29,32,35})
 //			constraints.get(position).add(new ConditionedConstraint<>(new StressConstraint<>(1)));
 		
-		DataSummary summary = DataLoader.loadData(markovOrder);
+		DataLoader dl = new DataLoader(markovOrder);
+		DataSummary summary = dl.loadData();
 		System.out.println("Data loaded for HaikuMain.java");
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.priors, summary.transitions);
 		System.out.println("Creating Markov Model");
