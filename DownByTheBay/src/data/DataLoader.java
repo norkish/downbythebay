@@ -29,7 +29,7 @@ import utils.Utils;
 public class DataLoader {
 	
 //	private static final long MAX_TRAINING_SENTENCES = -1; // -1 for no limit - CAN'T USE THIS TO THROTTLE ANY MORE - requires syncing
-	private static final long MAX_TOKENS_PER_SENTENCE = 40; // keeps Stanford NLP fast
+	private static final long MAX_TOKENS_PER_SENTENCE = 30; // keeps Stanford NLP fast
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
 	private static final boolean USE_DUMMY_DATA = false; 
@@ -48,6 +48,7 @@ public class DataLoader {
 			System.out.println("Starting " + NUM_THREADS + " threads");
 			System.gc();
 			StopWatch watch = new StopWatch();
+			
 			watch.start();
 			//start threads
 			ThreadGroup tg = new ThreadGroup("all threads");
@@ -59,6 +60,25 @@ public class DataLoader {
 					
 					@Override
 					public void run() {
+						
+						StopWatch stepTimer = new StopWatch();
+						int watch1Time = 0;
+						int watch2Time = 0;
+						int watch3Time = 0;
+						int watch4Time = 0;
+						int watch5Time = 0;
+						int watch6Time = 0;
+						int watch7Time = 0;
+						int watch8Time = 0;
+						int watch1Count = 0;
+						int watch2Count = 0;
+						int watch3Count = 0;
+						int watch4Count = 0;
+						int watch5Count = 0;
+						int watch6Count = 0;
+						int watch7Count = 0;
+						int watch8Count = 0;
+						
 						Map<Integer, Double> priorCountsForBatch = new HashMap<Integer, Double>();
 						Map<Integer, Map<Integer, Double>> transitionCountsForBatch = new HashMap<Integer, Map<Integer, Double>>();
 						BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMapForBatch = new BidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
@@ -67,26 +87,50 @@ public class DataLoader {
 						int sentencesTrainedOnForBatch = 0;
 						
 						for (int i = start_idx; i < end_idx; i++) {
+							stepTimer.start();
 							String trainingSentence = trainingSentences[i];
-							if (start_idx == 0 && (i % 10000 == 0)){
+							if (start_idx == 0 && (i % 1000 == 0)){
 								System.out.println("About " + (NUM_THREADS*sentencesTrainedOnForBatch) + " sentences trained on ("+ (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) + "/" + Runtime.getRuntime().maxMemory() +"=" +  Main.computePercentTotalMemoryUsed() + "% memory used)");
 							}
+							stepTimer.stop();
+							watch1Time += stepTimer.getTime();
+							watch1Count++;
+							stepTimer.reset();
+							stepTimer.start();
 							if (Main.computePercentTotalMemoryUsed() > MAX_MEMORY_FOR_BASE_MODEL) {
+								stepTimer.stop();
+								stepTimer.reset();
+								System.out.println("Hit memory threshold of " + MAX_MEMORY_FOR_BASE_MODEL + " for base model training");
 								returnStatus = 1;
 								break; // task is complete
 							}
+							stepTimer.stop();
+							watch2Time += stepTimer.getTime();
+							watch2Count++;
+							stepTimer.reset();
 //							System.out.println("Training on "+trainingSentence);
 							//start thread
 							// get syllable tokens for all unique pronunciations of the sentence
+							stepTimer.start();
 							List<List<SyllableToken>> trainingTokensSentences = convertToSyllableTokens(cleanSentence(trainingSentence));
+							stepTimer.stop();
+							watch3Time += stepTimer.getTime();
+							watch3Count++;
+							stepTimer.reset();
 							// if there was no valid pronunciation, skip it
 							if (trainingTokensSentences == null) continue;
+							stepTimer.start();
 							// for each pronunciation
 							if (DEBUG > 1) System.out.println("PRON COUNT:" + trainingTokensSentences.size());
 							final double trainingWeight = 1.0/trainingTokensSentences.size();
 							// Start synchronization
 							Integer fromTokenID, toTokenID;
 							int sentencePronunciationsTrainedOnForSentence = 0;
+							stepTimer.stop();
+							watch4Time += stepTimer.getTime();
+							watch4Count++;
+							stepTimer.reset();
+							stepTimer.start();
 							for (List<SyllableToken> trainingSentenceTokens : trainingTokensSentences) {
 								if (trainingSentenceTokens.size() < order) continue;
 //								LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
@@ -105,11 +149,21 @@ public class DataLoader {
 								}
 								sentencePronunciationsTrainedOnForSentence++;
 							}
+							stepTimer.stop();
+							watch5Time += stepTimer.getTime();
+							watch5Count++;
+							stepTimer.reset();
+							stepTimer.start();
 							if (DEBUG > 1) System.out.println("sentencesTrainedOn:" + sentencesTrainedOn + ", sentencePronunciationsTrainedOn:" + sentencePronunciationsTrainedOn + " transitions.size()=" + transitions.size() + " prefixIDMap.getPrefixCount()=" + prefixIDMapForBatch.getPrefixCount());
+							
 							if (sentencePronunciationsTrainedOnForSentence > 0){
 								sentencesTrainedOnForBatch++;
 								sentencePronunciationsTrainedOnForBatch += sentencePronunciationsTrainedOnForSentence;
 							}
+							stepTimer.stop();
+							watch6Time += stepTimer.getTime();
+							watch6Count++;
+							stepTimer.reset();
 //							if (sentencesTrainedOnForBatch == 100) { // REMOVED TO AVOID SYNCRONIZATION REQUIREMENT
 //								incrementSentencesAndPronunciationsTrainedOn(sentencesTrainedOnForBatch, sentencePronunciationsTrainedOnForBatch);
 //								sentencesTrainedOnForBatch = 0;
@@ -117,9 +171,31 @@ public class DataLoader {
 //							}
 							// End synchronization	
 						}
+						
+						stepTimer.start();
 						incrementSentencesAndPronunciationsTrainedOn(sentencesTrainedOnForBatch, sentencePronunciationsTrainedOnForBatch);
-						incrementTransitionsAndPriors(prefixIDMapForBatch,transitionCountsForBatch, priorCountsForBatch);
+						stepTimer.stop();
+						watch7Time += stepTimer.getTime();
+						watch7Count++;
+						stepTimer.reset();
+						stepTimer.start();
+						incrementTransitionsAndPriors(prefixIDMapForBatch, transitionCountsForBatch, priorCountsForBatch);
+						stepTimer.stop();
+						watch8Time += stepTimer.getTime();
+						watch8Count++;
+						stepTimer.reset();
 //						System.out.println("Ending thread");
+						
+						System.out.println("Start_Idx\tTotalWatchTimePerThread\tTotalWatchCountPerThread\tAvgWatchTimePerSentencePerThread");
+						System.out.println(start_idx +"\t" + watch1Time+"\t"+watch1Count+"\t" + ((1.0*watch1Time)/watch1Count));
+						System.out.println(start_idx +"\t" + watch2Time+"\t"+watch2Count+"\t" + ((1.0*watch2Time)/watch2Count));
+						System.out.println(start_idx +"\t" + watch3Time+"\t"+watch3Count+"\t" + ((1.0*watch3Time)/watch3Count));
+						System.out.println(start_idx +"\t" + watch4Time+"\t"+watch4Count+"\t" + ((1.0*watch4Time)/watch4Count));
+						System.out.println(start_idx +"\t" + watch5Time+"\t"+watch5Count+"\t" + ((1.0*watch5Time)/watch5Count));
+						System.out.println(start_idx +"\t" + watch6Time+"\t"+watch6Count+"\t" + ((1.0*watch6Time)/watch6Count));
+						System.out.println(start_idx +"\t" + watch7Time+"\t"+watch7Count+"\t" + ((1.0*watch7Time)/watch7Count));
+						System.out.println(start_idx +"\t" + watch8Time+"\t"+watch8Count+"\t" + ((1.0*watch8Time)/watch8Count));
+						
 					}
 
 				});
@@ -138,6 +214,7 @@ public class DataLoader {
 			}
 			watch.stop();
 			System.out.println("Time training with " + NUM_THREADS + " threads: " + watch.getTime());
+			System.exit(0);
 			System.gc();
 
 			return returnStatus; // if 1 is returned, it means the file wasn't fully read.
@@ -220,6 +297,68 @@ public class DataLoader {
 			} else {
 				// otherwise sum
 				priors.put(absoluteToID, prevCount + batchCount);
+			}
+		}
+	}
+	
+	/**
+	 * Assumes global ids
+	 * @param transitionCountsForBatch
+	 * @param priorCountsForBatch
+	 */
+	private synchronized void incrementTransitionsAndPriors(Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
+			Map<Integer, Double> priorCountsForBatch) {
+
+//		System.out.println("Synchronizing batch transitions and priors");
+
+		
+		Double prevCount, batchCount;
+		Map<Integer, Double> batchTransitionsMap, aggregateTransitionsMap;
+		
+		// otherwise, iterate over the transitions for the batch
+		for (Integer fromID : transitionCountsForBatch.keySet()) {
+			batchTransitionsMap = transitionCountsForBatch.get(fromID);
+
+			// lookup the transitions map in the aggregate model using that ID
+			aggregateTransitionsMap = transitions.get(fromID);
+			
+			// if no transitions exist for that from state (ID)
+			if (aggregateTransitionsMap == null) {
+				transitions.put(fromID, batchTransitionsMap);
+			} else { 
+				// for each batch toID
+				for(Integer toID : batchTransitionsMap.keySet()) {
+					batchCount = batchTransitionsMap.get(toID);
+	
+					// lookup the previous account associated with this state (ID)
+					prevCount = aggregateTransitionsMap.get(toID);
+					
+					// if no previous counts
+					if (prevCount == null) {
+						// just copy the count
+						aggregateTransitionsMap.put(toID, batchCount);
+					} else {
+						// otherwise sum
+						aggregateTransitionsMap.put(toID, prevCount + batchCount);
+					}
+				}
+			}
+		}
+		
+		// for each batch id in the prior dataset
+		for(Integer id : priorCountsForBatch.keySet()) {
+			batchCount = priorCountsForBatch.get(id);
+
+			// get the prevCounts associated with this state (ID)
+			prevCount = priors.get(id);
+			
+			// if no previous counts
+			if (prevCount == null) {
+				// just copy the count
+				priors.put(id, batchCount);
+			} else {
+				// otherwise sum
+				priors.put(id, prevCount + batchCount);
 			}
 		}
 	}
@@ -310,15 +449,15 @@ public class DataLoader {
 				fileContents = fileContents.replaceAll("<p> ", "");
 				trainingSentences = fileContents.split(" [[^a-zA-Z']+ ]+");
 			}
-			
+
 			DataProcessor dp = new DataProcessor(trainingSentences);
 			int status = dp.process();
 			
 			if (status == 1) {
 				break;
 			}
+			System.err.println("Trained so far on (exactly) " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		}
-		System.err.println("Trained on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		Utils.normalizeByFirstDimension(transitions);
 		
 		DataSummary summary = new DataSummary(prefixIDMap, priors, transitions);
@@ -331,7 +470,7 @@ public class DataLoader {
 	}
 
 	final private static String[] suffixes = new String[]{" n't "," ' "," 's "," 've ", " 'd ", " 'll ", " 're ", " 't "," 'm "};
-	private static String cleanSentence(String trainingSentence) {
+	private String cleanSentence(String trainingSentence) {
 		if (DEBUG > 1) System.out.println("CLEAN:" + trainingSentence);
 		trainingSentence = " " + trainingSentence + " ";
 		for (String suffix : suffixes) {
@@ -347,7 +486,8 @@ public class DataLoader {
 			return null;
 		}
 		
-		if (trainingSentence.split("\\s+").length > MAX_TOKENS_PER_SENTENCE) {
+		final int length = trainingSentence.split("\\s+").length;
+		if (length > MAX_TOKENS_PER_SENTENCE){// || length < order) {
 			return null;
 		}
 		
