@@ -45,6 +45,7 @@ public class DataLoader {
 
 		int returnStatus = 0;
 		public int process() throws InterruptedException {
+			System.out.println("Starting " + NUM_THREADS + " threads");
 			System.gc();
 			StopWatch watch = new StopWatch();
 			watch.start();
@@ -68,7 +69,7 @@ public class DataLoader {
 						for (int i = start_idx; i < end_idx; i++) {
 							String trainingSentence = trainingSentences[i];
 							if (start_idx == 0 && (i % 10000 == 0)){
-								System.out.println("About " + (NUM_THREADS*sentencesTrainedOnForBatch) + " sentences trained on ("+ Main.computePercentTotalMemoryUsed() + "% memory used)");
+								System.out.println("About " + (NUM_THREADS*sentencesTrainedOnForBatch) + " sentences trained on ("+ (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) + "/" + Runtime.getRuntime().maxMemory() +"=" +  Main.computePercentTotalMemoryUsed() + "% memory used)");
 							}
 							if (Main.computePercentTotalMemoryUsed() > MAX_MEMORY_FOR_BASE_MODEL) {
 								returnStatus = 1;
