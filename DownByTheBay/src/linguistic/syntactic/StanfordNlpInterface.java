@@ -4,15 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import edu.stanford.nlp.ie.AbstractSequenceClassifier;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
-import edu.stanford.nlp.process.CoreLabelTokenFactory;
-import edu.stanford.nlp.process.DocumentPreprocessor;
-import edu.stanford.nlp.process.PTBTokenizer;
-import edu.stanford.nlp.process.TokenizerFactory;
 import edu.stanford.nlp.util.CoreMap;
 import utils.Pair;
 
@@ -24,9 +19,9 @@ public class StanfordNlpInterface {
 	//    private final String ANNOTATORS = "tokenize, ssplit, pos, lemma, ner, parse, dcoref";
 	//private static final MaxentTagger tagger = new MaxentTagger(U.rootPath + "lib/stanford-parser/3.6.0/libexec/models/wsj-0-18-bidirectional-nodistsim.tagger");
 	//private final MaxentTagger tagger = new MaxentTagger(U.rootPath + "local-data/models/wordsToPos-tagger/english-left3words/english-bidirectional-distsim.tagger");
-	private static DocumentPreprocessor documentPreprocessor;
-	private static final TokenizerFactory<CoreLabel> ptbTokenizerFactory = PTBTokenizer.factory(new CoreLabelTokenFactory(), "untokenizable=noneKeep");
-	AbstractSequenceClassifier<CoreLabel> classifier = null;
+//	private static DocumentPreprocessor documentPreprocessor;
+//	private static final TokenizerFactory<CoreLabel> ptbTokenizerFactory = PTBTokenizer.factory(new CoreLabelTokenFactory(), "untokenizable=noneKeep");
+//	AbstractSequenceClassifier<CoreLabel> classifier = null;
 
 
 	public StanfordNlpInterface() {
@@ -40,6 +35,7 @@ public class StanfordNlpInterface {
 	private void buildPipeline() {
 		Properties props = new Properties();
 		props.put(INPUT_TYPE, ANNOTATORS);
+		props.put("threads", 16);
 		this.pipeline = new StanfordCoreNLP(props);
 	}
 

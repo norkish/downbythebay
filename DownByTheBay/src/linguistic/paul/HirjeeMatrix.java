@@ -89,9 +89,22 @@ public class HirjeeMatrix {
 		double codaScore = 0.0;
 		List<ConsonantPhoneme> coda1 = s1.getCoda();
 		List<ConsonantPhoneme> coda2 = s2.getCoda();
-		final int maxSize = Math.max(coda1.size(), coda2.size());
 
-		if (maxSize > 0) {
+		if (coda1.isEmpty() || coda2.isEmpty()) {
+			if (coda1.isEmpty() && coda2.isEmpty()) {
+				codaScore = 3.0;
+			} else {
+				for (ConsonantPhoneme consonantPhoneme : coda1) {
+					final int consIdx = consonantPhoneme.phonemeEnum.ordinal();
+					codaScore = Math.max(matrix[consIdx][UNMATCHED_CODA_CONSONANT_AT_BEGINNING], matrix[consIdx][UNMATCHED_CODA_CONSONANT_AT_END]);
+				}
+				for (ConsonantPhoneme consonantPhoneme : coda2) {
+					final int consIdx = consonantPhoneme.phonemeEnum.ordinal();
+					codaScore = Math.max(matrix[consIdx][UNMATCHED_CODA_CONSONANT_AT_BEGINNING], matrix[consIdx][UNMATCHED_CODA_CONSONANT_AT_END]);
+				}
+				codaScore /= (coda1.size() + coda2.size());
+			}
+		} else {
 			double[][] alignmentMatrix = new double[coda1.size()+1][coda2.size()+1];
 			alignmentMatrix[0][0] = 0;
 			char[][] backtrack = new char[coda1.size()+1][coda2.size()+1];
@@ -171,8 +184,8 @@ public class HirjeeMatrix {
 		double stressScore = 0.0;
 		
 		final double score = vowelScore + codaScore + stressScore;
-//		if (score > HIRJEE_RHYME_THRESHOLD)
-//			System.out.println(s1 + " + " + s2 + " + " + vowelScore + " + " + codaScore + " + " + stressScore + " = " + score);
+		if (score > HIRJEE_RHYME_THRESHOLD)
+			System.out.println(s1 + " + " + s2 + " + " + vowelScore + " + " + codaScore + " + " + stressScore + " = " + score);
 		return score;
 	}
 	

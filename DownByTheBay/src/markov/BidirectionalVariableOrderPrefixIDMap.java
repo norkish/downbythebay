@@ -36,18 +36,22 @@ public class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 		if(prefix.size() != order) {
 			throw new RuntimeException("Tried to add prefix \"" + prefix + "\" that does not match order of " + order);
 		}
-		
 		Integer id = prefixToIDMap.get(prefix);
+		
 		if (id == null) {
-			id = nextID++;
 			final LinkedList<Token> prefixCopy = new LinkedList<Token>(prefix);
-			prefixToIDMap.put(prefixCopy, id);
-			iDToPrefixMap.add(prefixCopy);
+			synchronized(this) {
+				 id = prefixToIDMap.putIfAbsent(prefixCopy, nextID);
+				 if (id == null) {
+					 iDToPrefixMap.add(prefixCopy);
+					 id = nextID++;
+				 }
+			}
 		}
 		
 		return id;
 	}
-	
+
 	public Integer getIDForPrefix(LinkedList<Token> prefix) {
 		return prefixToIDMap.get(prefix);
 	}
@@ -63,5 +67,9 @@ public class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 
 	public List<LinkedList<Token>> getIDToPrefixMap() {
 		return iDToPrefixMap;
+	}
+
+	public boolean isEmpty() {
+		return nextID == 0;
 	}
 }

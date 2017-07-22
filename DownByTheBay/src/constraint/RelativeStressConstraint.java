@@ -46,10 +46,11 @@ public class RelativeStressConstraint<T> implements StateConstraint<T> {
 		if (stress2 == 1) stress2 = 2;
 		else if (stress2 == 2) stress2 = 1;
 		
-		if (compareValue > 0)
+		if (compareValue > 0) {
 			return stress2 > stress1;
-		else 
+		} else { 
 			return stress2 < stress1;
+		}
 	}
 
 	@Override

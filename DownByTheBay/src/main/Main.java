@@ -11,9 +11,9 @@ import constraint.AbsoluteStressConstraint;
 import constraint.BinaryRhymeConstraint;
 import constraint.ConditionedConstraint;
 import constraint.EndOfWordConstraint;
+import constraint.FloatingPOSSequenceConstraint;
 import constraint.HasCodaConstraint;
 import constraint.PartsOfSpeechConstraint;
-import constraint.RelativeStressConstraint;
 import constraint.StartOfWordConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
@@ -34,7 +34,7 @@ public class Main {
 
 	public static String rootPath = "";
 	
-	public static void main(String[] args){
+	public static void main(String[] args) throws InterruptedException{
 
 		setupRootPath();
 
@@ -53,8 +53,8 @@ public class Main {
 		generalConstraints.get(A).add(new ConditionedConstraint<>(new HasCodaConstraint<>(), false));
 		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
 		generalConstraints.get(MA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
-		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
-		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
+//		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
+//		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
 		
 		// train a high-order markov model on a corpus
 		
@@ -89,11 +89,11 @@ public class Main {
 					continue;
 				} else {
 					if (stress == 1) {
-						if (lastNonNegativeStress == 0) {
-							constraints.get(templateLength).add(new ConditionedConstraint<>(new RelativeStressConstraint<>(stress, 1)));
-						} else {
+//						if (lastNonNegativeStress == 0) { // UNCOMMENT FOR RELATIVE STRESS
+//							constraints.get(templateLength).add(new ConditionedConstraint<>(new RelativeStressConstraint<>(stress, 1)));
+//						} else {
 							constraints.get(templateLength).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(stress)));
-						}
+//						}
 					}
 					
 					lastNonNegativeStress = stress;
@@ -104,6 +104,7 @@ public class Main {
 				
 				if (i == JA) {
 					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
+//					constraints.get(templateLength).add(new ConditionedConstraint<>(new FloatingPOSSequenceConstraint<>()));
 //					constraints.get(templateLength-1).add(new ConditionedConstraint<>(new FloatingConstraint<>(rhymeDistance-2, 
 //							new PartsOfSpeechConstraint<>(new HashSet<Pos>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))))));
 				} else if (i == MAS) {
@@ -117,10 +118,17 @@ public class Main {
 			
 			markovOrder = rhymeDistance;
 			
+			StopWatch watch = new StopWatch();
 			if (markovOrder != prevOrder) {
+				markovModel = null; // allow this to get cleaned by the garbage collector before building the next model
 				memoryCheck();
-				DataSummary summary = DataLoader.loadData(markovOrder);
+				watch.start();
+				DataLoader dl = new DataLoader(markovOrder);
+				DataSummary summary = dl.loadData();
 				System.out.println("Data loaded for Main.java");
+				watch.stop();
+				System.out.println("Time to train on data:" + watch.getTime());
+				watch.reset();
 				memoryCheck();
 				markovModel = new SparseVariableOrderMarkovModel<>(summary.statesByIndex, summary.priors, summary.transitions);
 				System.out.println("Creating Markov Model");
@@ -129,7 +137,6 @@ public class Main {
 			System.out.println("For Rhythmic Template: " + Arrays.toString(rhythmicTemplate));
 			// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
 			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel;
-			StopWatch watch = new StopWatch();
 			watch.start();
 			try {
 				System.out.println("Creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
@@ -152,9 +159,10 @@ public class Main {
 			watch.stop();
 			System.out.println("Time to build model:" + watch.getTime());
 			
-			for (int i = 0; i < 10; i++) {
+//			for (int i = 0; i < 20; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
-				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
+//				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
+			for(List<SyllableToken> generatedSequence : constrainedMarkovModel.generateFromAllPriors(templateLength)) {
 				// convert the sequence of syllable tokens to a human-readable string
 				System.out.print("\tHave you ever seen ");
 				for (SyllableToken syllableToken : generatedSequence) {
@@ -162,6 +170,11 @@ public class Main {
 				}
 				System.out.println("down by the bay?");
 				System.out.println("\t\t" + generatedSequence + "\tProb:" + constrainedMarkovModel.probabilityOfSequence(generatedSequence.toArray(new Token[0])));
+				System.out.print("\t\t[");
+				for (SyllableToken syllableToken : generatedSequence) {
+					System.out.print(syllableToken.getPos() + ",");
+				}
+				System.out.println("]");
 			}
 			
 			prevOrder = markovOrder;
@@ -169,7 +182,11 @@ public class Main {
 	}
 
 	public static void memoryCheck() {
-		System.out.println("MEMORY CHECK: " + ((1.0*Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/Runtime.getRuntime().maxMemory()) + "% used");
+		System.out.println("MEMORY CHECK: " + computePercentTotalMemoryUsed() + "% used");
+	}
+
+	public static double computePercentTotalMemoryUsed() {
+		return (1.0*Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/Runtime.getRuntime().maxMemory();
 	}
 
 	public static void setupRootPath() {

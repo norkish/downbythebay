@@ -113,9 +113,9 @@ public class Rhymer {
 		double tempCodaWeight = codaWeight;
 		double codaScore;
 		if (Utils.isNullorEmpty(c1) && Utils.isNullorEmpty(c2)) {
-			n--;
-			codaScore = 0;
-			tempCodaWeight = 0;
+//			n--;
+			codaScore = 1.0;
+//			tempCodaWeight = 0;
 		}
 		else
 			codaScore = scoreConsonantPronunciations(c1,c2);

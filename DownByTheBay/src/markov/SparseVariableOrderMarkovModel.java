@@ -123,10 +123,8 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 		fromStateIdx = sampleStartStateIdx();
 		LinkedList<Token> prefixForID = stateIndex.getPrefixForID(fromStateIdx);
 		
-		final Token startToken = Token.getStartToken();
 		final Token endToken = Token.getEndToken();
 		for (Token token : prefixForID) {
-			if (token == startToken) continue;
 			if (token == endToken) return newSeq;
 				
 			newSeq.add((T) token);
@@ -187,8 +185,7 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	public T sampleNextState(LinkedList<Token> tokenPrefix) {
 		LinkedList<Token> prefix;
 		if (tokenPrefix.size() < order) {
-			prefix = new LinkedList<Token>(Collections.nCopies(order - tokenPrefix.size(), Token.getStartToken()));
-			prefix.addAll(tokenPrefix);
+			throw new RuntimeException("Previous state not sufficient length to determine next state");
 		} else {
 			prefix = tokenPrefix;
 		}
