@@ -601,4 +601,16 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			System.out.println("" + (i+1) + ": " + constrainedModel.generate(4));
 		}
 	}
+
+	public List<List<T>> generateFromAllPriors(int length) {
+		List<List<T>> returnList = new ArrayList<List<T>>();
+		for (Entry<Integer, Double> entry : logPriors.entrySet()) {
+			Integer startPrefixID = entry.getKey();
+			if (startPrefixID == -1) {
+				throw new RuntimeException("No valid start prefix");
+			}
+			returnList.add(generateWithPrefixID(length, startPrefixID));
+		}
+		return returnList;
+	}
 }

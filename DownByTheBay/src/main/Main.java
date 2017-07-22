@@ -159,9 +159,10 @@ public class Main {
 			watch.stop();
 			System.out.println("Time to build model:" + watch.getTime());
 			
-			for (int i = 0; i < 10; i++) {
+//			for (int i = 0; i < 20; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
-				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
+//				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
+			for(List<SyllableToken> generatedSequence : constrainedMarkovModel.generateFromAllPriors(templateLength)) {
 				// convert the sequence of syllable tokens to a human-readable string
 				System.out.print("\tHave you ever seen ");
 				for (SyllableToken syllableToken : generatedSequence) {
