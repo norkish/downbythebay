@@ -14,7 +14,6 @@ import constraint.EndOfWordConstraint;
 import constraint.FloatingPOSSequenceConstraint;
 import constraint.HasCodaConstraint;
 import constraint.PartsOfSpeechConstraint;
-import constraint.RelativeStressConstraint;
 import constraint.StartOfWordConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
