@@ -11,6 +11,7 @@ import constraint.AbsoluteStressConstraint;
 import constraint.BinaryRhymeConstraint;
 import constraint.ConditionedConstraint;
 import constraint.EndOfWordConstraint;
+import constraint.FloatingPOSSequenceConstraint;
 import constraint.HasCodaConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.RelativeStressConstraint;
@@ -53,8 +54,8 @@ public class Main {
 		generalConstraints.get(A).add(new ConditionedConstraint<>(new HasCodaConstraint<>(), false));
 		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
 		generalConstraints.get(MA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
-		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
-		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
+//		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
+//		generalConstraints.get(MAS).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
 		
 		// train a high-order markov model on a corpus
 		
@@ -89,11 +90,11 @@ public class Main {
 					continue;
 				} else {
 					if (stress == 1) {
-						if (lastNonNegativeStress == 0) {
-							constraints.get(templateLength).add(new ConditionedConstraint<>(new RelativeStressConstraint<>(stress, 1)));
-						} else {
+//						if (lastNonNegativeStress == 0) { // UNCOMMENT FOR RELATIVE STRESS
+//							constraints.get(templateLength).add(new ConditionedConstraint<>(new RelativeStressConstraint<>(stress, 1)));
+//						} else {
 							constraints.get(templateLength).add(new ConditionedConstraint<>(new AbsoluteStressConstraint<>(stress)));
-						}
+//						}
 					}
 					
 					lastNonNegativeStress = stress;
@@ -104,6 +105,7 @@ public class Main {
 				
 				if (i == JA) {
 					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
+//					constraints.get(templateLength).add(new ConditionedConstraint<>(new FloatingPOSSequenceConstraint<>()));
 //					constraints.get(templateLength-1).add(new ConditionedConstraint<>(new FloatingConstraint<>(rhymeDistance-2, 
 //							new PartsOfSpeechConstraint<>(new HashSet<Pos>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))))));
 				} else if (i == MAS) {
@@ -168,6 +170,11 @@ public class Main {
 				}
 				System.out.println("down by the bay?");
 				System.out.println("\t\t" + generatedSequence + "\tProb:" + constrainedMarkovModel.probabilityOfSequence(generatedSequence.toArray(new Token[0])));
+				System.out.print("\t\t[");
+				for (SyllableToken syllableToken : generatedSequence) {
+					System.out.print(syllableToken.getPos() + ",");
+				}
+				System.out.println("]");
 			}
 			
 			prevOrder = markovOrder;

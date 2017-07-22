@@ -30,10 +30,10 @@ public class DataLoader {
 	
 //	private static final long MAX_TRAINING_SENTENCES = -1; // -1 for no limit - CAN'T USE THIS TO THROTTLE ANY MORE - requires syncing
 	private static final long MAX_TOKENS_PER_SENTENCE = 30; // keeps Stanford NLP fast
-	private static final int NUM_THREADS = 16;// Runtime.getRuntime().availableProcessors()-1;
+	private static final int NUM_THREADS = 1;//Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
-	private static final boolean USE_DUMMY_DATA = false; 
-	private static final double MAX_MEMORY_FOR_BASE_MODEL = 0.5;
+	private static final boolean USE_DUMMY_DATA = true; 
+	private static final double MAX_MEMORY_FOR_BASE_MODEL = 0.7;
 	
 	public class DataProcessor {
 
@@ -452,7 +452,7 @@ public class DataLoader {
 			DataProcessor dp = new DataProcessor(trainingSentences);
 			int status = dp.process();
 			
-			if (status == 1) {
+			if (status == 1 || USE_DUMMY_DATA) {
 				break;
 			}
 			System.err.println("Trained so far on (exactly) " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
