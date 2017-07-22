@@ -151,22 +151,32 @@ public class Rhymer {
 		if (Utils.isNullorEmpty(o1) || Utils.isNullorEmpty(o2))
 			return 0;
 		if (o1.equals(o2)) return 1.0;
-		//TODO ACTUALLY ALIGN consonants here
-		double alignmentScore = 0;
-		List<ConsonantPhoneme> shortest = o1;
-		List<ConsonantPhoneme> longest = o2;
-		if (o1.size() > o2.size()) {
-			shortest = o2;
-			longest = o1;
+		//chooses the highest-scoring pair to keep TODO upgrade this eventually
+		double highestScore = 0;
+		for (ConsonantPhoneme cp1 : o1) {
+			for (ConsonantPhoneme cp2 : o2) {
+				double temp = score2Consonants(cp1,cp2);
+				if (temp > highestScore) {
+					highestScore = temp;
+				}
+			}
 		}
-		for (int cp = shortest.size() - 1; cp >= 0; cp--) {
-			ConsonantPhoneme cp1 = o1.get(cp);
-			ConsonantPhoneme cp2 = o2.get(cp);
-			alignmentScore += score2Consonants(cp1, cp2);
-		}
-		int n = longest.size();
-		double average = alignmentScore / n;
-		return average;
+		return highestScore;
+//		double alignmentScore = 0;
+//		List<ConsonantPhoneme> shortest = o1;
+//		List<ConsonantPhoneme> longest = o2;
+//		if (o1.size() > o2.size()) {
+//			shortest = o2;
+//			longest = o1;
+//		}
+//		for (int cp = shortest.size() - 1; cp >= 0; cp--) {
+//			ConsonantPhoneme cp1 = o1.get(cp);
+//			ConsonantPhoneme cp2 = o2.get(cp);
+//			alignmentScore += score2Consonants(cp1, cp2);
+//		}
+//		int n = longest.size();
+//		double average = alignmentScore / n;
+//		return average;
 	}
 
 	private double score2Vowels(VowelPhoneme n1, VowelPhoneme n2) {

@@ -8,7 +8,7 @@ public class GeneticMain {
 	private final static int topIndividualN = 20;
 	private final static int offspringN = 100;
 	private final static int maxGenerations = 10000;
-	public final static double fitnessThreshold = 0.75;
+	public final static double fitnessThreshold = 0.9;
 	private final static int rzCorpusSize = 56000;
 	public static double temp = 1.00;
 	private final static double coolingRate = 0.001;
@@ -49,17 +49,17 @@ public class GeneticMain {
 //		values.put("stress", 00.0);
 
 		//values.put("frontness", 125.0);//always 100
-		values.put("height", 70.0);
+		values.put("height", 87.89145327765064);
 
 		//values.put("place_of_articulation", 110.0);//always 100
-		values.put("manner_of_articulation", 100.0);
-		values.put("voicing", 15.0);
+		values.put("manner_of_articulation", 93.74256357399545);
+		values.put("voicing", 27.754425336501495);
 
-		values.put("onset", 20.0);
+		values.put("onset", 5.519934718254886);
 		//values.put("nucleus", 60.0);//always 100
-		values.put("coda", 130.0);
+		values.put("coda", 125.45080735803514);
 
-		values.put("stress", 00.0);
+		values.put("stress", 17.24887448289867);
 
 		TreeSet<Individual> topIndividuals = new TreeSet<>();
 		for (int i = 0; i < topIndividualN; i++) {
