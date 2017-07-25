@@ -1,10 +1,15 @@
 package constraint;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import data.SyllableToken;
+import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
+import edu.stanford.nlp.trees.Tree;
 import linguistic.syntactic.Pos;
 import markov.Token;
 
@@ -16,6 +21,44 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 
 	@Override
 	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> toState) {
+//		return isSatisfiedByGrammarTreeMethod(fromState, toState);
+		return isSatisfiedByParseNounPhraseMethod(fromState, toState);
+	}
+
+	LexicalizedParser lp = LexicalizedParser.loadModel("nlpdata/englishFactored.ser.gz");
+	private boolean isSatisfiedByParseNounPhraseMethod(LinkedList<Token> fromState, LinkedList<Token> toState) {
+		List<CoreLabel> rawWords = new ArrayList<CoreLabel>();
+		String word;
+		SyllableToken syllableToken;
+		for (Token token : fromState) {
+			syllableToken = (SyllableToken) token;
+			word = syllableToken.getStringRepresentationIfFirstSyllable();
+			if (!word.isEmpty()){
+				CoreLabel l = new CoreLabel();
+				l.setWord(word);
+				rawWords.add(l);
+			}
+		}
+		syllableToken = (SyllableToken) toState.getLast();
+		word = syllableToken.getStringRepresentationIfFirstSyllable();
+		if (!word.isEmpty()){
+			CoreLabel l = new CoreLabel();
+			l.setWord(word);
+			rawWords.add(l);
+		}
+		
+		Tree parse = lp.apply(rawWords);
+		for (Tree subtree: parse)
+	    {
+			if(subtree.label().value().equals("NP")) {
+				System.out.println(subtree);
+				return true;
+			}
+	    }
+		return false;
+	}
+
+	private boolean isSatisfiedByGrammarTreeMethod(LinkedList<Token> fromState, LinkedList<Token> toState) {
 		SyllableToken lastToken = (SyllableToken) toState.getLast();
 		
 		DBTBGrammarValidator validator = new DBTBGrammarValidator();
