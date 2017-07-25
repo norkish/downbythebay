@@ -484,7 +484,7 @@ public class DataLoader {
 			if (status == 1 || USE_DUMMY_DATA) {
 				break;
 			}
-			System.err.println("Trained so far on (exactly) " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
+			System.out.println("Trained so far on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		}
 		Utils.normalizeByFirstDimension(transitions);
 		
