@@ -38,8 +38,8 @@ public class BinaryRhymeConstraint<T> implements TransitionalConstraint<T> {
 		Syllable s1 = Syllabifier.tokenToSyllable(syl1Token);
 		Syllable s2 = Syllabifier.tokenToSyllable(syl2Token);
 		double score = HirjeeMatrix.scoreSyllables(s1, s2);
-//		if (score > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD)
-//			System.out.println("For " + s1 + " in " + syl1Token.getStringRepresentation() + " and " + s2 + " in " + syl2Token.getStringRepresentation() + ", score=" + score);
+		if (score > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD)
+			System.out.println(" (" + syl1Token.getStringRepresentation() + " and " + syl2Token.getStringRepresentation() + ")");
 		return score > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD;
 //		return (s1.getNucleus().equals(s2.getNucleus()) && s1.getCoda().equals(s2.getCoda()));
 //		double score = Rhymer.score2SyllablesByGaOptimizedWeights(s1, s2);

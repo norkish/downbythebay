@@ -186,7 +186,7 @@ public class Main {
 	}
 
 	public static double computePercentTotalMemoryUsed() {
-		return (1.0*Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/Runtime.getRuntime().maxMemory();
+		return (100.0*(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()))/Runtime.getRuntime().maxMemory();
 	}
 
 	public static void setupRootPath() {

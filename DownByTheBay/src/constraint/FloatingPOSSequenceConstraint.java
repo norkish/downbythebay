@@ -21,11 +21,11 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 
 	@Override
 	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> toState) {
-//		return isSatisfiedByGrammarTreeMethod(fromState, toState);
-		return isSatisfiedByParseNounPhraseMethod(fromState, toState);
+		return isSatisfiedByGrammarTreeMethod(fromState, toState);
+//		return isSatisfiedByParseNounPhraseMethod(fromState, toState);
 	}
 
-	LexicalizedParser lp = LexicalizedParser.loadModel("nlpdata/englishFactored.ser.gz");
+	LexicalizedParser lp;
 	private boolean isSatisfiedByParseNounPhraseMethod(LinkedList<Token> fromState, LinkedList<Token> toState) {
 		List<CoreLabel> rawWords = new ArrayList<CoreLabel>();
 		String word;
@@ -96,10 +96,33 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 			Pos nextPos = posPath[idx];
 			DBTBGrammarNode nextNode = nextNodesByPos.get(nextPos);
 			if (nextNode == null) {
-				// TODO: if adding a noun of any sort, also add second path through an adjective node
 				nextNode = new DBTBGrammarNode(nextPos);
 				nextNodesByPos.put(nextPos, nextNode);
+
+				// while creating new noun node, also create new intermediate adj node
+				if (nextPos.equals(Pos.NN) || nextPos.equals(Pos.NNS)) {
+					DBTBGrammarNode adjNode = nextNodesByPos.get(Pos.JJ);
+					if (adjNode == null) {
+						adjNode = new DBTBGrammarNode(Pos.JJ);
+						nextNodesByPos.put(Pos.JJ, adjNode);
+					}
+					if (adjNode.nextNodesByPos.containsKey(nextPos)) {
+						new RuntimeException("In adding noun, and therefore intermediate adj, found that adj already existed with " + nextPos + " following state");
+					}
+					adjNode.nextNodesByPos.put(nextPos, nextNode);
+				} else if (nextPos.equals(Pos.VB) || nextPos.equals(Pos.VBD) || nextPos.equals(Pos.VBG) || nextPos.equals(Pos.VBN) || nextPos.equals(Pos.VBP) || nextPos.equals(Pos.VBZ)) {
+					DBTBGrammarNode advNode = nextNodesByPos.get(Pos.RB);
+					if (advNode == null) {
+						advNode = new DBTBGrammarNode(Pos.RB);
+						nextNodesByPos.put(Pos.RB, advNode);
+					}
+					if (advNode.nextNodesByPos.containsKey(nextPos)) {
+						new RuntimeException("In adding verb, and therefore intermediate adv, found that adv already existed with " + nextPos + " following state");
+					}
+					advNode.nextNodesByPos.put(nextPos, nextNode);
+				}
 			}
+			
 			nextNode.addPath(posPath, idx+1);
 		}
 
@@ -111,18 +134,29 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 	
 	public static class DBTBGrammarValidator {
 		
+//		final private static Pos[][] trainingPosSet = new Pos[][]{ // KEEP THESE SORTED ALPHABETICALLY TO AVOID DUPLICATION
+//			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // the law drinking from a straw, a whale with a polka dot tail
+//			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.JJ,Pos.NNS}, // a moose with a pair of new shoes
+//			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.NNS}, // a moose with a pair of shoes
+//			new Pos[]{Pos.NN,Pos.IN,Pos.JJ,Pos.NNS}, // a moose with new shoes
+//			new Pos[]{Pos.NN,Pos.IN,Pos.NNS}, // a moose with shoes
+//			new Pos[]{Pos.NN,Pos.VBG,Pos.DT,Pos.JJ, Pos.NN}, // A frog eating a big dog
+//			new Pos[]{Pos.NN,Pos.VBG,Pos.DT,Pos.NN}, // A frog eating a dog
+//			new Pos[]{Pos.NN,Pos.VBG,Pos.NN,Pos.NNS}, // a llama wearing polka dot pajamas
+//			new Pos[]{Pos.NN,Pos.VBG,Pos.NNS}, // a llama wearing pajamas
+//			new Pos[]{Pos.NN,Pos.VBG,Pos.PRP$,Pos.NN}, // A bear combing his hair
+//			new Pos[]{Pos.NN,Pos.WDT,Pos.RB,Pos.VBD, Pos.DT, Pos.JJ,Pos.NN}, // a pirate that just ate a veggie diet
+////			new Pos[]{},
+//		};
 		final private static Pos[][] trainingPosSet = new Pos[][]{ // KEEP THESE SORTED ALPHABETICALLY TO AVOID DUPLICATION
 			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // the law drinking from a straw, a whale with a polka dot tail
-			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.JJ,Pos.NNS}, // a moose with a pair of new shoes
-			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.NNS}, // a moose with a pair of shoes
-			new Pos[]{Pos.NN,Pos.IN,Pos.JJ,Pos.NNS}, // a moose with new shoes
-			new Pos[]{Pos.NN,Pos.IN,Pos.NNS}, // a moose with shoes
-			new Pos[]{Pos.NN,Pos.VBG,Pos.DT,Pos.JJ, Pos.NN}, // A frog eating a big dog
-			new Pos[]{Pos.NN,Pos.VBG,Pos.DT,Pos.NN}, // A frog eating a dog
+			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.NNS}, // a moose with a pair of new shoes
+			new Pos[]{Pos.NN,Pos.IN,Pos.NNS}, // a moose with new shoes
+			new Pos[]{Pos.NN,Pos.VBG,Pos.DT, Pos.NN}, // A frog eating a big dog
 			new Pos[]{Pos.NN,Pos.VBG,Pos.NN,Pos.NNS}, // a llama wearing polka dot pajamas
 			new Pos[]{Pos.NN,Pos.VBG,Pos.NNS}, // a llama wearing pajamas
 			new Pos[]{Pos.NN,Pos.VBG,Pos.PRP$,Pos.NN}, // A bear combing his hair
-			new Pos[]{Pos.NN,Pos.WDT,Pos.RB,Pos.VBD, Pos.DT, Pos.JJ,Pos.NN}, // a pirate that just ate a veggie diet
+			new Pos[]{Pos.NN,Pos.WDT,Pos.VBD, Pos.DT,Pos.NN}, // a pirate that just ate a veggie diet
 //			new Pos[]{},
 		};
 		

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import constraint.ConditionedConstraint;
 import constraint.Constraint;
@@ -89,7 +90,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				inSupportAtPos = new HashMap<Integer, Integer>();
 				this.inSupport.add(inSupportAtPos);
 
-				logTransitionsAtPosition = new HashMap<Integer, Map<Integer, Double>>();
+				logTransitionsAtPosition = new ConcurrentHashMap<Integer, Map<Integer, Double>>();
 				logTransitions.add(logTransitionsAtPosition);
 				
 				keysWithSupportAtPosLessOne = i == 0 ? this.logPriors.keySet() : inSupport.get(i-1).keySet();
@@ -128,17 +129,16 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 						}
 						if (!toStates.isEmpty()) {
 							logTransitionsAtPosition.put(fromStateIdx, toStates);
+						} else {
+							// for each toState at the previous step (as per inSupport), if there is no logTransition from the state in this step, it should be marked for removal
+							posStateToRemove.add(new PositionedState(i-1, fromStateIdx));
 						}
+					} else {
+						// for each toState at the previous step (as per inSupport), if there is no logTransition from the state in this step, it should be marked for removal
+						posStateToRemove.add(new PositionedState(i-1, fromStateIdx));
 					}
 				}
 
-				// for each toState at the previous step (as per inSupport), if there is no logTransition from the state in this step, it should be marked for removal
-				for (Integer prevToState : keysWithSupportAtPosLessOne) {
-					if (!logTransitionsAtPosition.containsKey(prevToState)) {
-						posStateToRemove.add(new PositionedState(i-1, prevToState));
-					}
-				}
-				
 				// remove states marked for removal because they result in premature terminations
 				while(!posStateToRemove.isEmpty())
 				{
@@ -155,6 +155,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			
 		}
 		
+		System.out.println("Log Normalizing...");
 		logNormalize();
 	}
 
@@ -292,13 +293,11 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 	 */
 	private Set<PositionedState> adjustTransitionsTo(int position, int stateIndex) {
 		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
-		Integer fromState;
 		Map<Integer, Double> toStates;
 		Map<Integer, Integer> inSupportAtPos = this.inSupport.get(position);
-		for (Iterator<Entry<Integer, Map<Integer, Double>>> it = this.logTransitions.get(position).entrySet().iterator(); it.hasNext();) {
-			Entry<Integer,Map<Integer, Double>> entry = it.next();
-			fromState = entry.getKey();
-			toStates = entry.getValue();
+		final Map<Integer, Map<Integer, Double>> map = this.logTransitions.get(position);
+		for (Integer fromState : map.keySet()) {
+			toStates = map.get(fromState);
 
 			if (toStates.containsKey(stateIndex)) {
 				decrementCountOrRemove(inSupportAtPos,stateIndex);
@@ -603,6 +602,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 	}
 
 	public List<List<T>> generateFromAllPriors(int length) {
+		System.out.println("Generating from all priors...");
 		List<List<T>> returnList = new ArrayList<List<T>>();
 		for (Entry<Integer, Double> entry : logPriors.entrySet()) {
 			Integer startPrefixID = entry.getKey();
