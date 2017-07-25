@@ -15,6 +15,7 @@ import constraint.FloatingPOSSequenceConstraint;
 import constraint.HasCodaConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.StartOfWordConstraint;
+import constraint.WordConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
@@ -50,7 +51,7 @@ public class Main {
 		// Add rest of constraints
 		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.JJ)))));
 //		generalConstraints.get(A).add(new ConditionedConstraint<>(new WordConstraint<>("a", false)));
-		generalConstraints.get(A).add(new ConditionedConstraint<>(new HasCodaConstraint<>(), false));
+//		generalConstraints.get(A).add(new ConditionedConstraint<>(new HasCodaConstraint<>(), false));
 		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
 		generalConstraints.get(MA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
 //		generalConstraints.get(JA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS, Pos.JJ, Pos.VB, Pos.VBD, Pos.VBG, Pos.VBN, Pos.VBP, Pos.VBZ)))));
