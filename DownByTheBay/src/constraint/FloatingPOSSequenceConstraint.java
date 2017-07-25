@@ -35,6 +35,7 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 
 		public Pos pos = null;
 		private Map<Pos, DBTBGrammarNode> nextNodesByPos = new EnumMap<Pos,DBTBGrammarNode>(Pos.class);
+		private boolean isCompletePath = false;
 
 		public DBTBGrammarNode(Pos pos2) {
 			this.pos = pos2;
@@ -45,19 +46,22 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 		}
 
 		public void addPath(Pos[] posPath, int idx) {
-			if (idx == posPath.length)
+			if (idx == posPath.length) {
+				this.isCompletePath = true;
 				return;
+			}
 			Pos nextPos = posPath[idx];
 			DBTBGrammarNode nextNode = nextNodesByPos.get(nextPos);
 			if (nextNode == null) {
+				// TODO: if adding a noun of any sort, also add second path through an adjective node
 				nextNode = new DBTBGrammarNode(nextPos);
 				nextNodesByPos.put(nextPos, nextNode);
 			}
 			nextNode.addPath(posPath, idx+1);
 		}
 
-		public boolean hasNextNode() {
-			return !nextNodesByPos.isEmpty();
+		public boolean pathIsComplete() {
+			return isCompletePath;
 		}
 
 	}
@@ -66,7 +70,8 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 		
 		final private static Pos[][] trainingPosSet = new Pos[][]{ // KEEP THESE SORTED ALPHABETICALLY TO AVOID DUPLICATION
 			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // the law drinking from a straw, a whale with a polka dot tail
-			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN, Pos.IN,Pos.JJ, Pos.NNS}, // a moose with a pair of new shoes
+			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.JJ,Pos.NNS}, // a moose with a pair of new shoes
+			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.NNS}, // a moose with a pair of shoes
 			new Pos[]{Pos.NN,Pos.IN,Pos.JJ,Pos.NNS}, // a moose with new shoes
 			new Pos[]{Pos.NN,Pos.IN,Pos.NNS}, // a moose with shoes
 			new Pos[]{Pos.NN,Pos.VBG,Pos.DT,Pos.JJ, Pos.NN}, // A frog eating a big dog
@@ -97,7 +102,7 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 		}
 		
 		public boolean isComplete() {
-			return !currentNode.hasNextNode();
+			return currentNode.pathIsComplete();
 		}
 
 		private static DBTBGrammarNode initializeDBTBGrammarTree() {
