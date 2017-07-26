@@ -1,41 +1,47 @@
 package constraint;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.*;
 
 import data.SyllableToken;
 import markov.Token;
+import semantic.word2vec.BadW2vInputException;
+import semantic.word2vec.VectorMath;
+import semantic.word2vec.W2vInterface;
+import semantic.word2vec.W2vOperations;
 
 public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 
 	String theme;
-	private Set<String> choices = new HashSet<String>();
+//	private Set<String> choices = new HashSet<>();
+	private final double threshold = .5;
+	public static Map<String,double[]> vectorDict = new HashMap<>();
 	
-	public SemanticMeaningConstraint(String theme) {
+	public SemanticMeaningConstraint(String theme) throws BadW2vInputException {
 		this.theme = theme;
-		if (theme.equals("nature")) {
-			choices.add("nature");
-			choices.add("tree");
-			choices.add("trees");
-			choices.add("shadow");
-			choices.add("sun");
-			choices.add("sunset");
-			choices.add("beach");
-			choices.add("sand");
-			choices.add("ocean");
-			choices.add("smell");
-			choices.add("breeze");
-			choices.add("light");
-			choices.add("air");
-			choices.add("grass");
-			choices.add("mountain");
-			choices.add("mountains");
-			choices.add("wind");
-			choices.add("water");
-			choices.add("earth");
-			choices.add("fire");
-		}
+		vectorDict.putIfAbsent(theme, W2vInterface.getVector(theme));
+
+//		if (theme.equals("nature")) {
+//			choices.add("nature");
+//			choices.add("tree");
+//			choices.add("trees");
+//			choices.add("shadow");
+//			choices.add("sun");
+//			choices.add("sunset");
+//			choices.add("beach");
+//			choices.add("sand");
+//			choices.add("ocean");
+//			choices.add("smell");
+//			choices.add("breeze");
+//			choices.add("light");
+//			choices.add("air");
+//			choices.add("grass");
+//			choices.add("mountain");
+//			choices.add("mountains");
+//			choices.add("wind");
+//			choices.add("water");
+//			choices.add("earth");
+//			choices.add("fire");
+//		}
 	}
 
 	@Override
@@ -48,8 +54,19 @@ public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 		Token token = state.get(i);
 		if (!(token instanceof SyllableToken)) {
 			return false;
-		} else {
-			return choices.contains(((SyllableToken) token).getStringRepresentation().toLowerCase());
+		}
+		else {
+			try {
+				String string = ((SyllableToken) token).getStringRepresentation();
+				double[] vector = W2vInterface.getVector(string);
+				vectorDict.putIfAbsent(string,vector);
+				if (VectorMath.cosineSimilarity(vector,vectorDict.get(theme)) >= threshold)
+					return true;
+				return false;
+			}
+			catch (BadW2vInputException e) {
+				return false;
+			}
 		}
 	}
 
