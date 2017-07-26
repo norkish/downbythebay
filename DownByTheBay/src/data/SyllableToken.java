@@ -121,4 +121,5 @@ public class SyllableToken extends Token {
 		}
 		else return "";
 	}
+
 }

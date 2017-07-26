@@ -283,6 +283,9 @@ public class DataLoader {
 					
 					// get the state intended by the batch's from ID
 					fromState = prefixIDMapForBatch.getPrefixForID(fromID);
+
+
+
 					// translate that state to the ID assigned to that state in the aggregate prefixIDMap
 					absoluteFromID = prefixIDMap.addPrefix(fromState);
 					// lookup the transitions map in the aggregate model using that absolute ID
@@ -437,14 +440,14 @@ public class DataLoader {
 
 	private int order;
 	private BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap;
-	private Map<Integer, Double> priors = new HashMap<Integer, Double>();
-	private Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
+	private Map<Integer, Double> priors = new HashMap<>();
+	private Map<Integer, Map<Integer, Double>> transitions = new HashMap<>();
 	private long sentencesTrainedOn = 0;
 	private long sentencePronunciationsTrainedOn = 0;
 	
 	public DataLoader(int markovOrder) {
 		this.order = markovOrder;
-		this.prefixIDMap = new BidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
+		this.prefixIDMap = new BidirectionalVariableOrderPrefixIDMap<>(order);
 	}
 
 	public DataSummary loadData() throws InterruptedException {

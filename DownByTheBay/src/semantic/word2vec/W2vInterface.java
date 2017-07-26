@@ -7,7 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-public class W2vInterface {
+public abstract class W2vInterface {
     private final int nOfDefaultSuggestions = 100;
 
     private W2vModel model;
@@ -86,6 +86,13 @@ public class W2vInterface {
             return null;
         }
     }
+
+    public static double[] getVector(String word) throws BadW2vInputException {
+    	List l = new ArrayList();
+    	l.add(word);
+		Pair<W2vPoint,int[]> point = W2vOperations.stringsToPoint(OperationType.SINGLE, l);
+		return point.getFirst().getPoint();
+	}
 
     public Map<Double, String> findAnalogy(String oldSentiment, String newSentiment, String oldWord, int nOfSuggestions) throws BadW2vInputException {
         checkStringInput(oldSentiment);
