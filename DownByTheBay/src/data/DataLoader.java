@@ -481,10 +481,10 @@ public class DataLoader {
 			DataProcessor dp = new DataProcessor(trainingSentences);
 			int status = dp.process();
 			
+			System.out.println("Trained so far on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 			if (status == 1 || USE_DUMMY_DATA) {
 				break;
 			}
-			System.out.println("Trained so far on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
 		}
 		Utils.normalizeByFirstDimension(transitions);
 		

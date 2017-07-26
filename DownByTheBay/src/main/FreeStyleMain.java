@@ -15,7 +15,7 @@ import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
 import markov.SparseVariableOrderMarkovModel;
-import markov.SparseVariableOrderNHMM;
+import markov.SparseVariableOrderNHMMMultiThreaded;
 import markov.Token;
 import markov.UnsatisfiableConstraintSetException;
 
@@ -72,7 +72,7 @@ public class FreeStyleMain {
 					System.out.println("\t\t" + constraint);
 				}
 			}
-			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel = new SparseVariableOrderNHMM<>(markovModel, TOT_LEN, constraints);
+			SparseVariableOrderNHMMMultiThreaded<SyllableToken> constrainedMarkovModel = new SparseVariableOrderNHMMMultiThreaded<>(markovModel, TOT_LEN, constraints);
 			System.out.println();
 
 			for (int i = 0; i < 8; i++) {

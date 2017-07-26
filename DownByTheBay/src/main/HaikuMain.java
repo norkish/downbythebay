@@ -12,7 +12,7 @@ import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
 import markov.SparseVariableOrderMarkovModel;
-import markov.SparseVariableOrderNHMM;
+import markov.SparseVariableOrderNHMMMultiThreaded;
 import markov.Token;
 import markov.UnsatisfiableConstraintSetException;
 
@@ -67,7 +67,7 @@ public class HaikuMain {
 					System.out.println("\t\t" + constraint);
 				}
 			}
-			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel = new SparseVariableOrderNHMM<>(markovModel, HAIKU_LEN, constraints);
+			SparseVariableOrderNHMMMultiThreaded<SyllableToken> constrainedMarkovModel = new SparseVariableOrderNHMMMultiThreaded<>(markovModel, HAIKU_LEN, constraints);
 			System.out.println();
 
 			for (int i = 0; i < 8; i++) {

@@ -1,7 +1,6 @@
 package markov;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,46 +8,41 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import constraint.ConditionedConstraint;
 import constraint.Constraint;
-import constraint.TransitionalConstraint;
 import constraint.StateConstraint;
+import constraint.TransitionalConstraint;
 import markov.SparseVariableOrderMarkovModel.CharacterToken;
 import markov.SparseVariableOrderMarkovModel.CharacterToken.CharacterTokenConstraint;
 import utils.MathUtils;
 
-public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovModel<T>{
+public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends AbstractMarkovModel<T>{
 
+	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	List<Map<Integer, Map<Integer,Double>>> logTransitions; // first 2d matrix represents transitions from first to second position
 	List<Map<Integer, Integer>> inSupport; // first matrix represents the number of non-zero transition probabilities to the ith state at pos 1 in the seq 
 	BidirectionalVariableOrderPrefixIDMap<T> stateIndex;
 	private Random rand = new Random();
 	int order;
 	private HashMap<Integer, Double> logPriors;
+	private Map<Integer,Set<Integer>> posStateToRemove = new ConcurrentHashMap<Integer,Set<Integer>>();
 	
-	public SparseVariableOrderNHMM(SparseVariableOrderMarkovModel<T> model, int length, List<List<ConditionedConstraint<T>>> constraints) throws UnsatisfiableConstraintSetException {
+	public SparseVariableOrderNHMMMultiThreaded(SparseVariableOrderMarkovModel<T> model, int length, List<List<ConditionedConstraint<T>>> constraints) throws UnsatisfiableConstraintSetException, InterruptedException {
 		this.stateIndex = model.stateIndex;
 		this.order = model.order;
 		List<LinkedList<Token>> tokens = stateIndex.getIDToPrefixMap();
 		this.logPriors = new HashMap<Integer, Double>(); 
-
+		
 		this.inSupport = new ArrayList<Map<Integer, Integer>>(Math.max(0, length-1));
 		this.logTransitions = new ArrayList<Map<Integer, Map<Integer, Double>>>(Math.max(0, length-1));
 		if (length > 1) {
-			Map<Integer, Map<Integer, Double>> logTransitionsAtPosition;
 			Set<Integer> keysWithSupportAtPosLessOne = null;
-			Map<Integer, Integer> inSupportAtPos;
-			
-			Integer toStateIdx;
-			Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
-			Map<Integer, Double> toStates;
-			LinkedList<Token> fromState;
-			LinkedList<Token> toState;
-			boolean satisfiable;
 			
 			// handle priors first
 			System.out.print(".");
@@ -58,7 +52,7 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 			// for each possible prior state
 			for(Integer priorStateIdx : model.logPriors.keySet()) {
 				priorState = tokens.get(priorStateIdx);
-				satisfiable = true;
+				boolean satisfiable = true;
 
 				// for each token in the state
 				for (int i = 0; i < priorState.size() && satisfiable; i++) {
@@ -84,67 +78,163 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 				}
 			}
 			
+			posStateToRemove.put(-1, new HashSet<Integer>());
+			
 			// for each possible transition (fromState -> toState) from the original naive transition matrix
 			for (int i = 0; i < length-order; i++) {
+				posStateToRemove.put(i, new HashSet<Integer>());
 				System.out.print(".");
-				inSupportAtPos = new HashMap<Integer, Integer>();
+				final Map<Integer, Integer> inSupportAtPos = new ConcurrentHashMap<Integer, Integer>();
 				this.inSupport.add(inSupportAtPos);
 
-				logTransitionsAtPosition = new ConcurrentHashMap<Integer, Map<Integer, Double>>();
+				final Map<Integer, Map<Integer, Double>> logTransitionsAtPosition = new ConcurrentHashMap<Integer, Map<Integer, Double>>();
 				logTransitions.add(logTransitionsAtPosition);
 				
 				keysWithSupportAtPosLessOne = i == 0 ? this.logPriors.keySet() : inSupport.get(i-1).keySet();
+				
+				final List<ConditionedConstraint<T>> constraintsAtPos = constraints.get(i+order);
+				final int prevPos = i-1;
+				
 				// if there are ANY ways of getting to fromState
-				for (Integer fromStateIdx : keysWithSupportAtPosLessOne) {
-					Map<Integer, Double> innerMap = model.logTransitions.get(fromStateIdx);
-					// for each possible transition (fromState -> toState) from the original naive transition matrix
-					if (innerMap != null) {
-						fromState = tokens.get(fromStateIdx);
-						toStates = new HashMap<Integer, Double>();
-						// make note that via this fromState, each of the toStates is accessible via yet one more path
-						for (Entry<Integer, Double> innerEntry : innerMap.entrySet()) {
-							toStateIdx = innerEntry.getKey();
-							toState = tokens.get(toStateIdx);
-							satisfiable = true;
-							for (ConditionedConstraint<T> conditionedConstraint : constraints.get(i+order)) {
-								constraint = conditionedConstraint.getConstraint();
-								desiredConstraintCondition = conditionedConstraint.getDesiredConditionState();
-								if (constraint instanceof TransitionalConstraint) {
-									if (((TransitionalConstraint<T>) constraint).isSatisfiedBy(fromState, toState) ^ desiredConstraintCondition) {
-										satisfiable = false;
-										break;
+				final Iterator<Integer> fromStateIterator = keysWithSupportAtPosLessOne.iterator();
+				ThreadGroup tg = new ThreadGroup("Constraint Application Threads");
+				for (int j = 0; j < NUM_THREADS; j++) {
+					Thread t = new Thread(tg, new Runnable() {
+						
+						@Override
+						public void run() {
+							LinkedList<Token> fromState, toState;
+							HashMap<Integer, Double> toStates;
+							boolean satisfiable;
+							Constraint<T> constraint;
+							boolean desiredConstraintCondition;
+							
+							Integer fromStateIdx, toStateIdx;
+							synchronized (fromStateIterator){
+								if (fromStateIterator.hasNext())
+									fromStateIdx = fromStateIterator.next();
+								else 
+									fromStateIdx = null;
+							}
+							// remove states marked for removal because they result in premature terminations
+							while(fromStateIdx != null) {
+								Map<Integer, Double> innerMap = model.logTransitions.get(fromStateIdx);
+								// for each possible transition (fromState -> toState) from the original naive transition matrix
+								if (innerMap != null) {
+									fromState = tokens.get(fromStateIdx);
+									toStates = new HashMap<Integer, Double>();
+									// make note that via this fromState, each of the toStates is accessible via yet one more path
+									for (Entry<Integer, Double> innerEntry : innerMap.entrySet()) {
+										toStateIdx = innerEntry.getKey();
+										toState = tokens.get(toStateIdx);
+										satisfiable = true;
+										for (ConditionedConstraint<T> conditionedConstraint : constraintsAtPos) {
+											constraint = conditionedConstraint.getConstraint();
+											desiredConstraintCondition = conditionedConstraint.getDesiredConditionState();
+											if (constraint instanceof TransitionalConstraint) {
+												if (((TransitionalConstraint<T>) constraint).isSatisfiedBy(fromState, toState) ^ desiredConstraintCondition) {
+													satisfiable = false;
+													break;
+												}
+											} else {
+												if(((StateConstraint<T>)constraint).isSatisfiedBy(toState, order-1) ^ desiredConstraintCondition) 
+												{
+													satisfiable = false;
+													break;
+												}
+											}
+										}
+										if (satisfiable) {
+											toStates.put(toStateIdx, innerEntry.getValue());
+											incrementCount(inSupportAtPos,toStateIdx);
+										}
+									}
+									if (!toStates.isEmpty()) {
+										synchronized (logTransitionsAtPosition) {
+											logTransitionsAtPosition.put(fromStateIdx, toStates);
+										}
+									} else {
+										synchronized (posStateToRemove) {
+											// for each toState at the previous step (as per inSupport), if there is no logTransition from the state in this step, it should be marked for removal
+											posStateToRemove.get(prevPos).add(fromStateIdx);
+										}
 									}
 								} else {
-									if(((StateConstraint<T>)constraint).isSatisfiedBy(toState, order-1) ^ desiredConstraintCondition) 
-									{
-										satisfiable = false;
-										break;
+									synchronized (posStateToRemove) {
+										// for each toState at the previous step (as per inSupport), if there is no logTransition from the state in this step, it should be marked for removal
+										posStateToRemove.get(prevPos).add(fromStateIdx);
+									}
+								}
+
+								synchronized (fromStateIterator){
+									if (fromStateIterator.hasNext())
+										fromStateIdx = fromStateIterator.next();
+									else 
+										fromStateIdx = null;
+								}
+							}
+						}
+
+					});
+//					System.out.println("Starting new thread");
+					t.start();
+				}
+				
+				int activeThreadCount = tg.activeCount()*2;
+				Thread[] threads = new Thread[activeThreadCount];
+				tg.enumerate(threads);
+				for (int j = 0; j < activeThreadCount; j++) {
+					Thread t = threads[j];
+					if (t!=null) {
+						t.join();
+					}
+				}
+				
+				int currIdx = i;
+				System.out.println("Pruning backward from constraints at pos " + currIdx);
+				while (currIdx > -2) {
+					final int currWorkIdx = currIdx;
+					final Iterator<Integer> posStateToRemoveIter = posStateToRemove.get(currWorkIdx).iterator();
+					tg = new ThreadGroup("all threads");
+					for (int j = 0; j < NUM_THREADS; j++) {
+						Thread t = new Thread(tg, new Runnable() {
+							
+							@Override
+							public void run() {
+								Integer stateToRemove = null;
+								synchronized (posStateToRemoveIter){
+									if (posStateToRemoveIter.hasNext())
+										stateToRemove = posStateToRemoveIter.next();
+									else 
+										stateToRemove = null;
+								}
+								// remove states marked for removal because they result in premature terminations
+								while(stateToRemove != null) {
+									removeState(currWorkIdx, stateToRemove);
+									synchronized (posStateToRemoveIter){
+										if (posStateToRemoveIter.hasNext())
+											stateToRemove = posStateToRemoveIter.next();
+										else 
+											stateToRemove = null;
 									}
 								}
 							}
-							if (satisfiable) {
-								toStates.put(toStateIdx, innerEntry.getValue());
-								incrementCount(inSupportAtPos,toStateIdx);
-							}
-						}
-						if (!toStates.isEmpty()) {
-							logTransitionsAtPosition.put(fromStateIdx, toStates);
-						} else {
-							// for each toState at the previous step (as per inSupport), if there is no logTransition from the state in this step, it should be marked for removal
-							posStateToRemove.add(new PositionedState(i-1, fromStateIdx));
-						}
-					} else {
-						// for each toState at the previous step (as per inSupport), if there is no logTransition from the state in this step, it should be marked for removal
-						posStateToRemove.add(new PositionedState(i-1, fromStateIdx));
+	
+						});
+	//					System.out.println("Starting new thread");
+						t.start();
 					}
-				}
-
-				// remove states marked for removal because they result in premature terminations
-				while(!posStateToRemove.isEmpty())
-				{
-					PositionedState stateToRemove = posStateToRemove.iterator().next();
-					posStateToRemove.remove(stateToRemove);
-					posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStateIndex()));
+					
+					activeThreadCount = tg.activeCount()*2;
+					threads = new Thread[activeThreadCount];
+					tg.enumerate(threads);
+					for (int j = 0; j < activeThreadCount; j++) {
+						Thread t = threads[j];
+						if (t!=null) {
+							t.join();
+						}
+					}
+					currIdx--;
 				}
 
 				if(!satisfiable())
@@ -261,37 +351,29 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 	 *  decrementing the corresponding in/outSupport values
 	 *  removing states accordingly whose in/outSupport values result in 0
 	 */
-	public Set<PositionedState> removeState(int position, int stateIndex) {
+	private synchronized void removeState(int position, int stateIndex) {
 		
-		Set<PositionedState> posStateToRemove = new HashSet<PositionedState>();
-
-		if(position == -1)
-		{
+		if(position == -1) {
 			this.logPriors.remove(stateIndex);
-		}
-		else
-		{
+		} else {
 			// address transitions *to* the removed state
 			Map<Integer, Double> toStates;
 			this.inSupport.get(position).remove(stateIndex);
+			
 			final Map<Integer, Map<Integer, Double>> map = this.logTransitions.get(position);
+			Double remove;
 			for (Integer fromState : map.keySet()) {
 				toStates = map.get(fromState);
-
-				if (toStates.containsKey(stateIndex)) {
-					toStates.remove(stateIndex); // state is gone: can't transition to it
+				remove = toStates.remove(stateIndex); // state is gone: can't transition to it
 					
-					if (toStates.isEmpty()) {
-						posStateToRemove.add(new PositionedState(position-1, fromState));
-					}
+				if (remove != null && toStates.isEmpty()) {
+					posStateToRemove.get(position-1).add(fromState);
 				}
 			}
 		}
 
 		// address transitions *from* the removed state
 		this.logTransitions.get(position+1).remove(stateIndex);
-
-		return posStateToRemove;
 	}
 
 	public double probabilityOfSequence(Token[] seq) {
@@ -540,7 +622,13 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 		}
 		constraints.get(3).add(new ConditionedConstraint<>(new CharacterTokenConstraint<CharacterToken>(new CharacterToken('D')),true));
 		
-		SparseVariableOrderNHMM<CharacterToken> constrainedModel = new SparseVariableOrderNHMM<CharacterToken>(model, length, constraints);
+		SparseVariableOrderNHMMMultiThreaded<CharacterToken> constrainedModel = null;
+		try {
+			constrainedModel = new SparseVariableOrderNHMMMultiThreaded<CharacterToken>(model, length, constraints);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		System.out.println();
 		for (CharacterToken[] seq : seqs) {
