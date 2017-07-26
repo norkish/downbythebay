@@ -1,6 +1,7 @@
 package constraint;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import data.SyllableToken;
 import markov.Token;
@@ -12,14 +13,14 @@ import semantic.word2vec.W2vOperations;
 public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 
 	String theme;
+	double[] themeVector;
 //	private Set<String> choices = new HashSet<>();
 	private final double threshold = .5;
-	public static Map<String,double[]> vectorDict = new HashMap<>();
+	public static Map<String,double[]> vectorDict = new ConcurrentHashMap<>();
 	
 	public SemanticMeaningConstraint(String theme) throws BadW2vInputException {
 		this.theme = theme;
-		vectorDict.putIfAbsent(theme, W2vInterface.getVector(theme));
-
+		themeVector = getVectorForString(theme);
 //		if (theme.equals("nature")) {
 //			choices.add("nature");
 //			choices.add("tree");
@@ -56,18 +57,25 @@ public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 			return false;
 		}
 		else {
+			String string = ((SyllableToken) token).getStringRepresentation();
+			double[] vector = getVectorForString(string);
+			if (vector == null) return false;
+			return (VectorMath.cosineSimilarity(vector,themeVector) >= threshold);
+		}
+	}
+
+	private double[] getVectorForString(String string) {
+		double[] vector = vectorDict.get(string);
+		if (vector == null) {
 			try {
-				String string = ((SyllableToken) token).getStringRepresentation();
-				double[] vector = W2vInterface.getVector(string);
-				vectorDict.putIfAbsent(string,vector);
-				if (VectorMath.cosineSimilarity(vector,vectorDict.get(theme)) >= threshold)
-					return true;
-				return false;
+				vector = W2vInterface.getVector(string);
 			}
 			catch (BadW2vInputException e) {
-				return false;
+				return null;
 			}
+			vectorDict.putIfAbsent(string, vector);
 		}
+		return vector;
 	}
 
 }
