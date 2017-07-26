@@ -19,6 +19,7 @@ import data.SyllableToken;
 import linguistic.syntactic.Pos;
 import markov.SparseVariableOrderMarkovModel;
 import markov.SparseVariableOrderNHMM;
+import markov.SparseVariableOrderNHMMMultiThreaded;
 import markov.Token;
 import markov.UnsatisfiableConstraintSetException;
 
@@ -134,7 +135,7 @@ public class Main {
 
 			System.out.println("For Rhythmic Template: " + Arrays.toString(rhythmicTemplate));
 			// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
-			SparseVariableOrderNHMM<SyllableToken> constrainedMarkovModel;
+			SparseVariableOrderNHMMMultiThreaded<SyllableToken> constrainedMarkovModel;
 			watch.start();
 			try {
 				System.out.println("Creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
@@ -144,7 +145,7 @@ public class Main {
 						System.out.println("\t\t" + constraint);
 					}
 				}
-				constrainedMarkovModel = new SparseVariableOrderNHMM<>(markovModel, templateLength, constraints);
+				constrainedMarkovModel = new SparseVariableOrderNHMMMultiThreaded<>(markovModel, templateLength, constraints);
 				memoryCheck();
 
 				System.out.println();
@@ -162,18 +163,24 @@ public class Main {
 //				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
 			for(List<SyllableToken> generatedSequence : constrainedMarkovModel.generateFromAllPriors(templateLength)) {
 				// convert the sequence of syllable tokens to a human-readable string
-//				System.out.print("\tHave you ever seen ");
+				System.out.print("\tHave you ever seen ");
 				for (SyllableToken syllableToken : generatedSequence) {
 					System.out.print(syllableToken.getStringRepresentationIfFirstSyllable() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":""));
 				}
 //				System.out.println("down by the bay?");
 				System.out.println();
-				System.out.println("\t\t" + generatedSequence + "\tProb:" + constrainedMarkovModel.probabilityOfSequence(generatedSequence.toArray(new Token[0])));
-				System.out.print("\t\t[");
+				System.out.print("\t\t");
+				boolean first = true;
 				for (SyllableToken syllableToken : generatedSequence) {
-					System.out.print("Pos." + syllableToken.getPos() + ",");
+					if (first) {
+						first = false;
+					} else {
+						System.out.print(",");
+					}
+					System.out.print("Pos." + syllableToken.getPos());
 				}
-				System.out.println("]");
+				System.out.println();
+				System.out.println("\t\t" + generatedSequence + "\tProb:" + constrainedMarkovModel.probabilityOfSequence(generatedSequence.toArray(new Token[0])));
 			}
 			
 			prevOrder = markovOrder;

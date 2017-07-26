@@ -8,11 +8,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+
+import org.apache.commons.lang3.time.StopWatch;
 
 import constraint.ConditionedConstraint;
 import constraint.Constraint;
@@ -24,23 +24,36 @@ import utils.MathUtils;
 
 public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends AbstractMarkovModel<T>{
 
+	public class BatchManager {
+
+		protected static final int BATCH_SIZE = 1000;
+		private int nextBatchStart = 0;
+		
+		public synchronized int nextBatchStart() {
+			int nextBatchStart = this.nextBatchStart;
+			this.nextBatchStart += BATCH_SIZE;
+			return nextBatchStart;
+		}
+
+	}
+
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
-	List<Map<Integer, Map<Integer,Double>>> logTransitions; // first 2d matrix represents transitions from first to second position
-	List<Map<Integer, Integer>> inSupport; // first matrix represents the number of non-zero transition probabilities to the ith state at pos 1 in the seq 
+	List<ConcurrentHashMap<Integer, ConcurrentHashMap<Integer,Double>>> logTransitions; // first 2d matrix represents transitions from first to second position
+	List<ConcurrentHashMap<Integer, Integer>> inSupport; // first matrix represents the number of non-zero transition probabilities to the ith state at pos 1 in the seq 
 	BidirectionalVariableOrderPrefixIDMap<T> stateIndex;
 	private Random rand = new Random();
 	int order;
-	private HashMap<Integer, Double> logPriors;
+	private Map<Integer, Double> logPriors;
 	private Map<Integer,Set<Integer>> posStateToRemove = new ConcurrentHashMap<Integer,Set<Integer>>();
 	
 	public SparseVariableOrderNHMMMultiThreaded(SparseVariableOrderMarkovModel<T> model, int length, List<List<ConditionedConstraint<T>>> constraints) throws UnsatisfiableConstraintSetException, InterruptedException {
 		this.stateIndex = model.stateIndex;
 		this.order = model.order;
 		List<LinkedList<Token>> tokens = stateIndex.getIDToPrefixMap();
-		this.logPriors = new HashMap<Integer, Double>(); 
+		this.logPriors = new ConcurrentHashMap<Integer, Double>(); 
 		
-		this.inSupport = new ArrayList<Map<Integer, Integer>>(Math.max(0, length-1));
-		this.logTransitions = new ArrayList<Map<Integer, Map<Integer, Double>>>(Math.max(0, length-1));
+		this.inSupport = new ArrayList<ConcurrentHashMap<Integer, Integer>>(Math.max(0, length-1));
+		this.logTransitions = new ArrayList<ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Double>>>(Math.max(0, length-1));
 		if (length > 1) {
 			Set<Integer> keysWithSupportAtPosLessOne = null;
 			
@@ -84,10 +97,10 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 			for (int i = 0; i < length-order; i++) {
 				posStateToRemove.put(i, new HashSet<Integer>());
 				System.out.print(".");
-				final Map<Integer, Integer> inSupportAtPos = new ConcurrentHashMap<Integer, Integer>();
+				final ConcurrentHashMap<Integer, Integer> inSupportAtPos = new ConcurrentHashMap<Integer, Integer>();
 				this.inSupport.add(inSupportAtPos);
 
-				final Map<Integer, Map<Integer, Double>> logTransitionsAtPosition = new ConcurrentHashMap<Integer, Map<Integer, Double>>();
+				final ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Double>> logTransitionsAtPosition = new ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Double>>();
 				logTransitions.add(logTransitionsAtPosition);
 				
 				keysWithSupportAtPosLessOne = i == 0 ? this.logPriors.keySet() : inSupport.get(i-1).keySet();
@@ -104,7 +117,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 						@Override
 						public void run() {
 							LinkedList<Token> fromState, toState;
-							HashMap<Integer, Double> toStates;
+							ConcurrentHashMap<Integer, Double> toStates;
 							boolean satisfiable;
 							Constraint<T> constraint;
 							boolean desiredConstraintCondition;
@@ -122,7 +135,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 								// for each possible transition (fromState -> toState) from the original naive transition matrix
 								if (innerMap != null) {
 									fromState = tokens.get(fromStateIdx);
-									toStates = new HashMap<Integer, Double>();
+									toStates = new ConcurrentHashMap<Integer, Double>();
 									// make note that via this fromState, each of the toStates is accessible via yet one more path
 									for (Entry<Integer, Double> innerEntry : innerMap.entrySet()) {
 										toStateIdx = innerEntry.getKey();
@@ -190,33 +203,30 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 					}
 				}
 				
-				int currIdx = i;
+				int currIdx = i-1;
 				System.out.println("Pruning backward from constraints at pos " + currIdx);
 				while (currIdx > -2) {
+					StopWatch watch1 = new StopWatch();
+					watch1.start();
 					final int currWorkIdx = currIdx;
-					final Iterator<Integer> posStateToRemoveIter = posStateToRemove.get(currWorkIdx).iterator();
+					System.out.println("\tRemoving states at position " + currIdx);
+					final Integer[] statesToRemoveAtPosition = posStateToRemove.get(currWorkIdx).toArray(new Integer[0]);
+					final BatchManager bm = new BatchManager();
 					tg = new ThreadGroup("all threads");
 					for (int j = 0; j < NUM_THREADS; j++) {
 						Thread t = new Thread(tg, new Runnable() {
-							
 							@Override
 							public void run() {
-								Integer stateToRemove = null;
-								synchronized (posStateToRemoveIter){
-									if (posStateToRemoveIter.hasNext())
-										stateToRemove = posStateToRemoveIter.next();
-									else 
-										stateToRemove = null;
-								}
-								// remove states marked for removal because they result in premature terminations
-								while(stateToRemove != null) {
-									removeState(currWorkIdx, stateToRemove);
-									synchronized (posStateToRemoveIter){
-										if (posStateToRemoveIter.hasNext())
-											stateToRemove = posStateToRemoveIter.next();
-										else 
-											stateToRemove = null;
+								int nextBatchEnd, nextIdx = bm.nextBatchStart(); // SYNCHRONIZATION EVERY BATCH_SIZE STEPS
+								while (nextIdx < statesToRemoveAtPosition.length) {
+									nextBatchEnd = Math.min(statesToRemoveAtPosition.length, nextIdx + BatchManager.BATCH_SIZE);
+									System.out.println(Thread.currentThread().getName() + " pruning states with indices " + nextIdx + " to " + (nextBatchEnd-1));
+
+									while (nextIdx < nextBatchEnd) {
+									// remove states marked for removal because they result in premature terminations
+										removeState(currWorkIdx, statesToRemoveAtPosition[nextIdx++]);
 									}
+									nextIdx = bm.nextBatchStart(); // SYNCHRONIZATION EVERY BATCH_SIZE STEPS
 								}
 							}
 	
@@ -234,6 +244,9 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 							t.join();
 						}
 					}
+					watch1.stop();
+					System.out.println("NUM_THREADS\tcurrIdx\tTotalStatesPruned\tTotalTime\tPruningTimePerState");
+					System.out.println(NUM_THREADS + "\t" + currIdx + "\t" + statesToRemoveAtPosition.length + "\t" + watch1.getTime() + "\t" + (1.0*watch1.getTime()/statesToRemoveAtPosition.length));
 					currIdx--;
 				}
 
@@ -291,12 +304,12 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 			return;
 		}
 		
-		Map<Integer, Map<Integer, Double>> currentMatrix = logTransitions.get(logTransitions.size()-1);
+		ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Double>> currentMatrix = logTransitions.get(logTransitions.size()-1);
 		Map<Integer, Double> oldLogAlphas = new HashMap<Integer, Double>(currentMatrix.size());
 		
 		Double value;
 		//normalize last matrix individually
-		for (Entry<Integer, Map<Integer, Double>> row: currentMatrix.entrySet()) {
+		for (Entry<Integer, ConcurrentHashMap<Integer, Double>> row: currentMatrix.entrySet()) {
 			// calculate sum for each row
 			value = Double.NEGATIVE_INFINITY;
 			for (Entry<Integer, Double> col: row.getValue().entrySet()) {
@@ -315,7 +328,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 			// generate based on alphas from old previous matrix
 			currentMatrix = logTransitions.get(i);
 			newLogAlphas = new HashMap<Integer, Double>(currentMatrix.size());
-			for (Entry<Integer, Map<Integer, Double>> row: currentMatrix.entrySet()) {
+			for (Entry<Integer, ConcurrentHashMap<Integer, Double>> row: currentMatrix.entrySet()) {
 				// calculate sum for each row (new alphas; not used until next matrix)
 				value = Double.NEGATIVE_INFINITY;
 				// new val = currVal * oldAlpha
@@ -351,23 +364,26 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 	 *  decrementing the corresponding in/outSupport values
 	 *  removing states accordingly whose in/outSupport values result in 0
 	 */
-	private synchronized void removeState(int position, int stateIndex) {
+	private void removeState(int position, int stateIndex) {
 		
 		if(position == -1) {
 			this.logPriors.remove(stateIndex);
 		} else {
 			// address transitions *to* the removed state
-			Map<Integer, Double> toStates;
+			ConcurrentHashMap<Integer, Double> toStates;
 			this.inSupport.get(position).remove(stateIndex);
 			
-			final Map<Integer, Map<Integer, Double>> map = this.logTransitions.get(position);
+			final ConcurrentHashMap<Integer, ConcurrentHashMap<Integer, Double>> map = this.logTransitions.get(position);
 			Double remove;
 			for (Integer fromState : map.keySet()) {
 				toStates = map.get(fromState);
 				remove = toStates.remove(stateIndex); // state is gone: can't transition to it
 					
 				if (remove != null && toStates.isEmpty()) {
-					posStateToRemove.get(position-1).add(fromState);
+					final Set<Integer> set = posStateToRemove.get(position-1);
+					synchronized (set) {
+						set.add(fromState);
+					}
 				}
 			}
 		}
@@ -424,7 +440,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 		
 		str.append("logTransitions:\n");
 		for (int i = 0; i < logTransitions.size(); i++) {
-			for (Entry<Integer, Map<Integer, Double>> entry: logTransitions.get(i).entrySet()) {
+			for (Entry<Integer, ConcurrentHashMap<Integer, Double>> entry: logTransitions.get(i).entrySet()) {
 				str.append("[");
 				for (Entry<Integer, Double> innerEntry : entry.getValue().entrySet()) {
 					str.append("\n\t");
@@ -442,7 +458,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 		str.append("outSupport:\n");
 		for (int i = 0; i < logTransitions.size(); i++) {
 			str.append("[");
-			for (Entry<Integer, Map<Integer, Double>> entry: logTransitions.get(i).entrySet()) {
+			for (Entry<Integer, ConcurrentHashMap<Integer, Double>> entry: logTransitions.get(i).entrySet()) {
 				str.append("\n\t");
 				str.append(entry.getKey());
 				str.append(" - ");

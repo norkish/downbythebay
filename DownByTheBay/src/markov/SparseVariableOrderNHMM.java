@@ -13,6 +13,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.time.StopWatch;
+
 import constraint.ConditionedConstraint;
 import constraint.Constraint;
 import constraint.TransitionalConstraint;
@@ -139,13 +141,20 @@ public class SparseVariableOrderNHMM<T extends Token> extends AbstractMarkovMode
 					}
 				}
 
+				StopWatch watch1 = new StopWatch();
+				watch1.start();
+				int statesPruned = 0;
 				// remove states marked for removal because they result in premature terminations
 				while(!posStateToRemove.isEmpty())
 				{
 					PositionedState stateToRemove = posStateToRemove.iterator().next();
 					posStateToRemove.remove(stateToRemove);
+					statesPruned++;
 					posStateToRemove.addAll(removeState(stateToRemove.getPosition(), stateToRemove.getStateIndex()));
 				}
+				watch1.stop();
+				System.out.println("NUM_THREADS\tcurrIdx\tTotalStatesPruned\tTotalTime\tPruningTimePerState");
+				System.out.println(1 + "\t" + -1 + "\t" + statesPruned + "\t" + watch1.getTime() + "\t" + (1.0*watch1.getTime()/statesPruned));
 
 				if(!satisfiable())
 				{
