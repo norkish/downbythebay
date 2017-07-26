@@ -15,6 +15,7 @@ import markov.SparseVariableOrderMarkovModel;
 import markov.SparseVariableOrderNHMMMultiThreaded;
 import markov.Token;
 import markov.UnsatisfiableConstraintSetException;
+import semantic.word2vec.BadW2vInputException;
 
 public class HaikuMain {
 
@@ -27,7 +28,7 @@ public class HaikuMain {
 	private static final int LINE3_LEN = 5;
 	private static final int HAIKU_LEN = LINE1_LEN + LINE2_LEN + LINE3_LEN;
 	
-	public static void main(String[] args) throws InterruptedException{
+	public static void main(String[] args) throws InterruptedException, BadW2vInputException{
 
 		setupRootPath();
 
