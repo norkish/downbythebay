@@ -162,15 +162,16 @@ public class Main {
 //				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
 			for(List<SyllableToken> generatedSequence : constrainedMarkovModel.generateFromAllPriors(templateLength)) {
 				// convert the sequence of syllable tokens to a human-readable string
-				System.out.print("\tHave you ever seen ");
+//				System.out.print("\tHave you ever seen ");
 				for (SyllableToken syllableToken : generatedSequence) {
 					System.out.print(syllableToken.getStringRepresentationIfFirstSyllable() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":""));
 				}
-				System.out.println("down by the bay?");
+//				System.out.println("down by the bay?");
+				System.out.println();
 				System.out.println("\t\t" + generatedSequence + "\tProb:" + constrainedMarkovModel.probabilityOfSequence(generatedSequence.toArray(new Token[0])));
 				System.out.print("\t\t[");
 				for (SyllableToken syllableToken : generatedSequence) {
-					System.out.print(syllableToken.getPos() + ",");
+					System.out.print("Pos." + syllableToken.getPos() + ",");
 				}
 				System.out.println("]");
 			}

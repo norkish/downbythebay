@@ -149,15 +149,26 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 ////			new Pos[]{},
 //		};
 		final private static Pos[][] trainingPosSet = new Pos[][]{ // KEEP THESE SORTED ALPHABETICALLY TO AVOID DUPLICATION
-			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // the law drinking from a straw, a whale with a polka dot tail
-			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.NNS}, // a moose with a pair of new shoes
-			new Pos[]{Pos.NN,Pos.IN,Pos.NNS}, // a moose with new shoes
+			new Pos[]{Pos.NN,Pos.DT,Pos.NN,Pos.VBP}, // the way some people say
+			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // the law drinking from a straw, a whale with a polka dot tail, a mouse out of the house
+			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.NN}, // a moose with a pair of new shoes
+			new Pos[]{Pos.NN,Pos.IN,Pos.NN,Pos.CC,Pos.NNS}, // the pleas for help and screams
+			new Pos[]{Pos.NN,Pos.IN,Pos.NNS}, // a moose with new shoes, a bear with hair
+			new Pos[]{Pos.NN,Pos.JJ,Pos.TO,Pos.DT,Pos.NN}, // a wall next to a mall
+			new Pos[]{Pos.NN,Pos.VBD,Pos.JJ,Pos.IN,Pos.NN}, // a tray piled high with hay
 			new Pos[]{Pos.NN,Pos.VBG,Pos.DT, Pos.NN}, // A frog eating a big dog
+			new Pos[]{Pos.NN,Pos.VBG,Pos.IN,Pos.NN}, // A cage dangling in space
 			new Pos[]{Pos.NN,Pos.VBG,Pos.NN,Pos.NNS}, // a llama wearing polka dot pajamas
 			new Pos[]{Pos.NN,Pos.VBG,Pos.NNS}, // a llama wearing pajamas
 			new Pos[]{Pos.NN,Pos.VBG,Pos.PRP$,Pos.NN}, // A bear combing his hair
+			new Pos[]{Pos.NN,Pos.VBG,Pos.RP,Pos.PRP$,Pos.NN}, // A tear trickling down his beard
 			new Pos[]{Pos.NN,Pos.WDT,Pos.VBD, Pos.DT,Pos.NN}, // a pirate that just ate a veggie diet
-//			new Pos[]{},
+			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.JJ,Pos.NN}, // the words of the next verse
+			new Pos[]{Pos.NN,Pos.PDT,Pos.DT,Pos.NNS,Pos.VBP}, // the way all the books say
+//			a bird eating a worm
+//			a bird eyeing a worm
+//			a breeze blowing off the sea
+//			a chance to go to France
 		};
 		
 		final private static DBTBGrammarNode root = initializeDBTBGrammarTree();
@@ -165,6 +176,9 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 		private DBTBGrammarNode currentNode = root;
 		
 		public boolean validate(Pos pos) {
+			if (pos.equals(Pos.NNS)) {
+				pos = Pos.NN;
+			}
 
 			if (pos.equals(currentNode.pos)) {
 				return true;
