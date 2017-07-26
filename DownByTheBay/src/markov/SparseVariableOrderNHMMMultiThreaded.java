@@ -26,7 +26,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 
 	public class BatchManager {
 
-		protected static final int BATCH_SIZE = 1000;
+		protected static final int BATCH_SIZE = 5000;
 		private int nextBatchStart = 0;
 		
 		public synchronized int nextBatchStart() {
@@ -34,7 +34,6 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 			this.nextBatchStart += BATCH_SIZE;
 			return nextBatchStart;
 		}
-
 	}
 
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
