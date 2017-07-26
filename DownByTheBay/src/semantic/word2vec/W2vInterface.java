@@ -7,7 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-public abstract class W2vInterface {
+public class W2vInterface {
     private final int nOfDefaultSuggestions = 100;
 
     private W2vModel model;
@@ -94,7 +94,7 @@ public abstract class W2vInterface {
 		return point.getFirst().getPoint();
 	}
 
-    public Map<Double, String> findAnalogy(String oldSentiment, String newSentiment, String oldWord, int nOfSuggestions) throws BadW2vInputException {
+	public Map<Double, String> findAnalogy(String oldSentiment, String newSentiment, String oldWord, int nOfSuggestions) throws BadW2vInputException {
         checkStringInput(oldSentiment);
         checkStringInput(newSentiment);
         checkStringInput(oldWord);
@@ -108,7 +108,7 @@ public abstract class W2vInterface {
         return new HashMap<>(W2vOperations.pointToStrings(pair.getFirst(), pair.getSecond(), nOfSuggestions));
     }
 
-    public Map<Double, String> findSimilars(String string, int nOfSuggestions) throws BadW2vInputException {
+	public Map<Double, String> findSimilars(String string, int nOfSuggestions) throws BadW2vInputException {
         checkStringInput(string);
 
         // uses chosen suggestion quantity
@@ -149,11 +149,11 @@ public abstract class W2vInterface {
         return new HashMap<>(W2vOperations.pointToStrings(pair.getFirst(), pair.getSecond(), nOfSuggestions));
     }
 
-    public Map<Double, String> findSum(Set<String> words) throws BadW2vInputException {
+	public Map<Double, String> findSum(Set<String> words) throws BadW2vInputException {
         return this.findSum(words, nOfDefaultSuggestions, true);
     }
 
-    public Map<Double, String> findSentiment(Set<String> strings, int nOfSuggestions) throws BadW2vInputException {
+	public Map<Double, String> findSentiment(Set<String> strings, int nOfSuggestions) throws BadW2vInputException {
         for (String s : strings) {
             checkStringInput(s);
         }
@@ -162,7 +162,7 @@ public abstract class W2vInterface {
         return new HashMap<>(W2vOperations.pointToStrings(pair.getFirst(), pair.getSecond(), nOfSuggestions));
     }
 
-    public Double findDistanceBetween(String string1, String string2) throws BadW2vInputException {
+	public Double findDistanceBetween(String string1, String string2) throws BadW2vInputException {
         checkStringInput(string1);
         checkStringInput(string2);
 
@@ -170,7 +170,7 @@ public abstract class W2vInterface {
         return null;
     }
 
-    public void checkStringInput(String s) throws BadW2vInputException {
+	public void checkStringInput(String s) throws BadW2vInputException {
         if (!this.contains(s))
             throw new BadW2vInputException(s);
     }
