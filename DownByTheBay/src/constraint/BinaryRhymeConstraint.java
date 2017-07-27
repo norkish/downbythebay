@@ -54,13 +54,13 @@ public class BinaryRhymeConstraint<T> implements TransitionalConstraint<T> {
 		
 		Syllable s1 = Syllabifier.tokenToSyllable(syl1Token);
 		Syllable s2 = Syllabifier.tokenToSyllable(syl2Token);
-		double score = HirjeeMatrix.scoreSyllables(s1, s2);
-		double score2 = Rhymer.score2SyllablesByGaOptimizedWeights(s1, s2);
-		if (score > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD || score2 >= BEN_RHYME_THRESHOLD) {
-			System.out.println("For " + s1 + " and " + s2 + " in " + syl1Word + " and " + syl2Word + ", Hirjee's score=" + score + " (>=" + HirjeeMatrix.HIRJEE_RHYME_THRESHOLD + "?)");
-			System.out.println("For " + s1 + " and " + s2 + " in " + syl1Word + " and " + syl2Word + ", Ben's score=" + score2 + " (>=" + BEN_RHYME_THRESHOLD + "?)");
-			return true;
-		}
+//		double score = HirjeeMatrix.scoreSyllables(s1, s2);
+//		double score2 = Rhymer.score2SyllablesByGaOptimizedWeights(s1, s2);
+//		if (score > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD || score2 >= BEN_RHYME_THRESHOLD) {
+//			System.out.println("For " + s1 + " and " + s2 + " in " + syl1Word + " and " + syl2Word + ", Hirjee's score=" + score + " (>=" + HirjeeMatrix.HIRJEE_RHYME_THRESHOLD + "?)");
+//			System.out.println("For " + s1 + " and " + s2 + " in " + syl1Word + " and " + syl2Word + ", Ben's score=" + score2 + " (>=" + BEN_RHYME_THRESHOLD + "?)");
+//			return true;
+//		}
 		return (s1.getNucleus().equals(s2.getNucleus()) && s1.getCoda().equals(s2.getCoda()));
 	}
 	final double BEN_RHYME_THRESHOLD = .85;

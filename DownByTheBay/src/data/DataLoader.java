@@ -164,12 +164,12 @@ public class DataLoader {
 	//								LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
 									LinkedList<Token> prefix = new LinkedList<Token>(trainingSentenceTokens.subList(0, order));
 									//TODO add string associated w/ prefix to set for Word2Vec
-									fromTokenID = prefixIDMapForBatch.addPrefix(prefix);
+									fromTokenID = prefixIDMap.addPrefix(prefix);
 									for (int j = order; j < trainingSentenceTokens.size(); j++ ) {
 										prefix.removeFirst();
 										prefix.addLast(trainingSentenceTokens.get(j));
 										
-										toTokenID = prefixIDMapForBatch.addPrefix(prefix);
+										toTokenID = prefixIDMap.addPrefix(prefix);
 										Utils.incrementValueForKeys(transitionCountsForBatch, fromTokenID, toTokenID, trainingWeight);
 										Utils.incrementValueForKey(priorCountsForBatch, fromTokenID, trainingWeight); // we do this for every token 
 	
@@ -223,7 +223,7 @@ public class DataLoader {
 						watch7Count++;
 						stepTimer.reset();
 						stepTimer.start();
-						incrementTransitionsAndPriors(prefixIDMapForBatch, transitionCountsForBatch, priorCountsForBatch);
+						incrementTransitionsAndPriors(transitionCountsForBatch, priorCountsForBatch);
 						stepTimer.stop();
 						watch8Time += stepTimer.getTime();
 						watch8Count++;
