@@ -35,7 +35,7 @@ public class DataLoader {
 	private static final double MAX_MEMORY_FOR_BASE_MODEL = 70.;
 	final private int BATCH_SIZE = 1000;
 	
-	private static final boolean USE_DUMMY_DATA = true;
+	private static final boolean USE_DUMMY_DATA = false;
 	private static final Map<String, String> filePrefixMap = new HashMap<String,String>();
 	static {
 		filePrefixMap.put("spoken", "data/text_spoken_kde/w_spok_");
@@ -68,8 +68,8 @@ public class DataLoader {
 		private int[] nextBatchIdxes;
 		
 		public DataProcessor() {
-			this.trainingSentences = new String[USE_DUMMY_DATA?1:LAST_FILE_NUMBER + 1][];
-			this.nextBatchIdxes = new int[USE_DUMMY_DATA?1:LAST_FILE_NUMBER + 1];
+			this.trainingSentences = new String[USE_DUMMY_DATA?1:(LAST_FILE_NUMBER + 1)][];
+			this.nextBatchIdxes = new int[USE_DUMMY_DATA?1:(LAST_FILE_NUMBER + 1)];
 			loadNextFile(0);
 		}
 		
