@@ -4,6 +4,7 @@ import java.util.LinkedList;
 
 import data.SyllableToken;
 import linguistic.paul.HirjeeMatrix;
+import linguistic.phonetic.syllabic.Rhymer;
 import linguistic.phonetic.syllabic.Syllabifier;
 import linguistic.phonetic.syllabic.Syllable;
 import markov.Token;
@@ -31,21 +32,38 @@ public class BinaryRhymeConstraint<T> implements TransitionalConstraint<T> {
 		SyllableToken syl1Token = (SyllableToken) previousToken;
 		SyllableToken syl2Token = (SyllableToken) token;
 		
-		if (syl1Token.getStringRepresentation().equals(syl2Token.getStringRepresentation()) && syl1Token.getPositionInContext() == syl2Token.getPositionInContext()) {
-			return false;
+		final String syl1Word = syl1Token.getStringRepresentation();
+		final String syl2Word = syl2Token.getStringRepresentation();
+		
+		// can't rhyme year with year or years; 
+		if (syl1Token.getPositionInContext() == syl2Token.getPositionInContext()) {
+			switch (syl1Word.length() - syl2Word.length()) {
+			case 1:
+				if ((syl2Word + "s").equalsIgnoreCase(syl1Word)) return false;
+				break;
+			case 0:
+				if ((syl1Word.equalsIgnoreCase(syl2Word))) return false;
+				break;
+			case -1:
+				if ((syl1Word + "s").equalsIgnoreCase(syl2Word)) return false;
+				break;
+			default:
+				
+			}
 		}
 		
 		Syllable s1 = Syllabifier.tokenToSyllable(syl1Token);
 		Syllable s2 = Syllabifier.tokenToSyllable(syl2Token);
 		double score = HirjeeMatrix.scoreSyllables(s1, s2);
-		if (score > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD)
-			System.out.println(" (" + syl1Token.getStringRepresentation() + " and " + syl2Token.getStringRepresentation() + ")");
-		return score > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD;
-//		return (s1.getNucleus().equals(s2.getNucleus()) && s1.getCoda().equals(s2.getCoda()));
-//		double score = Rhymer.score2SyllablesByGaOptimizedWeights(s1, s2);
-//		if (score >= .80) System.out.println("For " + s1 + " in " + syl1Token.getStringRepresentation() + " and " + s2 + " in " + syl2Token.getStringRepresentation() + ", score=" + score);
-//		return (score >= .85);
+		double score2 = Rhymer.score2SyllablesByGaOptimizedWeights(s1, s2);
+		if (score > HirjeeMatrix.HIRJEE_RHYME_THRESHOLD || score2 >= BEN_RHYME_THRESHOLD) {
+			System.out.println("For " + s1 + " and " + s2 + " in " + syl1Word + " and " + syl2Word + ", Hirjee's score=" + score + " (>=" + HirjeeMatrix.HIRJEE_RHYME_THRESHOLD + "?)");
+			System.out.println("For " + s1 + " and " + s2 + " in " + syl1Word + " and " + syl2Word + ", Ben's score=" + score2 + " (>=" + BEN_RHYME_THRESHOLD + "?)");
+			return true;
+		}
+		return (s1.getNucleus().equals(s2.getNucleus()) && s1.getCoda().equals(s2.getCoda()));
 	}
+	final double BEN_RHYME_THRESHOLD = .85;
 
 	@Override
 	public String toString() {

@@ -108,4 +108,9 @@
             <classpath refid="DownByTheBay.classpath"/>
         </java>
     </target>
+    <target name="SparseVariableOrderNHMMMultiThreaded">
+        <java classname="markov.SparseVariableOrderNHMMMultiThreaded" failonerror="true" fork="yes">
+            <classpath refid="DownByTheBay.classpath"/>
+        </java>
+    </target>
 </project>

@@ -32,10 +32,13 @@ public class DataLoader {
 	private static final long MAX_TOKENS_PER_SENTENCE = 30; // keeps Stanford NLP fast
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
-	private static final double MAX_MEMORY_FOR_BASE_MODEL = 50.;
+	private static final double MAX_MEMORY_FOR_BASE_MODEL = 70.;
 	final private int BATCH_SIZE = 1000;
 	
-	private static final boolean USE_DUMMY_DATA = false; 
+	private static final boolean USE_DUMMY_DATA = false;
+//	private static final String filePrefix = "data/text_spoken_kde/w_spok_"; 
+	private static final String filePrefix = "data/text_fiction_awq/w_fic_"; 
+//	private static final String filePrefix = "data/text_magazine_qrb/w_mag_"; 
 	private String[] TRAINING = new String[]{
 			"iced cakes inside The Bake",
 			"Have you seen a moose with a pair of new shoes?",
@@ -261,6 +264,7 @@ public class DataLoader {
 
 			return returnStatus; // if 1 is returned, it means the file wasn't fully read.
 		}
+		
 		private synchronized void incrementTransitionsAndPriors(
 				BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMapForBatch, Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
 				Map<Integer, Double> priorCountsForBatch) {
@@ -344,69 +348,72 @@ public class DataLoader {
 			threadCurrentlySyncing = false;
 			System.out.println("Synchronization Complete!");
 		}
-	}
-	
-	/**
-	 * Assumes global ids
-	 * @param transitionCountsForBatch
-	 * @param priorCountsForBatch
-	 */
-	private synchronized void incrementTransitionsAndPriors(Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
-			Map<Integer, Double> priorCountsForBatch) {
 
-//		System.out.println("Synchronizing batch transitions and priors");
-
-		
-		Double prevCount, batchCount;
-		Map<Integer, Double> batchTransitionsMap, aggregateTransitionsMap;
-		
-		// otherwise, iterate over the transitions for the batch
-		for (Integer fromID : transitionCountsForBatch.keySet()) {
-			batchTransitionsMap = transitionCountsForBatch.get(fromID);
-
-			// lookup the transitions map in the aggregate model using that ID
-			aggregateTransitionsMap = transitions.get(fromID);
+		/**
+		 * Assumes global ids
+		 * @param transitionCountsForBatch
+		 * @param priorCountsForBatch
+		 */
+		private synchronized void incrementTransitionsAndPriors(Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
+				Map<Integer, Double> priorCountsForBatch) {
 			
-			// if no transitions exist for that from state (ID)
-			if (aggregateTransitionsMap == null) {
-				transitions.put(fromID, batchTransitionsMap);
-			} else { 
-				// for each batch toID
-				for(Integer toID : batchTransitionsMap.keySet()) {
-					batchCount = batchTransitionsMap.get(toID);
-	
-					// lookup the previous account associated with this state (ID)
-					prevCount = aggregateTransitionsMap.get(toID);
-					
-					// if no previous counts
-					if (prevCount == null) {
-						// just copy the count
-						aggregateTransitionsMap.put(toID, batchCount);
-					} else {
-						// otherwise sum
-						aggregateTransitionsMap.put(toID, prevCount + batchCount);
+			System.out.println("Synchronizing batch transitions and priors for thread " + Thread.currentThread().getName() + "... ");
+			
+			Double prevCount, batchCount;
+			Map<Integer, Double> batchTransitionsMap, aggregateTransitionsMap;
+			
+			// otherwise, iterate over the transitions for the batch
+			for (Integer fromID : transitionCountsForBatch.keySet()) {
+				batchTransitionsMap = transitionCountsForBatch.get(fromID);
+				
+				// lookup the transitions map in the aggregate model using that ID
+				aggregateTransitionsMap = transitions.get(fromID);
+				
+				// if no transitions exist for that from state (ID)
+				if (aggregateTransitionsMap == null) {
+					transitions.put(fromID, batchTransitionsMap);
+				} else { 
+					// for each batch toID
+					for(Integer toID : batchTransitionsMap.keySet()) {
+						batchCount = batchTransitionsMap.get(toID);
+						
+						// lookup the previous account associated with this state (ID)
+						prevCount = aggregateTransitionsMap.get(toID);
+						
+						// if no previous counts
+						if (prevCount == null) {
+							// just copy the count
+							aggregateTransitionsMap.put(toID, batchCount);
+						} else {
+							// otherwise sum
+							aggregateTransitionsMap.put(toID, prevCount + batchCount);
+						}
 					}
 				}
 			}
-		}
-		
-		// for each batch id in the prior dataset
-		for(Integer id : priorCountsForBatch.keySet()) {
-			batchCount = priorCountsForBatch.get(id);
-
-			// get the prevCounts associated with this state (ID)
-			prevCount = priors.get(id);
 			
-			// if no previous counts
-			if (prevCount == null) {
-				// just copy the count
-				priors.put(id, batchCount);
-			} else {
-				// otherwise sum
-				priors.put(id, prevCount + batchCount);
+			// for each batch id in the prior dataset
+			for(Integer id : priorCountsForBatch.keySet()) {
+				batchCount = priorCountsForBatch.get(id);
+				
+				// get the prevCounts associated with this state (ID)
+				prevCount = priors.get(id);
+				
+				// if no previous counts
+				if (prevCount == null) {
+					// just copy the count
+					priors.put(id, batchCount);
+				} else {
+					// otherwise sum
+					priors.put(id, prevCount + batchCount);
+				}
 			}
+			
+			threadCurrentlySyncing = false;
+			System.out.println("Synchronization Complete!");
 		}
 	}
+	
 
 	public static StanfordNlpInterface nlp = new StanfordNlpInterface();
 
@@ -461,8 +468,7 @@ public class DataLoader {
 			if (!USE_DUMMY_DATA) {
 				StringBuilder str = new StringBuilder();
 				try {
-//					final String fileName = "data/text_magazine_qrb/w_mag_" + i + ".txt";
-					final String fileName = "data/text_fiction_awq/w_fic_" + i + ".txt";
+					final String fileName = filePrefix + i + ".txt";
 					if (DEBUG > 0) System.out.println("Now training on " + fileName);
 					BufferedReader br = new BufferedReader(new FileReader(fileName));
 					String currLine;
