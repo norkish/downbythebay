@@ -52,7 +52,7 @@ public class Main {
 		}
 		
 		// Add rest of constraints
-		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.JJ)))));
+//		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.JJ)))));
 		generalConstraints.get(A).add(new ConditionedConstraint<>(new WordsConstraint<>(new HashSet<>(Arrays.asList("a","an")), false)));
 //		generalConstraints.get(A).add(new ConditionedConstraint<>(new HasCodaConstraint<>(), false));
 		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
@@ -64,7 +64,7 @@ public class Main {
 		
 		int[][] allRhythmicTemplates = new int[][] {
 			new int[]{0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
-			new int[]{0,1,-1,-1,-1,1,0,1,0,1,-1}, // "a ma . . . drinking from a straw ."
+			new int[]{0,1,-1,-1,-1,1,0,1,0,1,-1}, // "a law . . . drinking from a straw ."
 			new int[]{0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
 			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1}, //"a moose . with a pair of new . shoes ."
 			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
@@ -72,7 +72,6 @@ public class Main {
 		
 		int prevOrder = -1;
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = null;
-		boolean nonNNTokenMarked = false;
 		for (int[] rhythmicTemplate : allRhythmicTemplates) {
 			memoryCheck();
 			List<List<ConditionedConstraint<SyllableToken>>> constraints = new ArrayList<>();
@@ -87,6 +86,7 @@ public class Main {
 			constraints.get(rhythmicTemplate[2] == 0?2:1).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
 			
 			int lastNonNegativeStress = -1;
+			boolean nonNNTokenMarked = false;
 			for (int i = 0; i < rhythmicTemplate.length; i++) {
 				int stress = rhythmicTemplate[i];
 				if (stress == -1){
@@ -95,7 +95,7 @@ public class Main {
 				} else {
 					if (i > 2 && !nonNNTokenMarked) {
 						nonNNTokenMarked = true;
-						generalConstraints.get(templateLength).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))), false));
+						constraints.get(templateLength).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))), false));
 					}
 					if (stress == 1) {
 //						if (lastNonNegativeStress == 0) { // UNCOMMENT FOR RELATIVE STRESS
