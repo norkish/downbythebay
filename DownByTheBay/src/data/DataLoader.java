@@ -36,9 +36,15 @@ public class DataLoader {
 	final private int BATCH_SIZE = 1000;
 	
 	private static final boolean USE_DUMMY_DATA = false;
-//	private static final String filePrefix = "data/text_spoken_kde/w_spok_"; 
-	private static final String filePrefix = "data/text_fiction_awq/w_fic_"; 
-//	private static final String filePrefix = "data/text_magazine_qrb/w_mag_"; 
+	private static final Map<String, String> filePrefixMap = new HashMap<String,String>();
+	static {
+		filePrefixMap.put("spoken", "data/text_spoken_kde/w_spok_");
+		filePrefixMap.put("fiction", "data/text_fiction_awq/w_fic_");
+		filePrefixMap.put("magazine", "data/text_magazine_qrb/w_mag_");
+	};
+	
+	public static String trainingSource = "fiction";
+	
 	private String[] TRAINING = new String[]{
 			"iced cakes inside The Bake",
 			"Have you seen a moose with a pair of new shoes?",
@@ -468,7 +474,7 @@ public class DataLoader {
 			if (!USE_DUMMY_DATA) {
 				StringBuilder str = new StringBuilder();
 				try {
-					final String fileName = filePrefix + i + ".txt";
+					final String fileName = filePrefixMap.get(trainingSource) + i + ".txt";
 					if (DEBUG > 0) System.out.println("Now training on " + fileName);
 					BufferedReader br = new BufferedReader(new FileReader(fileName));
 					String currLine;
@@ -654,6 +660,11 @@ public class DataLoader {
 				allTokensSentences.add(i,new ArrayList<SyllableToken>(sentenceToReplicate));
 			}
 		}
+	}
+	
+	public static void main(String[] args) {
+		DataLoader dl = new DataLoader(4);
+		convertToSyllableTokens(dl.cleanSentence("This is a sign of the decline of"));
 	}
 
 }

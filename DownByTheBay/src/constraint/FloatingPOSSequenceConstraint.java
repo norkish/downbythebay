@@ -64,7 +64,9 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 		DBTBGrammarValidator validator = new DBTBGrammarValidator();
 
 		for (Token token : fromState) {
-			if(!validator.validate(((SyllableToken) token).getPos()))
+			final SyllableToken syllableToken = (SyllableToken) token;
+			final String stringRepresentation = syllableToken.getStringRepresentation();
+			if(stringRepresentation.equals("for") || stringRepresentation.equals("into") || !validator.validate(syllableToken.getPos()))
 				return false;
 		}
 		
@@ -151,14 +153,14 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 			new Pos[]{Pos.NN,Pos.IN,Pos.NNP}, // 1the top of Glacier Rock
 			new Pos[]{Pos.NN,Pos.IN,Pos.NNP,Pos.CC,Pos.NN}, // 1a plane through sleet and rain
 			new Pos[]{Pos.NN,Pos.IN,Pos.PRP$,Pos.NN}, // 1a part of our car
-			new Pos[]{Pos.NN,Pos.IN,Pos.PRP,Pos.TO,Pos.VB}, // 1a place for us to stay
+//			new Pos[]{Pos.NN,Pos.IN,Pos.PRP,Pos.TO,Pos.VB}, // 1a place for us to stay
 			new Pos[]{Pos.NN,Pos.IN,Pos.VBG,Pos.NN}, // 1a pit of swirling mist, 1the vine at budding time, 2a wheel of spinning steel
 			new Pos[]{Pos.NN,Pos.JJ,Pos.TO,Pos.DT,Pos.NN}, // a wall next to a mall
 			new Pos[]{Pos.NN,Pos.PDT,Pos.DT,Pos.NNS,Pos.VBP}, // the way all the books say
 			new Pos[]{Pos.NN,Pos.PRP,Pos.RP}, // 1the truck lift itself up
 			new Pos[]{Pos.NN,Pos.PRP,Pos.VBD,Pos.VBG,Pos.TO,Pos.VB}, // 2the thing I was trying to bring
 			new Pos[]{Pos.NN,Pos.TO,Pos.DT,Pos.WRB,Pos.CC,Pos.DT,Pos.WP}, // 2a clue to the why and the who
-			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.CC,Pos.VB}, // 1a place to sit and wait
+//			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.CC,Pos.VB}, // 1a place to sit and wait
 			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.IN,Pos.DT,Pos.NN}, // 1a place to stay for a few days
 			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.RB,Pos.RB}, // 2a place to get away
 			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.TO,Pos.NNP}, // a chance to go to France

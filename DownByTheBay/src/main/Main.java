@@ -37,6 +37,10 @@ public class Main {
 	public static void main(String[] args) throws InterruptedException{
 
 		setupRootPath();
+		
+		if (args.length > 0) {
+			DataLoader.trainingSource = args[0];
+		}
 
 		int[] rhythmicSuperTemplate = new int[]{-1,1,-1,1,-1,1,-1,1,-1,1,-1};
 		
@@ -68,6 +72,7 @@ public class Main {
 		
 		int prevOrder = -1;
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = null;
+		boolean nonNNTokenMarked = false;
 		for (int[] rhythmicTemplate : allRhythmicTemplates) {
 			memoryCheck();
 			List<List<ConditionedConstraint<SyllableToken>>> constraints = new ArrayList<>();
@@ -88,6 +93,10 @@ public class Main {
 					constraints.remove(templateLength);
 					continue;
 				} else {
+					if (i > 2 && !nonNNTokenMarked) {
+						nonNNTokenMarked = true;
+						generalConstraints.get(templateLength).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))), false));
+					}
 					if (stress == 1) {
 //						if (lastNonNegativeStress == 0) { // UNCOMMENT FOR RELATIVE STRESS
 //							constraints.get(templateLength).add(new ConditionedConstraint<>(new RelativeStressConstraint<>(stress, 1)));
