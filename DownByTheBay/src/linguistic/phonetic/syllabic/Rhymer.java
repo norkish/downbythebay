@@ -149,7 +149,7 @@ public class Rhymer {
 		if (Utils.isNullorEmpty(o1) && Utils.isNullorEmpty(o2))
 			return 1.0;
 		if (Utils.isNullorEmpty(o1) || Utils.isNullorEmpty(o2))
-			return 0;
+			return 0.5;
 		if (o1.equals(o2)) return 1.0;
 		//chooses the highest-scoring pair to keep TODO upgrade this eventually
 		double highestScore = 0;
