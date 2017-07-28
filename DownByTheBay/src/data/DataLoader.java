@@ -32,7 +32,7 @@ public class DataLoader {
 	private static final long MAX_TOKENS_PER_SENTENCE = 30; // keeps Stanford NLP fast
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
-	private static final double MAX_MEMORY_FOR_BASE_MODEL = 70.;
+	private static final double MAX_MEMORY_FOR_BASE_MODEL = 90.;
 	final private int BATCH_SIZE = 1000;
 	
 	private static final boolean USE_DUMMY_DATA = false;
