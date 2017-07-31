@@ -17,7 +17,7 @@ public class HirjeeMatrix {
 	private static final String hirjeeFilePath = "data/hirjeeMatrix_withY.txt";
 	private static final int UNMATCHED_CODA_CONSONANT_AT_BEGINNING = 39;
 	private static final int UNMATCHED_CODA_CONSONANT_AT_END = 40;
-	public final static double HIRJEE_RHYME_THRESHOLD = 2.0;
+	public final static double HIRJEE_RHYME_THRESHOLD = 3.0;
 
 	public static double[][] load() {
 		if (matrix == null) {
@@ -184,8 +184,8 @@ public class HirjeeMatrix {
 		double stressScore = 0.0;
 		
 		final double score = vowelScore + codaScore + stressScore;
-		if (score > HIRJEE_RHYME_THRESHOLD)
-			System.out.print(s1 + " + " + s2 + " + " + vowelScore + " + " + codaScore + " + " + stressScore + " = " + score);
+//		if (score > HIRJEE_RHYME_THRESHOLD)
+//			System.out.print(s1 + " + " + s2 + " + " + vowelScore + " + " + codaScore + " + " + stressScore + " = " + score);
 		return score;
 	}
 	

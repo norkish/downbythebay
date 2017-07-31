@@ -32,10 +32,19 @@ public class DataLoader {
 	private static final long MAX_TOKENS_PER_SENTENCE = 30; // keeps Stanford NLP fast
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
-	private static final double MAX_MEMORY_FOR_BASE_MODEL = 50.;
+	private static final double MAX_MEMORY_FOR_BASE_MODEL = 75.;
 	final private int BATCH_SIZE = 1000;
 	
-	private static final boolean USE_DUMMY_DATA = false; 
+	private static final boolean USE_DUMMY_DATA = false;
+	private static final Map<String, String> filePrefixMap = new HashMap<String,String>();
+	static {
+		filePrefixMap.put("spoken", "data/text_spoken_kde/w_spok_");
+		filePrefixMap.put("fiction", "data/text_fiction_awq/w_fic_");
+		filePrefixMap.put("magazine", "data/text_magazine_qrb/w_mag_");
+	};
+	
+	public static String trainingSource = "fiction";
+	
 	private String[] TRAINING = new String[]{
 			"iced cakes inside The Bake",
 			"Have you seen a moose with a pair of new shoes?",
@@ -44,7 +53,7 @@ public class DataLoader {
 			"Have you ever seen a llama wearing pajamas?",
 			"Have you ever seen a moose with a pair of new shoes?",
 			"Have you ever seen a pirate that just ate a veggie diet?",
-			"Have you ever seen the law drinking from a straw?"
+			"Have you ever seen a law drinking from a straw?"
 //			"I'm a bear combin' his hair?",
 //			"Why is it so weird to think about a llama wearing polka dot pajamas?",
 //			"I have a llama wearing pajamas.",
@@ -54,20 +63,62 @@ public class DataLoader {
 	
 	public class DataProcessor {
 
-		private String[] trainingSentences;
-		private int nextBatchIdx;
+		private static final int LAST_FILE_NUMBER = 22;
+		private String[][] trainingSentences;
+		private int[] nextBatchIdxes;
 		
-		public DataProcessor(String[] trainingSentences) {
-			this.trainingSentences = trainingSentences;
-			nextBatchIdx = 0;
+		public DataProcessor() {
+			this.trainingSentences = new String[USE_DUMMY_DATA?1:(LAST_FILE_NUMBER + 1)][];
+			this.nextBatchIdxes = new int[USE_DUMMY_DATA?1:(LAST_FILE_NUMBER + 1)];
+			loadNextFile(0);
 		}
 		
-		private synchronized int getNextBatchStart() {
-			int nextBatchStart = nextBatchIdx;
-			nextBatchIdx += BATCH_SIZE;
+		private synchronized int getNextBatchStart(int source) {
+			int nextBatchStart = nextBatchIdxes[source];
+			nextBatchIdxes[source] += BATCH_SIZE;
+			
+			if (nextBatchStart > trainingSentences[source].length && source < trainingSentences.length-1 && trainingSentences[source+1] == null) {
+				loadNextFile(source+1);
+				if (source - 2 > 0) {
+					trainingSentences[source-2] = null; // free up memory
+				}
+			}
+			
 			return nextBatchStart;
 		}
 		
+		private void loadNextFile(int source) {
+
+			String[] trainingSentencesFromFile;
+			if (USE_DUMMY_DATA) {
+				trainingSentencesFromFile = TRAINING ;
+			}
+		
+			if (!USE_DUMMY_DATA) {
+				StringBuilder str = new StringBuilder();
+				try {
+					final String fileName = filePrefixMap.get(trainingSource) + (source+1990) + ".txt";
+					if (DEBUG > 0) System.out.println("Loading " + fileName + " for training");
+					BufferedReader br = new BufferedReader(new FileReader(fileName));
+					String currLine;
+					while ((currLine = br.readLine()) != null) {
+						str.append(currLine);
+					}
+					br.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
+				String fileContents = str.toString();
+				fileContents = fileContents.replaceAll("##\\d+(?= )", "");
+				fileContents = fileContents.replaceAll("-## ", "");
+				fileContents = fileContents.replaceAll("<p> ", "");
+				trainingSentencesFromFile = fileContents.split(" [[^a-zA-Z']+ ]+");
+			}
+			
+			trainingSentences[source] = trainingSentencesFromFile;
+		}
+
 		boolean threadCurrentlySyncing = false;
 		private synchronized boolean threadCurrentlySyncing() {
 			if (threadCurrentlySyncing) {
@@ -93,24 +144,6 @@ public class DataLoader {
 					@Override
 					public void run() {
 						
-						StopWatch stepTimer = new StopWatch();
-						int watch1Time = 0;
-						int watch2Time = 0;
-						int watch3Time = 0;
-						int watch4Time = 0;
-						int watch5Time = 0;
-						int watch6Time = 0;
-						int watch7Time = 0;
-						int watch8Time = 0;
-						int watch1Count = 0;
-						int watch2Count = 0;
-						int watch3Count = 0;
-						int watch4Count = 0;
-						int watch5Count = 0;
-						int watch6Count = 0;
-						int watch7Count = 0;
-						int watch8Count = 0;
-						
 						Map<Integer, Double> priorCountsForBatch = new HashMap<Integer, Double>();
 						Map<Integer, Map<Integer, Double>> transitionCountsForBatch = new HashMap<Integer, Map<Integer, Double>>();
 						BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMapForBatch = new BidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
@@ -118,55 +151,45 @@ public class DataLoader {
 						int sentencePronunciationsTrainedOnForBatch = 0;
 						int sentencesTrainedOnForBatch = 0;
 						
-						int nextBatchStart = getNextBatchStart();
+						int currentSource = 0;
+						
+						int nextBatchStart = getNextBatchStart(currentSource);
+						if (nextBatchStart > trainingSentences[currentSource].length) {
+							currentSource++;
+							if (currentSource < trainingSentences.length)
+								nextBatchStart = getNextBatchStart(currentSource);
+						}
 
 						int nextBatchEnd;
 						boolean threadReadyToSync = false;
 						
-						while((!threadReadyToSync || threadCurrentlySyncing()) && nextBatchStart < trainingSentences.length) {
-							nextBatchEnd = Math.min(nextBatchStart+BATCH_SIZE, trainingSentences.length);
-							System.out.println(Thread.currentThread().getName() + " training on sentences " + nextBatchStart + " to " + (nextBatchEnd-1) + " (MEM:" + Main.computePercentTotalMemoryUsed() + "%)");
+						while((!threadReadyToSync || threadCurrentlySyncing()) && currentSource < trainingSentences.length && nextBatchStart < trainingSentences[currentSource].length) {
+							nextBatchEnd = Math.min(nextBatchStart+BATCH_SIZE, trainingSentences[currentSource].length);
+							System.out.println(Thread.currentThread().getName() + " training on sentences " + nextBatchStart + " to " + (nextBatchEnd-1) + " from " + (currentSource + 1990) + " (MEM:" + Main.computePercentTotalMemoryUsed() + "%)");
 							for (int i = nextBatchStart; i < nextBatchEnd; i++) {
-								stepTimer.start();
-								String trainingSentence = trainingSentences[i];
-								stepTimer.stop();
-								watch1Time += stepTimer.getTime();
-								watch1Count++;
-								stepTimer.reset();
-	//							System.out.println("Training on "+trainingSentence);
+								String trainingSentence = trainingSentences[currentSource][i];
 								//start thread
 								// get syllable tokens for all unique pronunciations of the sentence
-								stepTimer.start();
 								List<List<SyllableToken>> trainingTokensSentences = convertToSyllableTokens(cleanSentence(trainingSentence));
-								stepTimer.stop();
-								watch3Time += stepTimer.getTime();
-								watch3Count++;
-								stepTimer.reset();
 								// if there was no valid pronunciation, skip it
 								if (trainingTokensSentences == null) continue;
-								stepTimer.start();
 								// for each pronunciation
 								if (DEBUG > 1) System.out.println("PRON COUNT:" + trainingTokensSentences.size());
 								final double trainingWeight = 1.0/trainingTokensSentences.size();
 								// Start synchronization
 								Integer fromTokenID, toTokenID;
 								int sentencePronunciationsTrainedOnForSentence = 0;
-								stepTimer.stop();
-								watch4Time += stepTimer.getTime();
-								watch4Count++;
-								stepTimer.reset();
-								stepTimer.start();
 								for (List<SyllableToken> trainingSentenceTokens : trainingTokensSentences) {
 									if (trainingSentenceTokens.size() < order) continue;
 	//								LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
 									LinkedList<Token> prefix = new LinkedList<Token>(trainingSentenceTokens.subList(0, order));
 									//TODO add string associated w/ prefix to set for Word2Vec
-									fromTokenID = prefixIDMapForBatch.addPrefix(prefix);
+									fromTokenID = prefixIDMap.addPrefix(prefix);
 									for (int j = order; j < trainingSentenceTokens.size(); j++ ) {
 										prefix.removeFirst();
 										prefix.addLast(trainingSentenceTokens.get(j));
 										
-										toTokenID = prefixIDMapForBatch.addPrefix(prefix);
+										toTokenID = prefixIDMap.addPrefix(prefix);
 										Utils.incrementValueForKeys(transitionCountsForBatch, fromTokenID, toTokenID, trainingWeight);
 										Utils.incrementValueForKey(priorCountsForBatch, fromTokenID, trainingWeight); // we do this for every token 
 	
@@ -174,30 +197,14 @@ public class DataLoader {
 									}
 									sentencePronunciationsTrainedOnForSentence++;
 								}
-								stepTimer.stop();
-								watch5Time += stepTimer.getTime();
-								watch5Count++;
-								stepTimer.reset();
-								stepTimer.start();
 								if (DEBUG > 1) System.out.println("sentencesTrainedOn:" + sentencesTrainedOn + ", sentencePronunciationsTrainedOn:" + sentencePronunciationsTrainedOn + " transitions.size()=" + transitions.size() + " prefixIDMap.getPrefixCount()=" + prefixIDMapForBatch.getPrefixCount());
 								
 								if (sentencePronunciationsTrainedOnForSentence > 0){
 									sentencesTrainedOnForBatch++;
 									sentencePronunciationsTrainedOnForBatch += sentencePronunciationsTrainedOnForSentence;
 								}
-								stepTimer.stop();
-								watch6Time += stepTimer.getTime();
-								watch6Count++;
-								stepTimer.reset();
-	//							if (sentencesTrainedOnForBatch == 100) { // REMOVED TO AVOID SYNCRONIZATION REQUIREMENT
-	//								incrementSentencesAndPronunciationsTrainedOn(sentencesTrainedOnForBatch, sentencePronunciationsTrainedOnForBatch);
-	//								sentencesTrainedOnForBatch = 0;
-	//								sentencePronunciationsTrainedOnForBatch = 0;
-	//							}
-								// End synchronization	
 							}
 							
-							stepTimer.start();
 							if (returnStatus != 1 && Main.computePercentTotalMemoryUsed() > MAX_MEMORY_FOR_BASE_MODEL) {
 								System.out.println("Hit memory threshold of " + MAX_MEMORY_FOR_BASE_MODEL + " for base model training");
 								returnStatus = 1;
@@ -205,42 +212,19 @@ public class DataLoader {
 							if (returnStatus == 1) {
 								threadReadyToSync = true;
 							}
-							stepTimer.stop();
-							watch2Time += stepTimer.getTime();
-							watch2Count++;
-							stepTimer.reset();
 							
-							nextBatchStart = getNextBatchStart();
+							nextBatchStart = getNextBatchStart(currentSource);
+							if (nextBatchStart > trainingSentences[currentSource].length) {
+								currentSource++;
+								if (currentSource < trainingSentences.length)
+									nextBatchStart = getNextBatchStart(currentSource);
+							}
 						}
 						System.out.println(Thread.currentThread().getName() + " finished training");
-						stepTimer.start();
 						incrementSentencesAndPronunciationsTrainedOn(sentencesTrainedOnForBatch, sentencePronunciationsTrainedOnForBatch);
-						stepTimer.stop();
-						watch7Time += stepTimer.getTime();
-						watch7Count++;
-						stepTimer.reset();
-						stepTimer.start();
-						incrementTransitionsAndPriors(prefixIDMapForBatch, transitionCountsForBatch, priorCountsForBatch);
-						stepTimer.stop();
-						watch8Time += stepTimer.getTime();
-						watch8Count++;
-						stepTimer.reset();
-//						System.out.println("Ending thread");
-						
-						System.out.println("ThreadName\tTotalWatchTimePerThread\tTotalWatchCountPerThread\tAvgWatchTimePerSentencePerThread\n" +
-								Thread.currentThread().getName() +"\t" + watch1Time+"\t"+watch1Count+"\t" + ((1.0*watch1Time)/watch1Count) + "\n" +
-								Thread.currentThread().getName() +"\t" + watch2Time+"\t"+watch2Count+"\t" + ((1.0*watch2Time)/watch2Count) + "\n" +
-								Thread.currentThread().getName() +"\t" + watch3Time+"\t"+watch3Count+"\t" + ((1.0*watch3Time)/watch3Count) + "\n" +
-								Thread.currentThread().getName() +"\t" + watch4Time+"\t"+watch4Count+"\t" + ((1.0*watch4Time)/watch4Count) + "\n" +
-								Thread.currentThread().getName() +"\t" + watch5Time+"\t"+watch5Count+"\t" + ((1.0*watch5Time)/watch5Count) + "\n" +
-								Thread.currentThread().getName() +"\t" + watch6Time+"\t"+watch6Count+"\t" + ((1.0*watch6Time)/watch6Count) + "\n" +
-								Thread.currentThread().getName() +"\t" + watch7Time+"\t"+watch7Count+"\t" + ((1.0*watch7Time)/watch7Count) + "\n" +
-								Thread.currentThread().getName() +"\t" + watch8Time+"\t"+watch8Count+"\t" + ((1.0*watch8Time)/watch8Count));
-						
+						incrementTransitionsAndPriors(transitionCountsForBatch, priorCountsForBatch);
 					}
-
 				});
-//				System.out.println("Starting new thread");
 				t.start();
 			}
 			
@@ -261,6 +245,7 @@ public class DataLoader {
 
 			return returnStatus; // if 1 is returned, it means the file wasn't fully read.
 		}
+		
 		private synchronized void incrementTransitionsAndPriors(
 				BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMapForBatch, Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
 				Map<Integer, Double> priorCountsForBatch) {
@@ -344,69 +329,72 @@ public class DataLoader {
 			threadCurrentlySyncing = false;
 			System.out.println("Synchronization Complete!");
 		}
-	}
-	
-	/**
-	 * Assumes global ids
-	 * @param transitionCountsForBatch
-	 * @param priorCountsForBatch
-	 */
-	private synchronized void incrementTransitionsAndPriors(Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
-			Map<Integer, Double> priorCountsForBatch) {
 
-//		System.out.println("Synchronizing batch transitions and priors");
-
-		
-		Double prevCount, batchCount;
-		Map<Integer, Double> batchTransitionsMap, aggregateTransitionsMap;
-		
-		// otherwise, iterate over the transitions for the batch
-		for (Integer fromID : transitionCountsForBatch.keySet()) {
-			batchTransitionsMap = transitionCountsForBatch.get(fromID);
-
-			// lookup the transitions map in the aggregate model using that ID
-			aggregateTransitionsMap = transitions.get(fromID);
+		/**
+		 * Assumes global ids
+		 * @param transitionCountsForBatch
+		 * @param priorCountsForBatch
+		 */
+		private synchronized void incrementTransitionsAndPriors(Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
+				Map<Integer, Double> priorCountsForBatch) {
 			
-			// if no transitions exist for that from state (ID)
-			if (aggregateTransitionsMap == null) {
-				transitions.put(fromID, batchTransitionsMap);
-			} else { 
-				// for each batch toID
-				for(Integer toID : batchTransitionsMap.keySet()) {
-					batchCount = batchTransitionsMap.get(toID);
-	
-					// lookup the previous account associated with this state (ID)
-					prevCount = aggregateTransitionsMap.get(toID);
-					
-					// if no previous counts
-					if (prevCount == null) {
-						// just copy the count
-						aggregateTransitionsMap.put(toID, batchCount);
-					} else {
-						// otherwise sum
-						aggregateTransitionsMap.put(toID, prevCount + batchCount);
+			System.out.println("Synchronizing batch transitions and priors for thread " + Thread.currentThread().getName() + "... ");
+			
+			Double prevCount, batchCount;
+			Map<Integer, Double> batchTransitionsMap, aggregateTransitionsMap;
+			
+			// otherwise, iterate over the transitions for the batch
+			for (Integer fromID : transitionCountsForBatch.keySet()) {
+				batchTransitionsMap = transitionCountsForBatch.get(fromID);
+				
+				// lookup the transitions map in the aggregate model using that ID
+				aggregateTransitionsMap = transitions.get(fromID);
+				
+				// if no transitions exist for that from state (ID)
+				if (aggregateTransitionsMap == null) {
+					transitions.put(fromID, batchTransitionsMap);
+				} else { 
+					// for each batch toID
+					for(Integer toID : batchTransitionsMap.keySet()) {
+						batchCount = batchTransitionsMap.get(toID);
+						
+						// lookup the previous account associated with this state (ID)
+						prevCount = aggregateTransitionsMap.get(toID);
+						
+						// if no previous counts
+						if (prevCount == null) {
+							// just copy the count
+							aggregateTransitionsMap.put(toID, batchCount);
+						} else {
+							// otherwise sum
+							aggregateTransitionsMap.put(toID, prevCount + batchCount);
+						}
 					}
 				}
 			}
-		}
-		
-		// for each batch id in the prior dataset
-		for(Integer id : priorCountsForBatch.keySet()) {
-			batchCount = priorCountsForBatch.get(id);
-
-			// get the prevCounts associated with this state (ID)
-			prevCount = priors.get(id);
 			
-			// if no previous counts
-			if (prevCount == null) {
-				// just copy the count
-				priors.put(id, batchCount);
-			} else {
-				// otherwise sum
-				priors.put(id, prevCount + batchCount);
+			// for each batch id in the prior dataset
+			for(Integer id : priorCountsForBatch.keySet()) {
+				batchCount = priorCountsForBatch.get(id);
+				
+				// get the prevCounts associated with this state (ID)
+				prevCount = priors.get(id);
+				
+				// if no previous counts
+				if (prevCount == null) {
+					// just copy the count
+					priors.put(id, batchCount);
+				} else {
+					// otherwise sum
+					priors.put(id, prevCount + batchCount);
+				}
 			}
+			
+			threadCurrentlySyncing = false;
+			System.out.println("Synchronization Complete!");
 		}
 	}
+	
 
 	public static StanfordNlpInterface nlp = new StanfordNlpInterface();
 
@@ -452,43 +440,9 @@ public class DataLoader {
 
 	public DataSummary loadData() throws InterruptedException {
 		
-		String[] trainingSentences;
-		if (USE_DUMMY_DATA) {
-			trainingSentences = TRAINING ;
-		}
-	
-		for (int i = 1990; i <= 2012; i++) {
-			if (!USE_DUMMY_DATA) {
-				StringBuilder str = new StringBuilder();
-				try {
-//					final String fileName = "data/text_magazine_qrb/w_mag_" + i + ".txt";
-					final String fileName = "data/text_fiction_awq/w_fic_" + i + ".txt";
-					if (DEBUG > 0) System.out.println("Now training on " + fileName);
-					BufferedReader br = new BufferedReader(new FileReader(fileName));
-					String currLine;
-					while ((currLine = br.readLine()) != null) {
-						str.append(currLine);
-					}
-					br.close();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				
-				String fileContents = str.toString();
-				fileContents = fileContents.replaceAll("##\\d+(?= )", "");
-				fileContents = fileContents.replaceAll("-## ", "");
-				fileContents = fileContents.replaceAll("<p> ", "");
-				trainingSentences = fileContents.split(" [[^a-zA-Z']+ ]+");
-			}
+		DataProcessor dp = new DataProcessor();
+		int status = dp.process();
 
-			DataProcessor dp = new DataProcessor(trainingSentences);
-			int status = dp.process();
-			
-			System.out.println("Trained so far on " + sentencesTrainedOn + " sentences, " + sentencePronunciationsTrainedOn + " sentence pronunciations");
-			if (status == 1 || USE_DUMMY_DATA) {
-				break;
-			}
-		}
 		Utils.normalizeByFirstDimension(transitions);
 		
 		DataSummary summary = new DataSummary(prefixIDMap, priors, transitions);
@@ -648,6 +602,11 @@ public class DataLoader {
 				allTokensSentences.add(i,new ArrayList<SyllableToken>(sentenceToReplicate));
 			}
 		}
+	}
+	
+	public static void main(String[] args) {
+		DataLoader dl = new DataLoader(4);
+		convertToSyllableTokens(dl.cleanSentence("This is a sign of the decline of"));
 	}
 
 }

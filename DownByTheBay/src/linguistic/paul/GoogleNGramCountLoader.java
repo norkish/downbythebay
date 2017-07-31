@@ -27,7 +27,7 @@ public class GoogleNGramCountLoader {
 	final private static Integer UNAVAILABLE_NGRAM_COUNT = -1;
 	
 	public static void main(String[] args) {
-		String testString = "xylophone. xenophobia xitixx";
+		String testString = "xylophone. xenophobia xitixx x-ray xray xerox love";
 		int nGramN = 1;
 		
 		String[] testStringArray = testString.split("[^a-zA-Z'-]+");
@@ -41,20 +41,26 @@ public class GoogleNGramCountLoader {
 		Map<String, Integer> nGramCountsToReturn = new HashMap<String, Integer>();
 		Map<String, Integer> nGramCountsNotInLocalFile = new HashMap<String, Integer>();
 		
+		// load what's on file
 		Map<String, Integer> nGramCountsForNGramN = getNGramCountsForNGramN(nGramN);
 		
 		for (String nGram : testStringArray) {
+			// if nGram in question was in file
 			if (nGramCountsForNGramN.containsKey(nGram)) {
+				// prepare to return it
 				nGramCountsToReturn.put(nGram, nGramCountsForNGramN.get(nGram));
 			} else {
+				// mark it to be looked up
 				nGramCountsNotInLocalFile.put(nGram, UNAVAILABLE_NGRAM_COUNT);
 			}
 		}
 		
 		// look up any ngrams that are new and not in local file
 		if (!nGramCountsNotInLocalFile.isEmpty()) {
+			// call external program to query google for missing ngrams
 			queryGoogleForMissingNGrams(nGramCountsNotInLocalFile, nGramN);
 			for (String nGram : nGramCountsNotInLocalFile.keySet()) {
+				// prepare to also return these
 				nGramCountsToReturn.put(nGram, nGramCountsNotInLocalFile.get(nGram));
 
 			}
@@ -67,14 +73,18 @@ public class GoogleNGramCountLoader {
 		// save ngrams to tmp file
 		StringBuilder str = new StringBuilder();
 		final Path tmpFilePath = Paths.get(tmpFile);
+		// prepare the file contents for  input to the external program
 		for (String key : nGramCountsNotInLocalFile.keySet()) {
 			str.append(key);
 			str.append('\n');
 		}
+		
 		try {
+			// write the tmp file for the exteernal program
 			Files.write(tmpFilePath, str.toString().getBytes(), StandardOpenOption.CREATE_NEW);
 
 			System.out.println("Querying google for " + nGramCountsNotInLocalFile.size() + " ngrams without counts in local file");
+			
 			// run external python query for missing ngrams, saving output to tmp file
 			CommandlineExecutor.execute("python script/query_ngram.py " + tmpFilePath + " " + nGramN, outTmpFile);
 			System.out.print("Query complete:");
@@ -103,7 +113,7 @@ public class GoogleNGramCountLoader {
 					}
 				}
 				br.close();
-				System.out.print("" + nonzero + " ngrams found with counts");
+				System.out.println("" + nonzero + " ngrams found with counts");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

@@ -64,7 +64,9 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 		DBTBGrammarValidator validator = new DBTBGrammarValidator();
 
 		for (Token token : fromState) {
-			if(!validator.validate(((SyllableToken) token).getPos()))
+			final SyllableToken syllableToken = (SyllableToken) token;
+			final String stringRepresentation = syllableToken.getStringRepresentation();
+			if(stringRepresentation.equals("for") || stringRepresentation.equals("into") || !validator.validate(syllableToken.getPos()))
 				return false;
 		}
 		
@@ -134,41 +136,49 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 	
 	public static class DBTBGrammarValidator {
 		
-//		final private static Pos[][] trainingPosSet = new Pos[][]{ // KEEP THESE SORTED ALPHABETICALLY TO AVOID DUPLICATION
-//			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // the law drinking from a straw, a whale with a polka dot tail
-//			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.JJ,Pos.NNS}, // a moose with a pair of new shoes
-//			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.NNS}, // a moose with a pair of shoes
-//			new Pos[]{Pos.NN,Pos.IN,Pos.JJ,Pos.NNS}, // a moose with new shoes
-//			new Pos[]{Pos.NN,Pos.IN,Pos.NNS}, // a moose with shoes
-//			new Pos[]{Pos.NN,Pos.VBG,Pos.DT,Pos.JJ, Pos.NN}, // A frog eating a big dog
-//			new Pos[]{Pos.NN,Pos.VBG,Pos.DT,Pos.NN}, // A frog eating a dog
-//			new Pos[]{Pos.NN,Pos.VBG,Pos.NN,Pos.NNS}, // a llama wearing polka dot pajamas
-//			new Pos[]{Pos.NN,Pos.VBG,Pos.NNS}, // a llama wearing pajamas
-//			new Pos[]{Pos.NN,Pos.VBG,Pos.PRP$,Pos.NN}, // A bear combing his hair
-//			new Pos[]{Pos.NN,Pos.WDT,Pos.RB,Pos.VBD, Pos.DT, Pos.JJ,Pos.NN}, // a pirate that just ate a veggie diet
-////			new Pos[]{},
-//		};
 		final private static Pos[][] trainingPosSet = new Pos[][]{ // KEEP THESE SORTED ALPHABETICALLY TO AVOID DUPLICATION
+			new Pos[]{Pos.NN,Pos.CC,Pos.NN}, //	a mother and baby brother, 2the wall and mangled dolls
+			new Pos[]{Pos.NN,Pos.CC,Pos.DT, Pos.NN}, //	a mother and baby brother, a ball or a baby doll, 1a spring or some such thing
+			new Pos[]{Pos.NN,Pos.CC,Pos.DT,Pos.NN,Pos.IN,Pos.NN}, // a face and a mane of snakes
+			new Pos[]{Pos.NN,Pos.CC,Pos.DT,Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // 1a mouse or a rat in the house
+			new Pos[]{Pos.NN,Pos.DT,Pos.NN,Pos.CC,Pos.DT}, // 1a cot and a chamber pot
 			new Pos[]{Pos.NN,Pos.DT,Pos.NN,Pos.VBP}, // the way some people say
-			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // the law drinking from a straw, a whale with a polka dot tail, a mouse out of the house
+			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN}, // the law drinking from a straw, a whale with a polka dot tail, a mouse out of the house, 1a car in the parking lot, the words of the next verse, 2a crow with a sore throat, 1a drawer by the front door, 1a job in a health club
 			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.NN}, // a moose with a pair of new shoes
-			new Pos[]{Pos.NN,Pos.IN,Pos.NN,Pos.CC,Pos.NNS}, // the pleas for help and screams
-			new Pos[]{Pos.NN,Pos.IN,Pos.NNS}, // a moose with new shoes, a bear with hair
+			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.NN,Pos.IN,Pos.PRP$,Pos.NN}, // 1a man with a hat in his hands
+			new Pos[]{Pos.NN,Pos.IN,Pos.NN}, // a moose with new shoes, a bear with hair, 2a child playing with fire, 1a face of sharp distaste, 1a fort with uneven boards, 2a loaf of garlic toast, 1a piece of bloody beef
+			new Pos[]{Pos.NN,Pos.IN,Pos.NN,Pos.CC,Pos.NN}, // the pleas for help and screams
+			new Pos[]{Pos.NN,Pos.IN,Pos.NN,Pos.IN,Pos.NN}, // 2a gang of rats with hands
+			new Pos[]{Pos.NN,Pos.IN,Pos.NN,Pos.TO,Pos.NN}, // 1a line from time to time
+			new Pos[]{Pos.NN,Pos.IN,Pos.NNP}, // 1the top of Glacier Rock
+			new Pos[]{Pos.NN,Pos.IN,Pos.NNP,Pos.CC,Pos.NN}, // 1a plane through sleet and rain
+			new Pos[]{Pos.NN,Pos.IN,Pos.PRP$,Pos.NN}, // 1a part of our car
+//			new Pos[]{Pos.NN,Pos.IN,Pos.PRP,Pos.TO,Pos.VB}, // 1a place for us to stay
+			new Pos[]{Pos.NN,Pos.IN,Pos.VBG,Pos.NN}, // 1a pit of swirling mist, 1the vine at budding time, 2a wheel of spinning steel
 			new Pos[]{Pos.NN,Pos.JJ,Pos.TO,Pos.DT,Pos.NN}, // a wall next to a mall
-			new Pos[]{Pos.NN,Pos.VBD,Pos.JJ,Pos.IN,Pos.NN}, // a tray piled high with hay
-			new Pos[]{Pos.NN,Pos.VBG,Pos.DT, Pos.NN}, // A frog eating a big dog
-			new Pos[]{Pos.NN,Pos.VBG,Pos.IN,Pos.NN}, // A cage dangling in space
-			new Pos[]{Pos.NN,Pos.VBG,Pos.NN,Pos.NNS}, // a llama wearing polka dot pajamas
-			new Pos[]{Pos.NN,Pos.VBG,Pos.NNS}, // a llama wearing pajamas
-			new Pos[]{Pos.NN,Pos.VBG,Pos.PRP$,Pos.NN}, // A bear combing his hair
-			new Pos[]{Pos.NN,Pos.VBG,Pos.RP,Pos.PRP$,Pos.NN}, // A tear trickling down his beard
-			new Pos[]{Pos.NN,Pos.WDT,Pos.VBD, Pos.DT,Pos.NN}, // a pirate that just ate a veggie diet
-			new Pos[]{Pos.NN,Pos.IN,Pos.DT,Pos.JJ,Pos.NN}, // the words of the next verse
 			new Pos[]{Pos.NN,Pos.PDT,Pos.DT,Pos.NNS,Pos.VBP}, // the way all the books say
-//			a bird eating a worm
-//			a bird eyeing a worm
-//			a breeze blowing off the sea
-//			a chance to go to France
+			new Pos[]{Pos.NN,Pos.PRP,Pos.RP}, // 1the truck lift itself up
+			new Pos[]{Pos.NN,Pos.PRP,Pos.VBD,Pos.VBG,Pos.TO,Pos.VB}, // 2the thing I was trying to bring
+			new Pos[]{Pos.NN,Pos.TO,Pos.DT,Pos.WRB,Pos.CC,Pos.DT,Pos.WP}, // 2a clue to the why and the who
+//			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.CC,Pos.VB}, // 1a place to sit and wait
+			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.IN,Pos.DT,Pos.NN}, // 1a place to stay for a few days
+			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.RB,Pos.RB}, // 2a place to get away
+			new Pos[]{Pos.NN,Pos.TO,Pos.VB,Pos.TO,Pos.NNP}, // a chance to go to France
+			new Pos[]{Pos.NN,Pos.VBD,Pos.JJ,Pos.IN,Pos.NN}, // a tray piled high with hay
+			new Pos[]{Pos.NN,Pos.VBG,Pos.DT, Pos.NN}, // A frog eating a big dog, a bird eating a worm, a bird eyeing a worm
+			new Pos[]{Pos.NN,Pos.VBG,Pos.IN,Pos.NN}, // A cage dangling in space
+			new Pos[]{Pos.NN,Pos.VBG,Pos.NN,Pos.NN}, // a llama wearing polka dot pajamas
+			new Pos[]{Pos.NN,Pos.VBG,Pos.NN}, // a llama wearing pajamas
+			new Pos[]{Pos.NN,Pos.VBG,Pos.PRP$,Pos.NN}, // A bear combing his hair, 1a man losing his land
+			new Pos[]{Pos.NN,Pos.VBG,Pos.RP,Pos.PRP$,Pos.NN}, // A tear trickling down his beard
+			new Pos[]{Pos.NN,Pos.VBG,Pos.RP,Pos.DT,Pos.NN}, // a breeze blowing off the sea
+			new Pos[]{Pos.NN,Pos.VBN,Pos.IN,Pos.DT,Pos.NN},//1a cart pulled by an ox, 1a mouth set in a frown, 2a scar shaped like a star
+			new Pos[]{Pos.NN,Pos.WDT,Pos.VBD,Pos.DT,Pos.NN}, // a pirate that just ate a veggie diet, 1a look that made the book
+			new Pos[]{Pos.NN,Pos.WDT,Pos.VBP,Pos.IN,Pos.DT,Pos.NN}, // 2a stream that wound like a dream
+			new Pos[]{Pos.NN,Pos.WDT,Pos.MD,Pos.VB,Pos.PRP,Pos.IN}, // the truths that will see us through
+			new Pos[]{Pos.NN,Pos.WP,Pos.VBD,Pos.CC,Pos.VBD}, // 1a man who trained and ran
+			new Pos[]{Pos.NN,Pos.WRB,Pos.DT,Pos.NN,Pos.NN,Pos.VBD}, // 2a land where no bridges spanned
+			new Pos[]{Pos.NN,Pos.WRB,Pos.PRP,Pos.MD,Pos.VB}, // 1a place where I could stay
 		};
 		
 		final private static DBTBGrammarNode root = initializeDBTBGrammarTree();
@@ -177,6 +187,8 @@ public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<
 		
 		public boolean validate(Pos pos) {
 			if (pos.equals(Pos.NNS)) {
+				pos = Pos.NN;
+			} else if (pos.equals(Pos.NNPS)) {
 				pos = Pos.NN;
 			}
 

@@ -11,14 +11,15 @@ import constraint.AbsoluteStressConstraint;
 import constraint.BinaryRhymeConstraint;
 import constraint.ConditionedConstraint;
 import constraint.EndOfWordConstraint;
+import constraint.FloatingPOSSequenceConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.StartOfWordConstraint;
+import constraint.WordsConstraint;
 import data.DataLoader;
 import data.DataLoader.DataSummary;
 import data.SyllableToken;
 import linguistic.syntactic.Pos;
 import markov.SparseVariableOrderMarkovModel;
-import markov.SparseVariableOrderNHMM;
 import markov.SparseVariableOrderNHMMMultiThreaded;
 import markov.Token;
 import markov.UnsatisfiableConstraintSetException;
@@ -36,6 +37,10 @@ public class Main {
 	public static void main(String[] args) throws InterruptedException{
 
 		setupRootPath();
+		
+		if (args.length > 0) {
+			DataLoader.trainingSource = args[0];
+		}
 
 		int[] rhythmicSuperTemplate = new int[]{-1,1,-1,1,-1,1,-1,1,-1,1,-1};
 		
@@ -47,8 +52,8 @@ public class Main {
 		}
 		
 		// Add rest of constraints
-		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.JJ)))));
-//		generalConstraints.get(A).add(new ConditionedConstraint<>(new WordConstraint<>("a", false)));
+//		generalConstraints.get(A).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.DT, Pos.JJ)))));
+		generalConstraints.get(A).add(new ConditionedConstraint<>(new WordsConstraint<>(new HashSet<>(Arrays.asList("a","an")), false)));
 //		generalConstraints.get(A).add(new ConditionedConstraint<>(new HasCodaConstraint<>(), false));
 		generalConstraints.get(LLA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
 		generalConstraints.get(MA).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS)))));
@@ -59,7 +64,7 @@ public class Main {
 		
 		int[][] allRhythmicTemplates = new int[][] {
 			new int[]{0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
-			new int[]{0,1,-1,-1,-1,1,0,1,0,1,-1}, // "a ma . . . drinking from a straw ."
+			new int[]{0,1,-1,-1,-1,1,0,1,0,1,-1}, // "a law . . . drinking from a straw ."
 			new int[]{0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
 			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1}, //"a moose . with a pair of new . shoes ."
 			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
@@ -81,12 +86,17 @@ public class Main {
 			constraints.get(rhythmicTemplate[2] == 0?2:1).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
 			
 			int lastNonNegativeStress = -1;
+			boolean nonNNTokenMarked = false;
 			for (int i = 0; i < rhythmicTemplate.length; i++) {
 				int stress = rhythmicTemplate[i];
 				if (stress == -1){
 					constraints.remove(templateLength);
 					continue;
 				} else {
+					if (i > 2 && !nonNNTokenMarked) {
+						nonNNTokenMarked = true;
+						constraints.get(templateLength).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(new HashSet<>(Arrays.asList(Pos.NN, Pos.NNS, Pos.NNP, Pos.NNPS))), false));
+					}
 					if (stress == 1) {
 //						if (lastNonNegativeStress == 0) { // UNCOMMENT FOR RELATIVE STRESS
 //							constraints.get(templateLength).add(new ConditionedConstraint<>(new RelativeStressConstraint<>(stress, 1)));
@@ -103,9 +113,7 @@ public class Main {
 				
 				if (i == JA) {
 					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
-//					constraints.get(templateLength).add(new ConditionedConstraint<>(new FloatingPOSSequenceConstraint<>()));
-//					constraints.get(templateLength-1).add(new ConditionedConstraint<>(new FloatingConstraint<>(rhymeDistance-2, 
-//							new PartsOfSpeechConstraint<>(new HashSet<Pos>(Arrays.asList(Pos.VBG, Pos.IN, Pos.NN))))));
+					constraints.get(templateLength).add(new ConditionedConstraint<>(new FloatingPOSSequenceConstraint<>()));
 				} else if (i == MAS) {
 					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
 				}
@@ -157,6 +165,14 @@ public class Main {
 			}
 			watch.stop();
 			System.out.println("Time to build model:" + watch.getTime());
+			
+			System.out.println("Finished creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
+			for (int i = 0; i < constraints.size(); i++) {
+				System.out.println("\tAt position " + i + ":");
+				for (ConditionedConstraint<SyllableToken> constraint : constraints.get(i)) {
+					System.out.println("\t\t" + constraint);
+				}
+			}
 			
 //			for (int i = 0; i < 20; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
