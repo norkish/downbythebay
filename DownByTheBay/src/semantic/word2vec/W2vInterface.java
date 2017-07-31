@@ -17,7 +17,7 @@ public class W2vInterface {
     }
 
     public void setupModel(String fileName) {
-        File f = new File(Main.rootPath + "data/w2v/models/sers/" + fileName + ".ser");
+//        File f = new File(Main.rootPath + "data/w2v/models/sers/" + fileName + ".ser");
 //        if(f.exists() && !f.isDirectory())
 //            this.deserializeW2vModel(fileName);
 //        else
@@ -68,7 +68,7 @@ public class W2vInterface {
     private Map<String,Integer> getContentsMap(String fileName) {
         Map<String,Integer> result = new HashMap<>();
 
-        File inFile = new File(Main.rootPath + "data/w2v/models/vocab-lists/" + fileName + ".txt");
+        File inFile = new File(Main.rootPath + "data/" + fileName + ".txt");
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(inFile);
