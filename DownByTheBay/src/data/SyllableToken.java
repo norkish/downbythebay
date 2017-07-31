@@ -7,41 +7,31 @@ import linguistic.syntactic.Pos;
 import markov.Token;
 
 public class SyllableToken extends Token {
+
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + countOfSylsInContext;
-		result = prime * result + ((phonemes == null) ? 0 : phonemes.hashCode());
-		result = prime * result + ((pos == null) ? 0 : pos.hashCode());
-		result = prime * result + positionInContext;
-		result = prime * result + stress;
-		return result;
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		SyllableToken that = (SyllableToken) o;
+
+		if (getCountOfSylsInContext() != that.getCountOfSylsInContext()) return false;
+		if (getPositionInContext() != that.getPositionInContext()) return false;
+		if (getStress() != that.getStress()) return false;
+		if (!getPhonemes().equals(that.getPhonemes())) return false;
+		if (getPos() != that.getPos()) return false;
+		return getStringRepresentation().equals(that.getStringRepresentation());
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		SyllableToken other = (SyllableToken) obj;
-		if (countOfSylsInContext != other.countOfSylsInContext)
-			return false;
-		if (phonemes == null) {
-			if (other.phonemes != null)
-				return false;
-		} else if (!phonemes.equals(other.phonemes))
-			return false;
-		if (pos != other.pos)
-			return false;
-		if (positionInContext != other.positionInContext)
-			return false;
-		if (stress != other.stress)
-			return false;
-		return true;
+	public int hashCode() {
+		int result = getPhonemes().hashCode();
+		result = 31 * result + getPos().hashCode();
+		result = 31 * result + getCountOfSylsInContext();
+		result = 31 * result + getPositionInContext();
+		result = 31 * result + getStress();
+		result = 31 * result + getStringRepresentation().hashCode();
+		return result;
 	}
 
 	@Override
