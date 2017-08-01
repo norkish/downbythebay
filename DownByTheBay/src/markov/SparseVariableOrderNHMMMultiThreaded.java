@@ -202,7 +202,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 				
 				int currIdx = i-1;
 				System.out.println("Pruning backward from constraints at pos " + currIdx);
-				while (currIdx > -2) {
+				while (currIdx > -2 && !inSupportAtPos.isEmpty()) {
 					StopWatch watch1 = new StopWatch();
 					watch1.start();
 					final int currWorkIdx = currIdx;

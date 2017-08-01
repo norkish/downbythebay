@@ -101,8 +101,8 @@ public class FloatingHaikuPOSSequenceConstraint<T> implements TransitionalConstr
 				new Pos[]{Pos.JJ,Pos.NN},
 				new Pos[]{Pos.NNS},
 				new Pos[]{Pos.NN},
-//			},
-//			new Pos[][] {
+			},
+			new Pos[][] {
 				new Pos[]{Pos.NNS,Pos.IN,Pos.DT,Pos.NN},
 				new Pos[]{Pos.VBG,Pos.NNS},
 				new Pos[]{Pos.IN,Pos.JJ,Pos.NNS},
@@ -123,8 +123,8 @@ public class FloatingHaikuPOSSequenceConstraint<T> implements TransitionalConstr
 				new Pos[]{Pos.NN},
 				new Pos[]{Pos.DT,Pos.NN},
 				new Pos[]{Pos.IN,Pos.DT,Pos.NN},
-//			},
-//			new Pos[][] {
+			},
+			new Pos[][] {
 				new Pos[]{Pos.PRP$,Pos.NNS},
 				new Pos[]{Pos.NNP},
 				new Pos[]{Pos.NN,Pos.VBZ},
@@ -148,10 +148,13 @@ public class FloatingHaikuPOSSequenceConstraint<T> implements TransitionalConstr
 			},
 		};
 		
-		final private static HaikuGrammarNode root1 = initializeHaikuGrammarTree(1);
-		final private static HaikuGrammarNode root2 = initializeHaikuGrammarTree(2);
-		final private static HaikuGrammarNode root3 = initializeHaikuGrammarTree(3);
-		final private static HaikuGrammarNode rootAll = initializeHaikuGrammarTreeAll();
+//		final private static HaikuGrammarNode root1 = initializeHaikuGrammarTree(1);
+//		final private static HaikuGrammarNode root2 = initializeHaikuGrammarTree(2);
+//		final private static HaikuGrammarNode root3 = initializeHaikuGrammarTree(3);
+		final private static HaikuGrammarNode root1 = initializeHaikuGrammarTreeFromData(1);
+		final private static HaikuGrammarNode root2 = initializeHaikuGrammarTreeFromData(2);
+		final private static HaikuGrammarNode root3 = initializeHaikuGrammarTreeFromData(3);
+		final private static HaikuGrammarNode rootAll = initializeHaikuGrammarTreeFromData(4);
 		
 		private HaikuGrammarNode currentNode;
 		
@@ -177,7 +180,6 @@ public class FloatingHaikuPOSSequenceConstraint<T> implements TransitionalConstr
 		}
 
 		private static HaikuGrammarNode initializeHaikuGrammarTree(int line) {
-			line = 1;
 			HaikuGrammarNode root = new HaikuGrammarNode(null);
 			for (Pos[] posPath : trainingPosSet[line-1]) {
 				root.addPath(posPath, 0);
@@ -186,10 +188,10 @@ public class FloatingHaikuPOSSequenceConstraint<T> implements TransitionalConstr
 			return root;
 		}
 		
-		private static HaikuGrammarNode initializeHaikuGrammarTreeAll() {
+		private static HaikuGrammarNode initializeHaikuGrammarTreeFromData(int line) {
 			HaikuGrammarNode root = new HaikuGrammarNode(null);
 			try {
-				for (Entry<List<Pos>, Integer> entry : HaikuMain.loadHaikuWord().entrySet()) {
+				for (Entry<List<Pos>, Integer> entry : HaikuMain.loadHaikuWord(line).entrySet()) {
 					if (entry.getValue() > 1)
 						root.addPath(entry.getKey().toArray(new Pos[0]), 0);
 				}

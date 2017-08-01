@@ -28,7 +28,7 @@ import semantic.word2vec.BadW2vInputException;
 
 public class HaikuMain {
 
-	static int markovOrder = 16;
+	static int markovOrder = 4;
 	
 	public static String rootPath = "";
 	
@@ -52,77 +52,77 @@ public class HaikuMain {
 		
 //		loadHaikuWord();
 		final HashSet<String> themeWords = new HashSet<String>(Arrays.asList(
-//				"nature",
-//				"animals",
+				"nature",
+				"animals",
 				"trees",
 				"tree",
-				"forest"
-//				"undergrowth",
-//				"green",
-//				"shadows",
-//				"shadow",
-//				"wind",
-//				"breeze",
-//				"animal"
-//				"sun",
-//				"sunset",
-//				"air",
-//				"light",
-//				"beach",
-//				"sand",
-//				"ocean",
-//				"beauty",
-//				"breeze",
-//				"grass",
-//				"mount",
-//				"mountain",
-//				"mountains",
-//				"rock",
-//				"viewpoint",
-//				"climbing",
-//				"clouds",
-//				"sunrise",
-//				"sunset",
-//				"horizon",
-//				"sky",
-//				"peak",
-//				"ascend"
-//				"wind",
-//				"water",
-//				"stream",
-//				"river"
-//				"trickle",
-//				"splash",
-//				"running"
-//				"destination",
-//				"journey",
-//				"home",
-//				"voyage"
-//				"earth",
-//				"fire"
+				"forest",
+				"undergrowth",
+				"green",
+				"shadows",
+				"shadow",
+				"wind",
+				"breeze",
+				"animal",
+				"sun",
+				"sunset",
+				"air",
+				"light",
+				"beach",
+				"sand",
+				"ocean",
+				"beauty",
+				"breeze",
+				"grass",
+				"mount",
+				"mountain",
+				"mountains",
+				"rock",
+				"viewpoint",
+				"climbing",
+				"clouds",
+				"sunrise",
+				"sunset",
+				"horizon",
+				"sky",
+				"peak",
+				"ascend",
+				"wind",
+				"water",
+				"stream",
+				"river",
+				"trickle",
+				"splash",
+				"running",
+				"destination",
+				"journey",
+				"home",
+				"voyage",
+				"earth",
+				"fire"
 				));
 		
 		// train a high-order markov model on a corpus
 		constraints.get(0).add(new ConditionedConstraint<>(new StartOfWordConstraint<>()));
 		
 		constraints.get(4).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
-//		constraints.get(4).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(disallowedPosAtPhraseEnd), false));
-//		constraints.get(4).add(new ConditionedConstraint<>(new FloatingConstraint<SyllableToken>(markovOrder, new SemanticMeaningConstraint<SyllableToken>(
-////				new HashSet<String>(Arrays.asList("love"))
-//				themeWords
-//				))));
-//		constraints.get(4).add(new ConditionedConstraint<>(new FloatingHaikuPOSSequenceConstraint<>(1)));
+		constraints.get(4).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(disallowedPosAtPhraseEnd), false));
+		constraints.get(4).add(new ConditionedConstraint<>(new FloatingConstraint<SyllableToken>(markovOrder, new SemanticMeaningConstraint<SyllableToken>(
+//				new HashSet<String>(Arrays.asList("love"))
+				themeWords
+				))));
+		constraints.get(4).add(new ConditionedConstraint<>(new FloatingHaikuPOSSequenceConstraint<>(1)));
 		
 		constraints.get(5).add(new ConditionedConstraint<>(new StartOfWordConstraint<>()));
 //		constraints.get(5).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(disallowedPosAtPhraseEnd), false));
 		
 		constraints.get(11).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
-//		constraints.get(11).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(disallowedPosAtPhraseEnd), false));
-//		constraints.get(11).add(new ConditionedConstraint<>(new FloatingConstraint<SyllableToken>(markovOrder, new SemanticMeaningConstraint<SyllableToken>(
-////				new HashSet<String>(Arrays.asList("disappointment"))
-//				themeWords
-//				))));
-//		constraints.get(11).add(new ConditionedConstraint<>(new FloatingHaikuPOSSequenceConstraint<>(2)));
+		constraints.get(11).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(disallowedPosAtPhraseEnd), false));
+		constraints.get(11).add(new ConditionedConstraint<>(new FloatingConstraint<SyllableToken>(markovOrder, new SemanticMeaningConstraint<SyllableToken>(
+//				new HashSet<String>(Arrays.asList("disappointment"))
+				themeWords
+				))));
+		constraints.get(11).add(new ConditionedConstraint<>(new FloatingHaikuPOSSequenceConstraint<>(2)));
 		
 		constraints.get(12).add(new ConditionedConstraint<>(new StartOfWordConstraint<>()));
 //		constraints.get(12).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(disallowedPosAtPhraseEnd), false));
@@ -130,10 +130,10 @@ public class HaikuMain {
 //		constraints.get(16).add(new ConditionedConstraint<>(new PartsOfSpeechConstraint<>(disallowedPosAtPhraseEnd), false));
 		constraints.get(16).add(new ConditionedConstraint<>(new EndOfWordConstraint<>()));
 		constraints.get(16).add(new ConditionedConstraint<>(new FloatingConstraint<SyllableToken>(markovOrder, new SemanticMeaningConstraint<SyllableToken>(
-				new HashSet<String>(Arrays.asList("earth","beauty"))
-//				themeWords
+//				new HashSet<String>(Arrays.asList("earth","beauty"))
+				themeWords
 				))));
-		constraints.get(16).add(new ConditionedConstraint<>(new FloatingHaikuPOSSequenceConstraint<>(4)));
+		constraints.get(16).add(new ConditionedConstraint<>(new FloatingHaikuPOSSequenceConstraint<>(3)));
 		
 //		for (int i = 0; i < 17; i++) {
 //			constraints.get(i).add(new ConditionedConstraint<>(new WordsConstraint<>(haikuWords, false)));
@@ -201,7 +201,7 @@ public class HaikuMain {
 
 	private final static String HAIKU_FILE = "data/haikus.txt";
 	
-	public static Map<List<Pos>, Integer> loadHaikuWord() throws FileNotFoundException {
+	public static Map<List<Pos>, Integer> loadHaikuWord(int lineNumber) throws FileNotFoundException {
 		Scanner scan = new Scanner(new File(HAIKU_FILE));
 		DataLoader dl = new DataLoader(markovOrder);
 		
@@ -218,8 +218,8 @@ public class HaikuMain {
 				if (numLinesInHaiku == 3) {
 					final String[] split = haiku.toString().trim().split("\n");
 					for (int j = 0; j < split.length; j++) {
-						if (j!=0) continue;
-						String haikuLine = haiku.toString();//split[j];
+						if (j !=4 && j!=(lineNumber-1)) continue;
+						String haikuLine = (lineNumber == 4 ? haiku.toString() : split[j]);
 						Pos prevPos = null;
 						List<List<SyllableToken>> convertToSyllableTokens = DataLoader.convertToSyllableTokens(dl.cleanSentence(haikuLine));
 						if (convertToSyllableTokens != null && !convertToSyllableTokens.isEmpty()) {

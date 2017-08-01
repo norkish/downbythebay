@@ -16,7 +16,7 @@ public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 	private static final W2vInterface W2VINTERFACE = new W2vInterface("news-lyrics-bom3"); 
 	private Map<String, double[]> themeWords = new ConcurrentHashMap<String, double[]>();
 //	private Set<String> choices = new HashSet<>();
-	private static final double THRESHOLD = .15;
+	private static final double THRESHOLD = .35;
 	private static final Map<String,double[]> VECTOR_DICT = new ConcurrentHashMap<>();
 	
 	public SemanticMeaningConstraint(HashSet<String> themeWords) throws BadW2vInputException {
@@ -44,11 +44,11 @@ public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 			if (vector == null) return false;
 			
 			for (double[] themeVector : themeWords.values()) {
-				if (VectorMath.cosineSimilarity(vector,themeVector) < THRESHOLD)
-					return false;
+				if (VectorMath.cosineSimilarity(vector,themeVector) >= THRESHOLD)
+					return true;
 			}
 			
-			return true;
+			return false;
 		}
 	}
 
