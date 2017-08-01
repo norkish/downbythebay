@@ -32,7 +32,7 @@ public class DataLoader {
 	private static final long MAX_TOKENS_PER_SENTENCE = 30; // keeps Stanford NLP fast
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
-	private static final double MAX_MEMORY_FOR_BASE_MODEL = 75.;
+	private static final double MAX_MEMORY_FOR_BASE_MODEL = 60.;
 	final private int BATCH_SIZE = 1000;
 	
 	private static final boolean USE_DUMMY_DATA = false;
@@ -442,6 +442,8 @@ public class DataLoader {
 		
 		DataProcessor dp = new DataProcessor();
 		int status = dp.process();
+		
+		System.out.println("Trained on " + sentencesTrainedOn + " sentences and " + sentencePronunciationsTrainedOn + " pronunciations");
 
 		Utils.normalizeByFirstDimension(transitions);
 		
@@ -455,7 +457,7 @@ public class DataLoader {
 	}
 
 	final private static String[] suffixes = new String[]{" n't "," ' "," 's "," 've ", " 'd ", " 'll ", " 're ", " 't "," 'm "};
-	private String cleanSentence(String trainingSentence) {
+	public String cleanSentence(String trainingSentence) {
 		if (DEBUG > 1) System.out.println("CLEAN:" + trainingSentence);
 		trainingSentence = " " + trainingSentence + " ";
 		for (String suffix : suffixes) {
@@ -479,7 +481,7 @@ public class DataLoader {
 		return trainingSentence;
 	}
 
-	private static List<List<SyllableToken>> convertToSyllableTokens(String trainingSentence) {
+	public static List<List<SyllableToken>> convertToSyllableTokens(String trainingSentence) {
 		if (DEBUG > 1) System.out.println("CONVERT:" + trainingSentence);
 		if (trainingSentence == null || trainingSentence.trim().isEmpty()) return null;
 		List<CoreMap> taggedSentences = nlp.parseTextToCoreMaps(trainingSentence);

@@ -11,7 +11,7 @@ import constraint.AbsoluteStressConstraint;
 import constraint.BinaryRhymeConstraint;
 import constraint.ConditionedConstraint;
 import constraint.EndOfWordConstraint;
-import constraint.FloatingPOSSequenceConstraint;
+import constraint.FloatingDBTBPOSSequenceConstraint;
 import constraint.PartsOfSpeechConstraint;
 import constraint.StartOfWordConstraint;
 import constraint.WordsConstraint;
@@ -113,7 +113,7 @@ public class Main {
 				
 				if (i == JA) {
 					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
-					constraints.get(templateLength).add(new ConditionedConstraint<>(new FloatingPOSSequenceConstraint<>()));
+					constraints.get(templateLength).add(new ConditionedConstraint<>(new FloatingDBTBPOSSequenceConstraint<>()));
 				} else if (i == MAS) {
 					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
 				}

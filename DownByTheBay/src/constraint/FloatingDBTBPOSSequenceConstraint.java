@@ -13,7 +13,7 @@ import edu.stanford.nlp.trees.Tree;
 import linguistic.syntactic.Pos;
 import markov.Token;
 
-public class FloatingPOSSequenceConstraint<T> implements TransitionalConstraint<T> {
+public class FloatingDBTBPOSSequenceConstraint<T> implements TransitionalConstraint<T> {
 
 	// if this value, for example, is 2, then the constraint indicates that the syllable 
 	// under this constraint must rhyme with the syllable 2 positions before it

@@ -57,7 +57,6 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 			Set<Integer> keysWithSupportAtPosLessOne = null;
 			
 			// handle priors first
-			System.out.print(".");
 			LinkedList<Token> priorState;
 			Constraint<T> constraint;
 			boolean desiredConstraintCondition;
@@ -95,7 +94,6 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 			// for each possible transition (fromState -> toState) from the original naive transition matrix
 			for (int i = 0; i < length-order; i++) {
 				posStateToRemove.put(i, new HashSet<Integer>());
-				System.out.print(".");
 				final ConcurrentHashMap<Integer, Integer> inSupportAtPos = new ConcurrentHashMap<Integer, Integer>();
 				this.inSupport.add(inSupportAtPos);
 
@@ -219,7 +217,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 								int nextBatchEnd, nextIdx = bm.nextBatchStart(); // SYNCHRONIZATION EVERY BATCH_SIZE STEPS
 								while (nextIdx < statesToRemoveAtPosition.length) {
 									nextBatchEnd = Math.min(statesToRemoveAtPosition.length, nextIdx + BatchManager.BATCH_SIZE);
-									System.out.println(Thread.currentThread().getName() + " pruning states with indices " + nextIdx + " to " + (nextBatchEnd-1));
+//									System.out.println(Thread.currentThread().getName() + " pruning states with indices " + nextIdx + " to " + (nextBatchEnd-1));
 
 									while (nextIdx < nextBatchEnd) {
 									// remove states marked for removal because they result in premature terminations
@@ -244,8 +242,8 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 						}
 					}
 					watch1.stop();
-					System.out.println("NUM_THREADS\tcurrIdx\tTotalStatesPruned\tTotalTime\tPruningTimePerState");
-					System.out.println(NUM_THREADS + "\t" + currIdx + "\t" + statesToRemoveAtPosition.length + "\t" + watch1.getTime() + "\t" + (1.0*watch1.getTime()/statesToRemoveAtPosition.length));
+//					System.out.println("NUM_THREADS\tcurrIdx\tTotalStatesPruned\tTotalTime\tPruningTimePerState");
+//					System.out.println(NUM_THREADS + "\t" + currIdx + "\t" + statesToRemoveAtPosition.length + "\t" + watch1.getTime() + "\t" + (1.0*watch1.getTime()/statesToRemoveAtPosition.length));
 					currIdx--;
 				}
 

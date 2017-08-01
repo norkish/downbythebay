@@ -25,7 +25,7 @@ public abstract class W2vOperations {
 
         try {
             System.out.println("Building W2v Model");
-            DataInputStream data_in = new DataInputStream(new BufferedInputStream(new FileInputStream(Main.rootPath + "data/w2v/models/bins/" + file)));
+            DataInputStream data_in = new DataInputStream(new BufferedInputStream(new FileInputStream("data/" + file)));
 
             //TODO: fix
 //            numberOfWordsInVector = 681320;     //word-phrase
@@ -441,7 +441,7 @@ public abstract class W2vOperations {
         double[] resultPoint = new double[toIntExact(numberOfDimensionsInVector)];
         int[] inputWordVocabPositions = new int[nOfPoints];
 
-        prePrint(type, strings);
+//        prePrint(type, strings);
 
         //Ensure that word2vec model contains all inputted filterWords
         for (a = 0; a < nOfPoints; a++) {
@@ -461,7 +461,7 @@ public abstract class W2vOperations {
                 b = 0;
             inputWordVocabPositions[toIntExact(a)] = toIntExact(b);
             if (b == 0) {
-                System.out.println("# Out of dictionary input word! Whole word2vec operation is broken!");
+//                System.out.println("# Out of dictionary input word! Whole word2vec operation is broken!");
                 throw new BadW2vInputException("[n/a]");
             }
         }

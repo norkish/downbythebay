@@ -1,6 +1,8 @@
 package constraint;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import data.SyllableToken;
@@ -8,46 +10,26 @@ import markov.Token;
 import semantic.word2vec.BadW2vInputException;
 import semantic.word2vec.VectorMath;
 import semantic.word2vec.W2vInterface;
-import semantic.word2vec.W2vOperations;
 
 public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 
-	String theme;
-	double[] themeVector;
+	private static final W2vInterface W2VINTERFACE = new W2vInterface("news-lyrics-bom3"); 
+	private Map<String, double[]> themeWords = new ConcurrentHashMap<String, double[]>();
 //	private Set<String> choices = new HashSet<>();
-	private final double threshold = .5;
-	public static Map<String,double[]> vectorDict = new ConcurrentHashMap<>();
+	private static final double THRESHOLD = .15;
+	private static final Map<String,double[]> VECTOR_DICT = new ConcurrentHashMap<>();
 	
-	public SemanticMeaningConstraint(String theme) throws BadW2vInputException {
-		this.theme = theme;
-		themeVector = getVectorForString(theme);
-//		if (theme.equals("nature")) {
-//			choices.add("nature");
-//			choices.add("tree");
-//			choices.add("trees");
-//			choices.add("shadow");
-//			choices.add("sun");
-//			choices.add("sunset");
-//			choices.add("beach");
-//			choices.add("sand");
-//			choices.add("ocean");
-//			choices.add("smell");
-//			choices.add("breeze");
-//			choices.add("light");
-//			choices.add("air");
-//			choices.add("grass");
-//			choices.add("mountain");
-//			choices.add("mountains");
-//			choices.add("wind");
-//			choices.add("water");
-//			choices.add("earth");
-//			choices.add("fire");
-//		}
+	public SemanticMeaningConstraint(HashSet<String> themeWords) throws BadW2vInputException {
+		for (String themeWord : themeWords) {
+			final double[] vectorForString = getVectorForString(themeWord);
+			if (vectorForString != null) this.themeWords.put(themeWord, vectorForString);
+			else System.out.println("WARNING: \"" + themeWord + "\", which was used as a theme word for a SemanticMeaningConstraint, has no vector");
+		}
 	}
 
 	@Override
 	public String toString() {
-		return "Semantic meaning: " + theme;
+		return "Semantic meaning must match all of " + themeWords.keySet();
 	}
 
 	@Override
@@ -60,20 +42,26 @@ public class SemanticMeaningConstraint<T> implements StateConstraint<T>{
 			String string = ((SyllableToken) token).getStringRepresentation();
 			double[] vector = getVectorForString(string);
 			if (vector == null) return false;
-			return (VectorMath.cosineSimilarity(vector,themeVector) >= threshold);
+			
+			for (double[] themeVector : themeWords.values()) {
+				if (VectorMath.cosineSimilarity(vector,themeVector) < THRESHOLD)
+					return false;
+			}
+			
+			return true;
 		}
 	}
 
-	private double[] getVectorForString(String string) {
-		double[] vector = vectorDict.get(string);
+	private synchronized double[] getVectorForString(String string) {
+		double[] vector = VECTOR_DICT.get(string);
 		if (vector == null) {
 			try {
-				vector = W2vInterface.getVector(string);
+				vector = W2VINTERFACE.getVector(string.toLowerCase());
 			}
 			catch (BadW2vInputException e) {
 				return null;
 			}
-			vectorDict.putIfAbsent(string, vector);
+			VECTOR_DICT.putIfAbsent(string, vector);
 		}
 		return vector;
 	}
