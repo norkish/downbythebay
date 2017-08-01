@@ -57,6 +57,11 @@
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
     </target>
+    <target name="DataLoader">
+        <java classname="data.DataLoader" failonerror="true" fork="yes">
+            <classpath refid="DownByTheBay.classpath"/>
+        </java>
+    </target>
     <target name="FreeStyleMain">
         <java classname="main.FreeStyleMain" failonerror="true" fork="yes">
             <classpath refid="DownByTheBay.classpath"/>
@@ -90,6 +95,7 @@
     <target name="Main">
         <java classname="main.Main" failonerror="true" fork="yes">
             <jvmarg line="-Xms4g -Xmx16g"/>
+            <arg line="spoken"/>
             <classpath refid="DownByTheBay.classpath"/>
         </java>
     </target>
