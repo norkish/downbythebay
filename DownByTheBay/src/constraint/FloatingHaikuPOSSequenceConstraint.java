@@ -24,12 +24,12 @@ public class FloatingHaikuPOSSequenceConstraint<T> implements TransitionalConstr
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> toState) {
+	public boolean isSatisfiedBy(LinkedList<T> fromState, LinkedList<T> toState) {
 		SyllableToken lastToken = (SyllableToken) toState.getLast();
 		
 		HaikuGrammarValidator validator = new HaikuGrammarValidator(line);
 
-		for (Token token : fromState) {
+		for (T token : fromState) {
 			final SyllableToken syllableToken = (SyllableToken) token;
 			if(!validator.validate(syllableToken.getPos()))
 				return false;

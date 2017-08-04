@@ -6,7 +6,7 @@ import data.SyllableToken;
 import linguistic.syntactic.Pos;
 import markov.Token;
 
-public class PartOfSpeechConstraint<T> implements StateConstraint<T> {
+public class PartOfSpeechConstraint<T extends Token> implements StateConstraint<T> {
 
 	@Override
 	public String toString() {
@@ -20,7 +20,7 @@ public class PartOfSpeechConstraint<T> implements StateConstraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> state, int i) {
+	public boolean isSatisfiedBy(LinkedList<T> state, int i) {
 		Token token = state.get(i);
 		if (!(token instanceof SyllableToken)) {
 			return false;

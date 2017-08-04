@@ -24,9 +24,9 @@ public class BinaryRhymeConstraint<T> implements TransitionalConstraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> toState) {
-		Token token = toState.getLast();
-		Token previousToken = fromState.get(fromState.size() - constraintSylsPrevToRhymeWith);
+	public boolean isSatisfiedBy(LinkedList<T> fromState, LinkedList<T> toState) {
+		T token = toState.getLast();
+		T previousToken = fromState.get(fromState.size() - constraintSylsPrevToRhymeWith);
 		
 		if (!(previousToken instanceof SyllableToken) || !(token instanceof SyllableToken)) {
 			return false;

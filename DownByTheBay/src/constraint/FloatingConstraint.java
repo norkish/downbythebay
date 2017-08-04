@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import data.SyllableToken;
 import markov.Token;
 
-public class FloatingConstraint<T> implements TransitionalConstraint<SyllableToken> {
+public class FloatingConstraint<T extends Token> implements TransitionalConstraint<T> {
 
 	private int lengthOfSegment;
 	private StateConstraint<T> staticConstraint;
@@ -28,7 +28,7 @@ public class FloatingConstraint<T> implements TransitionalConstraint<SyllableTok
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> toState) {
+	public boolean isSatisfiedBy(LinkedList<T> fromState, LinkedList<T> toState) {
 		if (staticConstraint.isSatisfiedBy(toState,toState.size()-1)){
 			return true;
 		}

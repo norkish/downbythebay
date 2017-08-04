@@ -1,7 +1,6 @@
 package markov;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -121,7 +120,7 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 		List<T> newSeq = new ArrayList<T>();
 		
 		fromStateIdx = sampleStartStateIdx();
-		LinkedList<Token> prefixForID = stateIndex.getPrefixForID(fromStateIdx);
+		LinkedList<T> prefixForID = stateIndex.getPrefixForID(fromStateIdx);
 		
 		final Token endToken = Token.getEndToken();
 		for (Token token : prefixForID) {
@@ -204,7 +203,7 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	}
 	
 	public static class CharacterToken extends Token{
-		public static class CharacterTokenConstraint<T> implements StateConstraint<CharacterToken> {
+		public static class CharacterTokenConstraint<T> implements StateConstraint<T> {
 
 			public CharacterToken c;
 
@@ -213,8 +212,8 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 			}
 
 			@Override
-			public boolean isSatisfiedBy(LinkedList<Token> stateList, int i) {
-				Token state = stateList.get(i);
+			public boolean isSatisfiedBy(LinkedList<T> stateList, int i) {
+				T state = stateList.get(i);
 				if (c == null) {
 					throw new RuntimeException("Constraint never specified");
 				}
@@ -270,11 +269,11 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 		BidirectionalVariableOrderPrefixIDMap<CharacterToken> statesByIndex = new BidirectionalVariableOrderPrefixIDMap<CharacterToken>(order);
 		
 		final CharacterToken cToken = new CharacterToken('C');
-		int cID = statesByIndex.addPrefix(new LinkedList<Token>(Arrays.asList(cToken)));
+		int cID = statesByIndex.addPrefix(new LinkedList<CharacterToken>(Arrays.asList(cToken)));
 		final CharacterToken dToken = new CharacterToken('D');
-		int dID = statesByIndex.addPrefix(new LinkedList<Token>(Arrays.asList(dToken)));
+		int dID = statesByIndex.addPrefix(new LinkedList<CharacterToken>(Arrays.asList(dToken)));
 		final CharacterToken eToken = new CharacterToken('E');
-		int eID = statesByIndex.addPrefix(new LinkedList<Token>(Arrays.asList(eToken)));
+		int eID = statesByIndex.addPrefix(new LinkedList<CharacterToken>(Arrays.asList(eToken)));
 		
 		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
 		

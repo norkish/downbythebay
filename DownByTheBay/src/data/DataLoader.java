@@ -80,7 +80,7 @@ public class DataLoader {
 			if (nextBatchStart > trainingSentences[source].length && source < trainingSentences.length-1 && trainingSentences[source+1] == null) {
 				loadNextFile(source+1);
 				if (source - 2 > 0) {
-					trainingSentences[source-2] = null; // free up memory
+					trainingSentences[source-4] = null; // free up memory
 				}
 			}
 			
@@ -182,7 +182,7 @@ public class DataLoader {
 								for (List<SyllableToken> trainingSentenceTokens : trainingTokensSentences) {
 									if (trainingSentenceTokens.size() < order) continue;
 	//								LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
-									LinkedList<Token> prefix = new LinkedList<Token>(trainingSentenceTokens.subList(0, order));
+									LinkedList<SyllableToken> prefix = new LinkedList<SyllableToken>(trainingSentenceTokens.subList(0, order));
 									//TODO add string associated w/ prefix to set for Word2Vec
 									fromTokenID = prefixIDMap.addPrefix(prefix);
 									for (int j = order; j < trainingSentenceTokens.size(); j++ ) {
@@ -258,7 +258,7 @@ public class DataLoader {
 				priors = priorCountsForBatch;
 			} else {
 				Double prevCount, batchCount;
-				LinkedList<Token> fromState, toState;
+				LinkedList<SyllableToken> fromState, toState;
 				Integer absoluteFromID, absoluteToID;
 				Map<Integer, Double> batchTransitionsMap, aggregateTransitionsMap;
 				
@@ -398,7 +398,7 @@ public class DataLoader {
 
 	public static StanfordNlpInterface nlp = new StanfordNlpInterface();
 
-	public static class DataSummary {
+	public static class DataSummary<T extends Token> {
 		/**
 		 * This map serves to store all possible tokens seen in the data set. Representing
 		 * each prefix as an integer saves time and space later on. Essentially each new token (after
@@ -407,7 +407,7 @@ public class DataLoader {
 		 * The integer value in the map is what is used as the key for both the priors and the transitions data
 		 * structures.
 		 */
-		public BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex;
+		public BidirectionalVariableOrderPrefixIDMap<T> statesByIndex;
 		
 		/**
 		 * The inner key k_1 and outer key k_2 are the prefix IDs (see description of statesByIndex) for the from- and to-tokens respectively.
@@ -419,7 +419,7 @@ public class DataLoader {
 
 		public Map<Integer, Double> priors;
 
-		public DataSummary(BidirectionalVariableOrderPrefixIDMap<SyllableToken> statesByIndex, Map<Integer, Double> priors, Map<Integer, Map<Integer, Double>> transitions) {
+		public DataSummary(BidirectionalVariableOrderPrefixIDMap<T> statesByIndex, Map<Integer, Double> priors, Map<Integer, Map<Integer, Double>> transitions) {
 			this.statesByIndex = statesByIndex;
 			this.transitions = transitions;
 			this.priors = priors;
@@ -438,7 +438,7 @@ public class DataLoader {
 		this.prefixIDMap = new BidirectionalVariableOrderPrefixIDMap<>(order);
 	}
 
-	public DataSummary loadData() throws InterruptedException {
+	public DataSummary<SyllableToken> loadData() throws InterruptedException {
 		
 		DataProcessor dp = new DataProcessor();
 		int status = dp.process();
@@ -447,7 +447,7 @@ public class DataLoader {
 
 		Utils.normalizeByFirstDimension(transitions);
 		
-		DataSummary summary = new DataSummary(prefixIDMap, priors, transitions);
+		DataSummary<SyllableToken> summary = new DataSummary<SyllableToken>(prefixIDMap, priors, transitions);
 		return summary;
 	}
 

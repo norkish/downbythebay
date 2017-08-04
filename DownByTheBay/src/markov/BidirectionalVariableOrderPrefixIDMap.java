@@ -24,22 +24,22 @@ public class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 		return nextID;
 	}
 
-	private Map<LinkedList<Token>, Integer> prefixToIDMap = new HashMap<LinkedList<Token>, Integer>();
-	private List<LinkedList<Token>> iDToPrefixMap = new ArrayList<LinkedList<Token>>(prefixToIDMap.size());
+	private Map<LinkedList<T>, Integer> prefixToIDMap = new HashMap<LinkedList<T>, Integer>();
+	private List<LinkedList<T>> iDToPrefixMap = new ArrayList<LinkedList<T>>(prefixToIDMap.size());
 	
 	/**
 	 * 
 	 * @param prefix
 	 * @return Integer ID associated with prefix in this Map
 	 */
-	public Integer addPrefix(LinkedList<Token> prefix) {
+	public Integer addPrefix(LinkedList<T> prefix) {
 		if(prefix.size() != order) {
 			throw new RuntimeException("Tried to add prefix \"" + prefix + "\" that does not match order of " + order);
 		}
 		Integer id = prefixToIDMap.get(prefix);
 		
 		if (id == null) {
-			final LinkedList<Token> prefixCopy = new LinkedList<Token>(prefix);
+			final LinkedList<T> prefixCopy = new LinkedList<T>(prefix);
 			synchronized(this) {
 				 id = prefixToIDMap.putIfAbsent(prefixCopy, nextID);
 				 if (id == null) {
@@ -61,11 +61,11 @@ public class BidirectionalVariableOrderPrefixIDMap<T extends Token> {
 		return (T) getPrefixForID(toStateIdx).getLast();
 	}
 	
-	public LinkedList<Token> getPrefixForID(int toStateIdx) {
+	public LinkedList<T> getPrefixForID(int toStateIdx) {
 		return getIDToPrefixMap().get(toStateIdx);
 	}
 
-	public List<LinkedList<Token>> getIDToPrefixMap() {
+	public List<LinkedList<T>> getIDToPrefixMap() {
 		return iDToPrefixMap;
 	}
 

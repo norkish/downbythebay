@@ -37,7 +37,7 @@ public class SemanticConstraint<T> implements TransitionalConstraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> token) {
+	public boolean isSatisfiedBy(LinkedList<T> fromState, LinkedList<T> token) {
 		return false;
 	}
 }

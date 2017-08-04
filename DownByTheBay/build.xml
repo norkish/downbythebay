@@ -119,4 +119,10 @@
             <classpath refid="DownByTheBay.classpath"/>
         </java>
     </target>
+    <target name="RhythmsMain">
+        <java classname="main.RhythmsMain" failonerror="true" fork="yes">
+            <jvmarg line="-ea"/>
+            <classpath refid="DownByTheBay.classpath"/>
+        </java>
+    </target>
 </project>

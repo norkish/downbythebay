@@ -6,6 +6,6 @@ import markov.Token;
 
 public interface TransitionalConstraint<T> extends Constraint<T>{
 
-	boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> token);
+	boolean isSatisfiedBy(LinkedList<T> fromState, LinkedList<T> token);
 
 }

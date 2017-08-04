@@ -21,12 +21,12 @@ public class RelativeStressConstraint<T> implements StateConstraint<T> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> state, int i) {
+	public boolean isSatisfiedBy(LinkedList<T> state, int i) {
 		if (i - constraintSylsPrevToCompareWith < 0) {
 			throw new RuntimeException("Can't compare stress at position " + i + " in state with that " + constraintSylsPrevToCompareWith + " positions previous");
 		}
-		Token token = state.get(i);
-		Token previousToken = state.get(i - constraintSylsPrevToCompareWith);
+		T token = state.get(i);
+		T previousToken = state.get(i - constraintSylsPrevToCompareWith);
 		
 		if (!(previousToken instanceof SyllableToken) || !(token instanceof SyllableToken)) {
 			return false;

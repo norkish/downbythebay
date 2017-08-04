@@ -7,7 +7,7 @@ import data.SyllableToken;
 import linguistic.phonetic.PhonemeEnum;
 import markov.Token;
 
-public class PhonemesConstraint<T> implements StateConstraint<SyllableToken> {
+public class PhonemesConstraint<T> implements StateConstraint<T> {
 
 	@Override
 	public String toString() {
@@ -21,8 +21,8 @@ public class PhonemesConstraint<T> implements StateConstraint<SyllableToken> {
 	}
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> state, int i) {
-		Token token = state.get(i);
+	public boolean isSatisfiedBy(LinkedList<T> state, int i) {
+		T token = state.get(i);
 		if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {

@@ -20,7 +20,7 @@ public class FloatingDBTBPOSSequenceConstraint<T> implements TransitionalConstra
 	// this must be greater than the Markov order and cannot point to a position before the 0th position 
 
 	@Override
-	public boolean isSatisfiedBy(LinkedList<Token> fromState, LinkedList<Token> toState) {
+	public boolean isSatisfiedBy(LinkedList<T> fromState, LinkedList<T> toState) {
 		return isSatisfiedByGrammarTreeMethod(fromState, toState);
 //		return isSatisfiedByParseNounPhraseMethod(fromState, toState);
 	}
@@ -58,12 +58,12 @@ public class FloatingDBTBPOSSequenceConstraint<T> implements TransitionalConstra
 		return false;
 	}
 
-	private boolean isSatisfiedByGrammarTreeMethod(LinkedList<Token> fromState, LinkedList<Token> toState) {
+	private boolean isSatisfiedByGrammarTreeMethod(LinkedList<T> fromState, LinkedList<T> toState) {
 		SyllableToken lastToken = (SyllableToken) toState.getLast();
 		
 		DBTBGrammarValidator validator = new DBTBGrammarValidator();
 
-		for (Token token : fromState) {
+		for (T token : fromState) {
 			final SyllableToken syllableToken = (SyllableToken) token;
 			final String stringRepresentation = syllableToken.getStringRepresentation();
 			if(stringRepresentation.equals("for") || stringRepresentation.equals("into") || !validator.validate(syllableToken.getPos()))
