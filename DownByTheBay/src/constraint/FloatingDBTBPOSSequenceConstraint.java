@@ -167,8 +167,7 @@ public class FloatingDBTBPOSSequenceConstraint<T> implements TransitionalConstra
 			new Pos[]{Pos.NN,Pos.VBD,Pos.JJ,Pos.IN,Pos.NN}, // a tray piled high with hay
 			new Pos[]{Pos.NN,Pos.VBG,Pos.DT, Pos.NN}, // A frog eating a big dog, a bird eating a worm, a bird eyeing a worm
 			new Pos[]{Pos.NN,Pos.VBG,Pos.IN,Pos.NN}, // A cage dangling in space
-			new Pos[]{Pos.NN,Pos.VBG,Pos.NN,Pos.NN}, // a llama wearing polka dot pajamas
-			new Pos[]{Pos.NN,Pos.VBG,Pos.NN}, // a llama wearing pajamas
+			new Pos[]{Pos.NN,Pos.VBG,Pos.NN}, // a llama wearing polka dot pajamas
 			new Pos[]{Pos.NN,Pos.VBG,Pos.PRP$,Pos.NN}, // A bear combing his hair, 1a man losing his land
 			new Pos[]{Pos.NN,Pos.VBG,Pos.RP,Pos.PRP$,Pos.NN}, // A tear trickling down his beard
 			new Pos[]{Pos.NN,Pos.VBG,Pos.RP,Pos.DT,Pos.NN}, // a breeze blowing off the sea

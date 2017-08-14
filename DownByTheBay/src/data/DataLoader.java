@@ -79,9 +79,6 @@ public class DataLoader {
 			
 			if (nextBatchStart > trainingSentences[source].length && source < trainingSentences.length-1 && trainingSentences[source+1] == null) {
 				loadNextFile(source+1);
-				if (source - 2 > 0) {
-					trainingSentences[source-4] = null; // free up memory
-				}
 			}
 			
 			return nextBatchStart;
