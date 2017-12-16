@@ -20,7 +20,7 @@ public class SyllableToken extends Token {
 		if (getStress() != that.getStress()) return false;
 		if (!getPhonemes().equals(that.getPhonemes())) return false;
 		if (getPos() != that.getPos()) return false;
-		return getStringRepresentation().equals(that.getStringRepresentation());
+		return getStringRepresentation().replaceAll("[^a-zA-Z' ]+", "").toLowerCase().equals(that.getStringRepresentation().replaceAll("[^a-zA-Z' ]+", "").toLowerCase());
 	}
 
 	@Override
@@ -30,7 +30,7 @@ public class SyllableToken extends Token {
 		result = 31 * result + getCountOfSylsInContext();
 		result = 31 * result + getPositionInContext();
 		result = 31 * result + getStress();
-		result = 31 * result + getStringRepresentation().hashCode();
+		result = 31 * result + getStringRepresentation().replaceAll("[^a-zA-Z' ]+", "").toLowerCase().hashCode();
 		return result;
 	}
 

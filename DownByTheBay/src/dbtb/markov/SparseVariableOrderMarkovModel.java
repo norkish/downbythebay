@@ -85,6 +85,17 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	{
 		StringBuilder str = new StringBuilder();
 		
+		str.append("sigma:");
+		str.append("[");
+		final List<LinkedList<T>> idToPrefixMap = stateIndex.getIDToPrefixMap();
+		for (int i = 0; i < idToPrefixMap.size(); i++) {
+			str.append("\n\t");
+			str.append(i);
+			str.append(':');
+			str.append(idToPrefixMap.get(i));
+		}
+		str.append("\n]\n\n");
+		
 		str.append("logPriors:");
 		str.append("[");
 		for (Entry<Integer, Double> entry : logPriors.entrySet()) {

@@ -2,19 +2,23 @@ package dbtb.constraint;
 
 import java.util.LinkedList;
 
+import automaton.RegularConstraintApplier.StateToken;
 import dbtb.data.SyllableToken;
-import dbtb.markov.Token;
 
 public class StartOfWordConstraint<T> implements StateConstraint<T> {
 
 	@Override
 	public boolean isSatisfiedBy(LinkedList<T> state, int i) {
 		T token = state.get(i);
-		if (!(token instanceof SyllableToken)) {
+		SyllableToken sToken;
+		if (token instanceof StateToken) {
+			sToken = ((StateToken<SyllableToken>) token).token;
+		} else if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			return ((SyllableToken) token).getPositionInContext() == 0;
+			sToken = (SyllableToken) token;
 		}
+		return sToken.getPositionInContext() == 0;
 	}
 
 	private final String string = "Must be first syllable in a word";

@@ -7,6 +7,10 @@ import java.util.List;
 
 import org.apache.commons.lang3.time.StopWatch;
 
+import automaton.Automaton;
+import automaton.MatchDFABuilder;
+import automaton.RegularConstraintApplier;
+import automaton.RegularConstraintApplier.StateToken;
 import dbtb.constraint.AbsoluteStressConstraint;
 import dbtb.constraint.BinaryRhymeConstraint;
 import dbtb.constraint.ConditionedConstraint;
@@ -24,7 +28,7 @@ import dbtb.markov.SparseVariableOrderNHMMMultiThreaded;
 import dbtb.markov.Token;
 import dbtb.markov.UnsatisfiableConstraintSetException;
 
-public class Main {
+public class DownByTheBayWithDFA {
 
 	static int markovOrder;
 	
@@ -32,7 +36,7 @@ public class Main {
 		final static int A = 0, LLA = 1, MA = 2,
 			WEAR = 3, ING = 4, POL = 5, KA = 6, DOT = 7, PA = 8, JA = 9, MAS = 10;
 
-	public static String rootPath = "/Users/norkish/Archive/2017_BYU/ComputationalCreativity/";
+	public static String rootPath = "";
 	
 	public static void main(String[] args) throws InterruptedException{
 
@@ -45,9 +49,9 @@ public class Main {
 		int[] rhythmicSuperTemplate = new int[]{-1,1,-1,1,-1,1,-1,1,-1,1,-1};
 		
 		// a constraint is a {syllable position, feature index, value}
-		List<List<ConditionedConstraint<SyllableToken>>> generalConstraints = new ArrayList<>();
+		List<List<ConditionedConstraint<StateToken<SyllableToken>>>> generalConstraints = new ArrayList<>();
 		for (int i = 0; i < rhythmicSuperTemplate.length; i++) {
-			final ArrayList<ConditionedConstraint<SyllableToken>> constraintsForPosition = new ArrayList<>();
+			final ArrayList<ConditionedConstraint<StateToken<SyllableToken>>> constraintsForPosition = new ArrayList<>();
 			generalConstraints.add(constraintsForPosition);
 		}
 		
@@ -64,18 +68,18 @@ public class Main {
 		
 		int[][] allRhythmicTemplates = new int[][] {
 			new int[]{0,1,-1,-1,-1,1,0,-1,0,1,-1}, // "a bear . . . combing . his hair ."
-			new int[]{0,1,-1,-1,-1,1,0,1,0,1,-1}, // "a law . . . drinking from a straw ."
-			new int[]{0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
-			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1}, //"a moose . with a pair of new . shoes ."
-			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
+//			new int[]{0,1,-1,-1,-1,1,0,1,0,1,-1}, // "a law . . . drinking from a straw ."
+//			new int[]{0,1,0,-1,-1,1,0,-1,0,1,0}, // "a llama wearing pajamas"
+//			new int[]{0,1,-1,1,0,1,0,1,-1,1,-1}, //"a moose . with a pair of new . shoes ."
+//			new int[]{0,1,0,1,0,1,0,1,0,1,0}, // "a llama wearing polka dot pajamas"
 		};
 		
 		int prevOrder = -1;
 		SparseVariableOrderMarkovModel<SyllableToken> markovModel = null;
 		for (int[] rhythmicTemplate : allRhythmicTemplates) {
 			memoryCheck();
-			List<List<ConditionedConstraint<SyllableToken>>> constraints = new ArrayList<>();
-			for (List<ConditionedConstraint<SyllableToken>> allConstraintsAtPosition : generalConstraints) {
+			List<List<ConditionedConstraint<StateToken<SyllableToken>>>> constraints = new ArrayList<>();
+			for (List<ConditionedConstraint<StateToken<SyllableToken>>> allConstraintsAtPosition : generalConstraints) {
 				constraints.add(new ArrayList<>(allConstraintsAtPosition));
 			}
 			int templateLength = 0;
@@ -112,10 +116,10 @@ public class Main {
 					rhymeDistance++;
 				
 				if (i == JA) {
-					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
-					constraints.get(templateLength).add(new ConditionedConstraint<>(new FloatingDBTBPOSSequenceConstraint<>()));
+//					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
+//					constraints.get(templateLength).add(new ConditionedConstraint<>(new FloatingDBTBPOSSequenceConstraint<>()));
 				} else if (i == MAS) {
-					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
+//					constraints.get(templateLength).add(new ConditionedConstraint<>(new BinaryRhymeConstraint<>(rhymeDistance)));
 				}
 				templateLength += 1;
 			}
@@ -123,7 +127,7 @@ public class Main {
 			// add end of word constraint at end
 			constraints.get(templateLength-1).add(0, new ConditionedConstraint<>(new EndOfWordConstraint<>())); // ensure ends at end of a word
 			
-			markovOrder = rhymeDistance;
+			markovOrder = 1;
 			
 			StopWatch watch = new StopWatch();
 			if (markovOrder != prevOrder) {
@@ -143,17 +147,26 @@ public class Main {
 
 			System.out.println("For Rhythmic Template: " + Arrays.toString(rhythmicTemplate));
 			// create a constrained markov model of length rhythmicSuperTemplate.length and with constraints in constraints
-			SparseVariableOrderNHMMMultiThreaded<SyllableToken> constrainedMarkovModel;
+			SparseVariableOrderNHMMMultiThreaded<StateToken<SyllableToken>> constrainedMarkovModel;
 			watch.start();
 			try {
 				System.out.println("Creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
 				for (int i = 0; i < constraints.size(); i++) {
 					System.out.println("\tAt position " + i + ":");
-					for (ConditionedConstraint<SyllableToken> constraint : constraints.get(i)) {
+					for (ConditionedConstraint<StateToken<SyllableToken>> constraint : constraints.get(i)) {
 						System.out.println("\t\t" + constraint);
 					}
 				}
-				constrainedMarkovModel = new SparseVariableOrderNHMMMultiThreaded<>(markovModel, templateLength, constraints);
+				// TODO: change the matchConstraintList
+//				int[] matchConstraintList = new int[]{-1,10,11,-1,-1,-1,-1,-1,-1,-1,-1}; // 1-based
+				int[] matchConstraintList = new int[]{-1,6,-1,-1,-1,-1}; // 1-based
+				int length = matchConstraintList.length;
+				
+				Automaton<SyllableToken> A = MatchDFABuilder.buildEfficiently(matchConstraintList, markovModel);
+				
+				constrainedMarkovModel = RegularConstraintApplier.combineAutomataWithMarkov(markovModel, A, length, constraints);
+				
+//				constrainedMarkovModel = new SparseVariableOrderNHMMMultiThreaded<>(markovModel, templateLength, constraints);
 				memoryCheck();
 
 				System.out.println();
@@ -169,25 +182,27 @@ public class Main {
 			System.out.println("Finished creating " + markovOrder + "-order NHMM of length " + templateLength + " with constraints:");
 			for (int i = 0; i < constraints.size(); i++) {
 				System.out.println("\tAt position " + i + ":");
-				for (ConditionedConstraint<SyllableToken> constraint : constraints.get(i)) {
+				for (ConditionedConstraint<StateToken<SyllableToken>> constraint : constraints.get(i)) {
 					System.out.println("\t\t" + constraint);
 				}
 			}
 			
-//			for (int i = 0; i < 20; i++) {
+			for (int i = 0; i < 20; i++) {
 				// generate a sequence of syllable tokens that meet the constraints
-//				List<SyllableToken> generatedSequence = constrainedMarkovModel.generate(templateLength);
-			for(List<SyllableToken> generatedSequence : constrainedMarkovModel.generateFromAllPriors(templateLength)) {
+				List<StateToken<SyllableToken>> generatedSequence = constrainedMarkovModel.generate(templateLength);
+//			for(List<StateToken<SyllableToken>> generatedSequence : constrainedMarkovModel.generateFromAllPriors(templateLength)) {
 				// convert the sequence of syllable tokens to a human-readable string
 				System.out.print("\tHave you ever seen ");
-				for (SyllableToken syllableToken : generatedSequence) {
+				for (StateToken<SyllableToken> token : generatedSequence) {
+					SyllableToken syllableToken = token.token;
 					System.out.print(syllableToken.getStringRepresentationIfFirstSyllable() + (syllableToken.getPositionInContext() == syllableToken.getCountOfSylsInContext()-1?" ":""));
 				}
 //				System.out.println("down by the bay?");
 				System.out.println();
 				System.out.print("\t\t");
 				boolean first = true;
-				for (SyllableToken syllableToken : generatedSequence) {
+				for (StateToken<SyllableToken> token : generatedSequence) {
+					SyllableToken syllableToken = token.token;
 					if (first) {
 						first = false;
 					} else {
@@ -214,7 +229,7 @@ public class Main {
 	public static void setupRootPath() {
 		//Set the root path of Lyrist in U
 		final File currentDirFile = new File("");
-		Main.rootPath = currentDirFile.getAbsolutePath() + "/";
+		DownByTheBayWithDFA.rootPath = currentDirFile.getAbsolutePath() + "/";
 	}
 
 }

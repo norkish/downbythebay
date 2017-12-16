@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
+import automaton.RegularConstraintApplier.StateToken;
 import dbtb.data.SyllableToken;
 import dbtb.linguistic.syntactic.Pos;
 import dbtb.markov.Token;
@@ -25,12 +26,16 @@ public class PartsOfSpeechConstraint<T> implements StateConstraint<T> {
 	@Override
 	public boolean isSatisfiedBy(LinkedList<T> state, int i) {
 		T token = state.get(i);
-		if (!(token instanceof SyllableToken)) {
+		SyllableToken sToken;
+		if (token instanceof StateToken) {
+			sToken = ((StateToken<SyllableToken>) token).token;
+		} else if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			Pos tokenPos = ((SyllableToken) token).getPos();
-			return constraintPosChoices.contains(tokenPos);
+			sToken = ((SyllableToken) token);
 		}
+		Pos tokenPos = sToken.getPos();
+		return constraintPosChoices.contains(tokenPos);
 	}
 
 }

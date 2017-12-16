@@ -16,7 +16,7 @@ import java.util.Set;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import dbtb.linguistic.phonetic.PhonemeEnum;
+import dbtb.main.Main;
 import dbtb.utils.EnglishNumberToWords;
 import dbtb.utils.Pair;
 import edu.cmu.sphinx.linguist.g2p.G2PConverter;
@@ -24,12 +24,12 @@ import edu.cmu.sphinx.linguist.g2p.Path;
 
 public class Phonetecizer {
 
-	private static final String cmuFilePath = "data/pron_dict/cmudict-0.7b.txt";
-	private static final String phonesFilePath = "data/pron_dict/cmudict-0.7b.phones.reordered.txt";
+	private static final String cmuFilePath = Main.rootPath + "data/pron_dict/cmudict-0.7b.txt";
+	private static final String phonesFilePath = Main.rootPath + "data/pron_dict/cmudict-0.7b.phones.reordered.txt";
 	private static Map<String, List<StressedPhone[]>> cmuDict = loadCMUDict();
 	private static Map<String, Pair<Integer, PhoneCategory>> phonesDict = loadPhonesDict();
 	private static List<Pair<String, PhoneCategory>> reversePhonesDict = loadReversePhonesDict();
-	private static G2PConverter converter = new G2PConverter("data/pron_dict/model.fst.ser");
+	private static G2PConverter converter = new G2PConverter(Main.rootPath + "data/pron_dict/model.fst.ser");
 
 	/**
 	 * Loads CMU dictionary from file into a datastructure

@@ -24,6 +24,8 @@ import dbtb.utils.MathUtils;
 
 public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends AbstractMarkovModel<T>{
 
+	private static final int DEBUG = 0;
+	
 	public class BatchManager {
 
 		protected static final int BATCH_SIZE = 5000;
@@ -201,12 +203,12 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 				}
 				
 				int currIdx = i-1;
-				System.out.println("Pruning backward from constraints at pos " + currIdx);
+				if (DEBUG > 0) System.out.println("Pruning backward from constraints at pos " + currIdx);
 				while (currIdx > -2 && !inSupportAtPos.isEmpty()) {
 					StopWatch watch1 = new StopWatch();
 					watch1.start();
 					final int currWorkIdx = currIdx;
-					System.out.println("\tRemoving states at position " + currIdx);
+					if (DEBUG > 0) System.out.println("\tRemoving states at position " + currIdx);
 					final Integer[] statesToRemoveAtPosition = posStateToRemove.get(currWorkIdx).toArray(new Integer[0]);
 					final BatchManager bm = new BatchManager();
 					tg = new ThreadGroup("all threads");
@@ -255,7 +257,7 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 			
 		}
 		
-		System.out.println("Log Normalizing...");
+		if (DEBUG > 0) System.out.println("Log Normalizing...");
 		logNormalize();
 	}
 
@@ -434,6 +436,16 @@ public class SparseVariableOrderNHMMMultiThreaded<T extends Token> extends Abstr
 	public String toString()
 	{
 		StringBuilder str = new StringBuilder();
+		
+		str.append("logPriors:\n");
+		str.append("[");
+		for (Entry<Integer, Double> entry : logPriors.entrySet()) {
+			str.append("\n\t");
+			str.append(entry.getKey());
+			str.append(" : ");				
+			str.append(Math.exp(entry.getValue()));
+		}
+		str.append("\n]\n\n");
 		
 		str.append("logTransitions:\n");
 		for (int i = 0; i < logTransitions.size(); i++) {

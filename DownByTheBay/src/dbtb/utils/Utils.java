@@ -284,6 +284,7 @@ public class Utils {
 		throw new RuntimeException("Total was " + total + "; sum was " + sum);
 	}
 	public static <T,S,U> U removeKeys(Map<T, Map<S, U>> delta, T outerKey, S innerKey) {
+		if (!delta.containsKey(outerKey)) return null;
 		final U remove = delta.get(outerKey).remove(innerKey);
 		if (delta.get(outerKey).isEmpty()) {
 			delta.remove(outerKey);
@@ -292,6 +293,7 @@ public class Utils {
 	}
 
 	public static <T,S,U,V> V removeKeys(Map<T, Map<S, Map<U,V>>> delta, T outerKey, S middleKey, U innerKey) {
+		if (!delta.containsKey(outerKey)) return null;
 		final V removeKeys = removeKeys(delta.get(outerKey), middleKey, innerKey);
 		if (delta.get(outerKey).isEmpty()) {
 			delta.remove(outerKey);

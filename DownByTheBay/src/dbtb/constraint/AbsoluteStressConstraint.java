@@ -2,8 +2,8 @@ package dbtb.constraint;
 
 import java.util.LinkedList;
 
+import automaton.RegularConstraintApplier.StateToken;
 import dbtb.data.SyllableToken;
-import dbtb.markov.Token;
 
 public class AbsoluteStressConstraint<T> implements StateConstraint<T> {
 
@@ -21,11 +21,16 @@ public class AbsoluteStressConstraint<T> implements StateConstraint<T> {
 	@Override
 	public boolean isSatisfiedBy(LinkedList<T> state, int i) {
 		T token = state.get(i);
-		if (!(token instanceof SyllableToken)) {
+		SyllableToken sToken;
+		
+		if (token instanceof StateToken) {
+			sToken = ((StateToken<SyllableToken>) token).token;
+		} else if (!(token instanceof SyllableToken)) {
 			return false;
 		} else {
-			return (((SyllableToken) token).getStress() == 1) == (constraintStress == 1);
+			sToken = (SyllableToken) token;
 		}
+		return (sToken.getStress() == 1) == (constraintStress == 1);
 	}
 
 }

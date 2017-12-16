@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import automaton.RegularConstraintApplier.StateToken;
 import dbtb.constraint.ConditionedConstraint;
 import dbtb.constraint.StatesConstraint;
 import dbtb.data.DataLoader;
@@ -75,7 +74,7 @@ public class RegularConstraintApplier {
 	public static DecimalFormat df2 = new DecimalFormat("#.##");
 
 	public static <T extends Token> FactorGraph<T> combineAutomataWithMarkovInFactorGraph(SparseVariableOrderMarkovModel<T> M, 
-			Automaton<T> A, int length, List<List<ConditionedConstraint<T>>> constraints) {
+			Automaton<T> A, int length, List<List<ConditionedConstraint<StateToken<T>>>> constraints) {
 		
 		final BidirectionalVariableOrderPrefixIDMap<T> oldPrefixMap = M.stateIndex;
 		assert (A.sigma == oldPrefixMap);
@@ -143,7 +142,7 @@ public class RegularConstraintApplier {
 	}
 	
 	public static <T extends Token> SparseVariableOrderNHMMMultiThreaded<StateToken<T>> combineAutomataWithMarkov(SparseVariableOrderMarkovModel<T> M, 
-			Automaton<T> A, int length, List<List<ConditionedConstraint<T>>> constraints) throws UnsatisfiableConstraintSetException, InterruptedException {
+			Automaton<T> A, int length, List<List<ConditionedConstraint<StateToken<T>>>> constraints) throws UnsatisfiableConstraintSetException, InterruptedException {
 		
 		final BidirectionalVariableOrderPrefixIDMap<T> oldPrefixMap = M.stateIndex;
 		assert (A.sigma == oldPrefixMap);
@@ -196,28 +195,28 @@ public class RegularConstraintApplier {
 		}
 //		Utils.normalizeByFirstDimension(newTransitions);
 
-		System.out.println("\nNew Priors");
-		
-		for (Integer priorKey : newPriors.keySet()) {
-			System.out.println(newPrefixMap.getPrefixFinaleForID(priorKey) + " : " + newPriors.get(priorKey));
-		}
-		
-		System.out.println("\nNew Transitions");
-		int prefixCount = newPrefixMap.getPrefixCount();
-		for (int i = 0; i < prefixCount; i++) {
-			Map<Integer, Double> fromMap = newTransitions.get(i);
-			if (fromMap == null) continue;
-			for (int j = 0; j < prefixCount; j++) {
-				Double double1 = fromMap.get(j);
-				if (double1 != null)
-					System.out.println("(" + newPrefixMap.getPrefixFinaleForID(i) + ") -> (" + newPrefixMap.getPrefixFinaleForID(j) + ") : " + df2.format(double1));
-			}
-		}
-		System.out.println();
+//		System.out.println("\nNew Priors");
+//		
+//		for (Integer priorKey : newPriors.keySet()) {
+//			System.out.println(newPrefixMap.getPrefixFinaleForID(priorKey) + " : " + newPriors.get(priorKey));
+//		}
+//		
+//		System.out.println("\nNew Transitions");
+//		int prefixCount = newPrefixMap.getPrefixCount();
+//		for (int i = 0; i < prefixCount; i++) {
+//			Map<Integer, Double> fromMap = newTransitions.get(i);
+//			if (fromMap == null) continue;
+//			for (int j = 0; j < prefixCount; j++) {
+//				Double double1 = fromMap.get(j);
+//				if (double1 != null)
+//					System.out.println("(" + newPrefixMap.getPrefixFinaleForID(i) + ") -> (" + newPrefixMap.getPrefixFinaleForID(j) + ") : " + df2.format(double1));
+//			}
+//		}
+//		System.out.println();
 		
 		
 		SparseVariableOrderMarkovModel<StateToken<T>> combinedMarkovModel = new SparseVariableOrderMarkovModel<StateToken<T>>(newPrefixMap,newPriors,newTransitions);
-		
+//		System.out.println(combinedMarkovModel.toString());
 		List<List<ConditionedConstraint<StateToken<T>>>> newConstraints = modifyConstraints(constraints);
 		
 		// add constraints to start in state reachable from q0 and end in one of accepting states, and generally apply g_i
@@ -239,17 +238,18 @@ public class RegularConstraintApplier {
 	}
 
 	private static <T extends Token> List<List<ConditionedConstraint<StateToken<T>>>> modifyConstraints(
-			List<List<ConditionedConstraint<T>>> constraints) {
+			List<List<ConditionedConstraint<StateToken<T>>>> constraints) {
 		List<List<ConditionedConstraint<StateToken<T>>>> newConstraints = new ArrayList<List<ConditionedConstraint<StateToken<T>>>>();
 		
 		for (int i = 0; i < constraints.size(); i++) {
 			List<ConditionedConstraint<StateToken<T>>> newConstraintsForPos = new ArrayList<ConditionedConstraint<StateToken<T>>>();
 			newConstraints.add(newConstraintsForPos);
-			List<ConditionedConstraint<T>> constraintsForPos = constraints.get(i);
-			for (ConditionedConstraint<T> conditionedConstraint : constraintsForPos) {
-//				TODO: figure out how to convert constraints to apply to statetokens
+			List<ConditionedConstraint<StateToken<T>>> constraintsForPos = constraints.get(i);
+			for (ConditionedConstraint<StateToken<T>> conditionedConstraint : constraintsForPos) {
+				newConstraintsForPos.add(conditionedConstraint);
 			}
 		}
+	
 		return newConstraints;
 	}
 
@@ -258,7 +258,7 @@ public class RegularConstraintApplier {
 		runExample2(); // dead bear with Ed with bed hair
 		runExample3(); // 3-length 1-order NHMM with regular constraint: {a+b+}
 		runExample4(); // 3-length 1-order NHMM with regular constraint: {a*ba*}
-		runExample5(); // 4-length 1-order NHMM with regular constraint: {a+ba+}
+//		runExample5(); // 4-length 1-order NHMM with regular constraint: {a+ba+}
 //		runExample6(); // abracadabra with max order
 	}
 
@@ -291,7 +291,7 @@ public class RegularConstraintApplier {
 		Map<Integer,Double> bTransitions = new HashMap<Integer,Double>();
 		transitions.put(bTokenIdx, bTransitions);
 		bTransitions.put(aTokenIdx, 1.0);
-//		aTransitions.put(bTokenIdx, 0.0);
+//		bTransitions.put(bTokenIdx, 0.0);
 		
 		SparseVariableOrderMarkovModel<CharacterToken> M = new SparseVariableOrderMarkovModel<CharacterToken>(prefixMap,priors,transitions);
 		
@@ -310,24 +310,40 @@ public class RegularConstraintApplier {
 		Automaton<CharacterToken> A = new Automaton<CharacterToken>(prefixMap,delta,acceptingStates);
 		
 		final int length = 4;
-		final ArrayList<List<ConditionedConstraint<CharacterToken>>> constraints = new ArrayList<List<ConditionedConstraint<CharacterToken>>>();
+		final ArrayList<List<ConditionedConstraint<StateToken<CharacterToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<CharacterToken>>>>();
 		for (int i = 0; i < length; i++) {
-			constraints.add(new ArrayList<ConditionedConstraint<CharacterToken>>());
+			constraints.add(new ArrayList<ConditionedConstraint<StateToken<CharacterToken>>>());
 		}
 		
 		SparseVariableOrderNHMMMultiThreaded<StateToken<CharacterToken>> NHMM = combineAutomataWithMarkov(M, A, length, constraints);
 		
 		System.out.println("4-length 1-order NHMM with regular constraint: {aa+b+}");
-		for (int i = 0; i < 20; i++) {
+		Map<String,Double> counts = new HashMap<String, Double>();
+		Map<String,Double> probs = new HashMap<String, Double>();
+		int SAMPLE_COUNT = 10000;
+		for (int i = 0; i < SAMPLE_COUNT; i++) {
 			final List<StateToken<CharacterToken>> generate = NHMM.generate(length);
-			System.out.println("\t\t" + generate + "\tProb:" + NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+			Utils.incrementValueForKey(counts, generate.toString());
+			probs.put(generate.toString(), NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+		}
+		
+		for (String generate : counts.keySet()) {
+			System.out.println("\t\tProb:" + probs.get(generate) + ", XProb:" + (counts.get(generate)/SAMPLE_COUNT) + "\t" + generate);
 		}
 		
 		FactorGraph<CharacterToken> factorGraph = combineAutomataWithMarkovInFactorGraph(M, A, length, constraints);
 		System.out.println("4-length 1-order NHMM with regular constraint: {aa+b+}");
-		for (int i = 0; i < 20; i++) {
+		counts = new HashMap<String, Double>();
+		probs = new HashMap<String, Double>();
+
+		for (int i = 0; i < SAMPLE_COUNT; i++) {
 			final Pair<List<StateToken<CharacterToken>>,Double> generate = factorGraph.generate(length);
-			System.out.println("\t\t" + generate.getFirst() + "\tProb:" + generate.getSecond());
+			Utils.incrementValueForKey(counts, generate.getFirst().toString());
+			probs.put(generate.getFirst().toString(), generate.getSecond());
+		}
+		
+		for (String generate : counts.keySet()) {
+			System.out.println("\t\tProb:" + probs.get(generate) + ", XProb:" + (counts.get(generate)/SAMPLE_COUNT) + "\t" + generate);
 		}
 	}
 
@@ -375,8 +391,6 @@ public class RegularConstraintApplier {
 		Map<Integer, Map<Integer, Integer>> delta = new HashMap<Integer, Map<Integer, Integer>>(); 
 		Set<Integer> acceptingStates = new HashSet<Integer>();
 		
-		
-
 		Utils.setValueForKeys(delta, 0, deadTokenIdx, 1);
 		Utils.setValueForKeys(delta, 1, bearTokenIdx, 2);
 		Utils.setValueForKeys(delta, 2, withTokenIdx, 3);
@@ -400,23 +414,39 @@ public class RegularConstraintApplier {
 		
 		System.out.println("A:\n" + A.toString());
 		
-		final ArrayList<List<ConditionedConstraint<SyllableToken>>> constraints = new ArrayList<List<ConditionedConstraint<SyllableToken>>>();
+		final ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>>();
 		for (int i = 0; i < length; i++) {
-			constraints.add(new ArrayList<ConditionedConstraint<SyllableToken>>());
+			constraints.add(new ArrayList<ConditionedConstraint<StateToken<SyllableToken>>>());
 		}
 		
 		SparseVariableOrderNHMMMultiThreaded<StateToken<SyllableToken>> NHMM = combineAutomataWithMarkov(M, A, length, constraints);
 		System.out.println("NHMM:");
-		for (int i = 0; i < 20; i++) {
+		Map<String,Double> counts = new HashMap<String, Double>();
+		Map<String,Double> probs = new HashMap<String, Double>();
+		int SAMPLE_COUNT = 10000;
+		for (int i = 0; i < SAMPLE_COUNT; i++) {
 			final List<StateToken<SyllableToken>> generate = NHMM.generate(length);
-			System.out.println("\t\t" + generate + "\tProb:" + NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+			Utils.incrementValueForKey(counts, generate.toString());
+			probs.put(generate.toString(), NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+		}
+		
+		for (String generate : counts.keySet()) {
+			System.out.println("\t\tProb:" + probs.get(generate) + ", XProb:" + (counts.get(generate)/SAMPLE_COUNT) + "\t" + generate);
 		}
 		
 		FactorGraph<SyllableToken> factorGraph = combineAutomataWithMarkovInFactorGraph(M, A, length, constraints);
 		System.out.println("Factor Graph:");
-		for (int i = 0; i < 20; i++) {
+		counts = new HashMap<String, Double>();
+		probs = new HashMap<String, Double>();
+
+		for (int i = 0; i < SAMPLE_COUNT; i++) {
 			final Pair<List<StateToken<SyllableToken>>,Double> generate = factorGraph.generate(length);
-			System.out.println("\t\t" + generate.getFirst() + "\tProb:" + generate.getSecond());
+			Utils.incrementValueForKey(counts, generate.getFirst().toString());
+			probs.put(generate.getFirst().toString(), generate.getSecond());
+		}
+		
+		for (String generate : counts.keySet()) {
+			System.out.println("\t\tProb:" + probs.get(generate) + ", XProb:" + (counts.get(generate)/SAMPLE_COUNT) + "\t" + generate);
 		}
 	}
 
@@ -467,9 +497,9 @@ public class RegularConstraintApplier {
 		Automaton<CharacterToken> A = new Automaton<CharacterToken>(prefixMap,delta,acceptingStates);
 		
 		final int length = 3;
-		final ArrayList<List<ConditionedConstraint<CharacterToken>>> constraints = new ArrayList<List<ConditionedConstraint<CharacterToken>>>();
+		final ArrayList<List<ConditionedConstraint<StateToken<CharacterToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<CharacterToken>>>>();
 		for (int i = 0; i < length; i++) {
-			constraints.add(new ArrayList<ConditionedConstraint<CharacterToken>>());
+			constraints.add(new ArrayList<ConditionedConstraint<StateToken<CharacterToken>>>());
 		}
 		
 		SparseVariableOrderNHMMMultiThreaded<StateToken<CharacterToken>> NHMM = combineAutomataWithMarkov(M, A, length, constraints);
@@ -479,16 +509,32 @@ public class RegularConstraintApplier {
 		System.out.println("Original probabilities:\n\tabb = .66 * .82 = 0.5412 (0.5412/0.7656 = 0.7068965517)\n\taab = .34 * .66 = 0.2244 (0.2244/0.7656 = 0.2931034483)\n");
 		
 		System.out.println("3-length 1-order NHMM with regular constraint: {a+b+}");
-		for (int i = 0; i < 20; i++) {
+		Map<String,Double> counts = new HashMap<String, Double>();
+		Map<String,Double> probs = new HashMap<String, Double>();
+		int SAMPLE_COUNT = 10000;
+		for (int i = 0; i < SAMPLE_COUNT; i++) {
 			final List<StateToken<CharacterToken>> generate = NHMM.generate(length);
-			System.out.println("\t\t" + generate + "\tProb:" + NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+			Utils.incrementValueForKey(counts, generate.toString());
+			probs.put(generate.toString(), NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+		}
+		
+		for (String generate : counts.keySet()) {
+			System.out.println("\t\tProb:" + probs.get(generate) + ", XProb:" + (counts.get(generate)/SAMPLE_COUNT) + "\t" + generate);
 		}
 		
 		FactorGraph<CharacterToken> factorGraph = combineAutomataWithMarkovInFactorGraph(M, A, length, constraints);
 		System.out.println("3-length 1-order factor graph with regular constraint: {a+b+}");
-		for (int i = 0; i < 20; i++) {
+		counts = new HashMap<String, Double>();
+		probs = new HashMap<String, Double>();
+
+		for (int i = 0; i < SAMPLE_COUNT; i++) {
 			final Pair<List<StateToken<CharacterToken>>,Double> generate = factorGraph.generate(length);
-			System.out.println("\t\t" + generate.getFirst() + "\tProb:" + generate.getSecond());
+			Utils.incrementValueForKey(counts, generate.getFirst().toString());
+			probs.put(generate.getFirst().toString(), generate.getSecond());
+		}
+		
+		for (String generate : counts.keySet()) {
+			System.out.println("\t\tProb:" + probs.get(generate) + ", XProb:" + (counts.get(generate)/SAMPLE_COUNT) + "\t" + generate);
 		}
 	}
 	
@@ -538,9 +584,9 @@ public class RegularConstraintApplier {
 		Automaton<CharacterToken> A = new Automaton<CharacterToken>(prefixMap,delta,acceptingStates);
 		
 		final int length = 3;
-		final ArrayList<List<ConditionedConstraint<CharacterToken>>> constraints = new ArrayList<List<ConditionedConstraint<CharacterToken>>>();
+		final ArrayList<List<ConditionedConstraint<StateToken<CharacterToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<CharacterToken>>>>();
 		for (int i = 0; i < length; i++) {
-			constraints.add(new ArrayList<ConditionedConstraint<CharacterToken>>());
+			constraints.add(new ArrayList<ConditionedConstraint<StateToken<CharacterToken>>>());
 		}
 		
 		SparseVariableOrderNHMMMultiThreaded<StateToken<CharacterToken>> NHMM = combineAutomataWithMarkov(M, A, length, constraints);
@@ -548,18 +594,34 @@ public class RegularConstraintApplier {
 		System.out.println();
 		
 		System.out.println("3-length 1-order NHMM with regular constraint: {a*ba*}");
-		for (int i = 0; i < 20; i++) {
+		Map<String,Double> counts = new HashMap<String, Double>();
+		Map<String,Double> probs = new HashMap<String, Double>();
+		int SAMPLE_COUNT = 10000;
+		for (int i = 0; i < SAMPLE_COUNT; i++) {
 			final List<StateToken<CharacterToken>> generate = NHMM.generate(length);
-			System.out.println("\t\t" + generate + "\tProb:" + NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+			Utils.incrementValueForKey(counts, generate.toString());
+			probs.put(generate.toString(), NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+		}
+		
+		for (String generate : counts.keySet()) {
+			System.out.println("\t\tProb:" + probs.get(generate) + ", XProb:" + (counts.get(generate)/SAMPLE_COUNT) + "\t" + generate);
 		}
 		
 		FactorGraph<CharacterToken> factorGraph = combineAutomataWithMarkovInFactorGraph(M, A, length, constraints);
 		System.out.println("Factor Graph:");
-		for (int i = 0; i < 20; i++) {
-			final Pair<List<StateToken<CharacterToken>>,Double> generate = factorGraph.generate(length);
-			System.out.println("\t\t" + generate.getFirst() + "\tProb:" + generate.getSecond());
-		}
+		counts = new HashMap<String, Double>();
+		probs = new HashMap<String, Double>();
 
+		for (int i = 0; i < SAMPLE_COUNT; i++) {
+			final Pair<List<StateToken<CharacterToken>>,Double> generate = factorGraph.generate(length);
+			Utils.incrementValueForKey(counts, generate.getFirst().toString());
+			probs.put(generate.getFirst().toString(), generate.getSecond());
+		}
+		
+		for (String generate : counts.keySet()) {
+			System.out.println("\t\tProb:" + probs.get(generate) + ", XProb:" + (counts.get(generate)/SAMPLE_COUNT) + "\t" + generate);
+		}
+		
 	}
 
 	private static void runExample5() throws UnsatisfiableConstraintSetException, InterruptedException {
@@ -610,9 +672,9 @@ public class RegularConstraintApplier {
 		Automaton<CharacterToken> A = new Automaton<CharacterToken>(prefixMap,delta,acceptingStates);
 		
 		final int length = 4;
-		final ArrayList<List<ConditionedConstraint<CharacterToken>>> constraints = new ArrayList<List<ConditionedConstraint<CharacterToken>>>();
+		final ArrayList<List<ConditionedConstraint<StateToken<CharacterToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<CharacterToken>>>>();
 		for (int i = 0; i < length; i++) {
-			constraints.add(new ArrayList<ConditionedConstraint<CharacterToken>>());
+			constraints.add(new ArrayList<ConditionedConstraint<StateToken<CharacterToken>>>());
 		}
 		
 		SparseVariableOrderNHMMMultiThreaded<StateToken<CharacterToken>> NHMM = combineAutomataWithMarkov(M, A, length, constraints);

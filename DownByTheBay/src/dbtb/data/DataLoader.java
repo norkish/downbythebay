@@ -32,8 +32,8 @@ public class DataLoader {
 	private static final long MAX_TOKENS_PER_SENTENCE = 30; // keeps Stanford NLP fast
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
-	private static final double MAX_MEMORY_FOR_BASE_MODEL = 60.;
-	final private int BATCH_SIZE = 1000;
+	private static final double MAX_MEMORY_FOR_BASE_MODEL = 6.;
+	final private int BATCH_SIZE = 200;
 	
 	private static final boolean USE_DUMMY_DATA = false;
 	private static final Map<String, String> filePrefixMap = new HashMap<String,String>();
