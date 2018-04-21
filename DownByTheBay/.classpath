@@ -5,13 +5,13 @@
 	<classpathentry kind="lib" path="lib/commons-lang3-3.4/commons-lang3-3.4.jar"/>
 	<classpathentry kind="lib" path="lib/sphinx4-core-1.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/sphinx4-data-1.0.0.jar"/>
-	<classpathentry kind="lib" path="lib/stanford-corenlp-3.7.0-models.jar"/>
-	<classpathentry kind="lib" path="lib/stanford-corenlp-3.7.0.jar" sourcepath="/Library/Java/stanford-corenlp-full-2016-10-31/stanford-corenlp-3.7.0-sources.jar"/>
-	<classpathentry kind="lib" path="/Library/Java/stanford-corenlp-full-2016-10-31/stanford-corenlp-3.7.0-javadoc.jar"/>
 	<classpathentry kind="lib" path="/Library/Java/stanford-corenlp-full-2016-10-31/jollyday-0.4.9-sources.jar"/>
-	<classpathentry kind="lib" path="/Library/Java/stanford-corenlp-full-2016-10-31/stanford-corenlp-3.7.0-sources.jar"/>
 	<classpathentry kind="lib" path="lib/apache-httpcomponents-httpcore.jar"/>
 	<classpathentry kind="lib" path="lib/apache-httpcomponents-httpclient.jar"/>
 	<classpathentry kind="lib" path="lib/java-json.jar"/>
+	<classpathentry kind="lib" path="/Library/Java/stanford-corenlp-full-2018-02-27/stanford-corenlp-3.9.1-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Library/Java/stanford-corenlp-full-2018-02-27/stanford-corenlp-3.9.1-models.jar"/>
+	<classpathentry kind="lib" path="/Library/Java/stanford-corenlp-full-2018-02-27/stanford-corenlp-3.9.1-sources.jar"/>
+	<classpathentry kind="lib" path="/Library/Java/stanford-corenlp-full-2018-02-27/stanford-corenlp-3.9.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

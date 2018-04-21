@@ -34,6 +34,10 @@ public class Main {
 
 	public static String rootPath = "/Users/norkish/Archive/2017_BYU/ComputationalCreativity/";
 	
+	public static void setRootPath(String newRootPath) {
+		rootPath = newRootPath;
+	}
+	
 	public static void main(String[] args) throws InterruptedException{
 
 		setupRootPath();

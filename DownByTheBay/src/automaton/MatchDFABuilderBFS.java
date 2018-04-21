@@ -1,6 +1,7 @@
 package automaton;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,55 +31,60 @@ import dbtb.utils.Pair;
 import dbtb.utils.Triple;
 import dbtb.utils.Utils;
 
-public class MatchDFABuilder {
+public class MatchDFABuilderBFS {
 
-	public static <T extends Token> Automaton<T> buildEfficiently(int[] matchConstraintList, SparseVariableOrderMarkovModel<T> markovModel) {
+	public static <T extends Token> Automaton<T> buildEfficiently(int[] matchConstraintList, boolean[] matchConstraintOutcomeList, SparseVariableOrderMarkovModel<T> markovModel) {
 		List<List<ConditionedConstraint<T>>> controlConstraints = new ArrayList<List<ConditionedConstraint<T>>>();
 		
 		for (int i = 0; i < matchConstraintList.length; i++) {
 			controlConstraints.add(new ArrayList<ConditionedConstraint<T>>());
 		}
 		
-		return buildEfficiently(matchConstraintList, markovModel, controlConstraints);
+		return buildEfficiently(matchConstraintList, matchConstraintOutcomeList, markovModel, controlConstraints);
 	}
 
-	public static <T extends Token> Automaton<T> buildEfficiently(int[] matchConstraintList, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
+	public static <T extends Token> Automaton<T> buildEfficiently(int[] matchConstraintList, boolean[] matchConstraintOutcomeList, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
 		int[][] newMatchConstraintList = new int[1][];
 		newMatchConstraintList[0] = matchConstraintList;
-		return buildEfficiently(newMatchConstraintList, null, markovModel, controlConstraints);
+		boolean[][] newMatchConstraintOutcomeList = new boolean[1][];
+		newMatchConstraintOutcomeList[0] = matchConstraintOutcomeList;
+		return buildEfficiently(newMatchConstraintList, newMatchConstraintOutcomeList, null, markovModel, controlConstraints);
 	}
 	
 	
-	private static <T extends Token> Automaton<T> buildEfficiently(int[] matchConstraintList,
+	public static <T extends Token> Automaton<T> buildEfficiently(int[] matchConstraintList, boolean[] matchConstraintOutcomeList, 
 			List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel) {
 		
 		int[][] newMatchConstraintList = new int[1][];
 		newMatchConstraintList[0] = matchConstraintList;
 		
+		boolean[][] newMatchConstraintOutcomeList = new boolean[1][];
+		newMatchConstraintOutcomeList[0] = matchConstraintOutcomeList;
+		
 		List<List<ConditionedConstraint<T>>> controlConstraints = new ArrayList<List<ConditionedConstraint<T>>>();
 		
 		for (int i = 0; i < matchConstraintList.length; i++) {
 			controlConstraints.add(new ArrayList<ConditionedConstraint<T>>());
 		}
 		
-		return buildEfficiently(newMatchConstraintList, equivalenceRelations, markovModel, controlConstraints);
+		return buildEfficiently(newMatchConstraintList, newMatchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints);
 	}
 
-	private static <T extends Token> Automaton<T> buildEfficiently(int[][] matchConstraintList,
+	public static <T extends Token> Automaton<T> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, 
 			List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel) {
 		List<List<ConditionedConstraint<T>>> controlConstraints = new ArrayList<List<ConditionedConstraint<T>>>();
 		
 		for (int i = 0; i < matchConstraintList[0].length; i++) {
 			controlConstraints.add(new ArrayList<ConditionedConstraint<T>>());
 		}
-		return buildEfficiently(matchConstraintList, equivalenceRelations, markovModel, controlConstraints);
+		return buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints);
 	}
 	
-	public static <T extends Token> Automaton<T> buildEfficiently(int[][] matchConstraintList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
+	public static <T extends Token> Automaton<T> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
 		Map<Integer, Map<Integer, Integer>> delta = new HashMap<Integer, Map<Integer, Integer>>();
 		Set<Integer> acceptingStates = new HashSet<Integer>();
 
-		int[][] equivalenceClassMap = computeEquivalenceClasses(markovModel.stateIndex, equivalenceRelations);
+		int[][] equivalenceClassMap = computeEquivalenceClasses(markovModel.stateIndex, equivalenceRelations, matchConstraintList.length);
 
 //		for (int i = 0; i < equivalenceClassMap[0].length; i++) {
 //			System.out.println("1:" + markovModel.stateIndex.getPrefixForID(i) + " == " + equivalenceClassMap[0][i]);
@@ -92,8 +98,8 @@ public class MatchDFABuilder {
 		// the state for q_i based on i (implicit), the constraint set, and the set of states reachable from a (with constraints applied)
 		// e.g. {{4=0,5=1} -> {{"dead","bear"}-> q_6}}
 		// like "Q" function in Papadoupolos et al, 2014 Avoiding Plagiarism
-		Map<List<Map<Integer,Integer>>, Map<Set<Integer>, Integer>> stateDictionary;
-		Map<List<Map<Integer,Integer>>, Map<Set<Integer>, Integer>> prevStateDictionary = new HashMap<List<Map<Integer, Integer>>, Map<Set<Integer>, Integer>>();
+		Map<List<Map<Integer,Pair<Integer,Boolean>>>, Map<Set<Integer>, Integer>> stateDictionary;
+		Map<List<Map<Integer,Pair<Integer,Boolean>>>, Map<Set<Integer>, Integer>> prevStateDictionary = new HashMap<List<Map<Integer, Pair<Integer,Boolean>>>, Map<Set<Integer>, Integer>>();
 		
 		// the set of backEdges <q_i, <q_i-1,[a]>>
 		// like "a" function in Papadoupolos et al, 2014 Avoiding Plagiarism 
@@ -115,37 +121,42 @@ public class MatchDFABuilder {
 			}
 		}
 		
-		List<Map<Integer, Integer>> startConstraints = new ArrayList<Map<Integer, Integer>>();
+		List<Map<Integer, Pair<Integer,Boolean>>> startConstraints = new ArrayList<Map<Integer, Pair<Integer,Boolean>>>();
 		for (int i = 0; i < matchConstraintList.length; i++) {
-			startConstraints.add(new HashMap<Integer, Integer>());
+			startConstraints.add(new HashMap<Integer, Pair<Integer,Boolean>>());
 		}
 		Utils.setValueForKeys(prevStateDictionary, startConstraints, initialValidStates, nextQStateID++);
 		
 		Map<Integer, Map<Integer, Double>> validMarkovTransitions = markovModel.logTransitions;
 		Integer prevState, nextState;
 		Set<Integer> satisfyingToLabels;
-		int matchConstraintAti, secondaryMatchConstraintAti, equivalenceClassForTransitionLabel, secondaryEquivalenceClassForTransitionLabel;
-		Integer equivalenceClassConstraintForNextPosition, secondaryEquivalenceClassConstraintForNextPosition;
+		int[] matchConstraintsAti = new int[matchConstraintList.length];
+		int[] equivalenceClassesForTransitionLabel = new int[matchConstraintList.length];
+		boolean[] matchConstraintOutcomesAti = new boolean[matchConstraintList.length];
+		List<Pair<Integer,Boolean>> equivalenceClassConstraintsForNextPosition;
 		Set<Integer> invDeltaForNextState;
 		Map<Set<Integer>, Integer> prevStateDictionaryForConstraints;
-		List<Map<Integer, Integer>> nextStateConstraints;
-		List<Map<Integer, Integer>> prevStateConstraints;
-		boolean valid = true;
+		List<Map<Integer, Pair<Integer,Boolean>>> nextStateConstraints;
+		List<Map<Integer, Pair<Integer,Boolean>>> prevStateConstraints;
+		boolean valid;
+		boolean equivalenceClassConstraintsForNextPositionAreNull;
 		LinkedList<T> prevPrefixForID,prefixForID;
 		
 		// for state position 1 to n
 		final int length = matchConstraintList[0].length;
 		for (int i = 1; i <= length; i++) {
-//			System.out.println("Automaton complete to position " + (i-1));
-			stateDictionary = new HashMap<List<Map<Integer, Integer>>, Map<Set<Integer>, Integer>>();
+			System.out.print(".");
+			stateDictionary = new HashMap<List<Map<Integer, Pair<Integer,Boolean>>>, Map<Set<Integer>, Integer>>();
 
 			// this is the position to which it is supposed to match (-1 if matches nothing)
-			matchConstraintAti = matchConstraintList[0][i-1];
-			secondaryMatchConstraintAti = matchConstraintList.length > 1 ? matchConstraintList[1][i-1]: -1;
+			for (int j = 0; j < matchConstraintList.length; j++) {
+				matchConstraintsAti[j] = matchConstraintList[j][i-1];
+				matchConstraintOutcomesAti[j] = matchConstraintOutcomeList[j][i-1];
+			}
 			if (i != length) controlConstraintsAti = controlConstraints.get(i);
 
 			// for each previous state q_i-1,
-			for (Iterator<List<Map<Integer, Integer>>> prevStateConstraintsIterator = prevStateDictionary.keySet().iterator();prevStateConstraintsIterator.hasNext();) {
+			for (Iterator<List<Map<Integer, Pair<Integer,Boolean>>>> prevStateConstraintsIterator = prevStateDictionary.keySet().iterator();prevStateConstraintsIterator.hasNext();) {
 				prevStateConstraints = prevStateConstraintsIterator.next();
 //				Integer equivalenceClassConstraintForThisPosition = prevStateConstraints.get(i); 
 				prevStateDictionaryForConstraints = prevStateDictionary.get(prevStateConstraints);
@@ -158,43 +169,49 @@ public class MatchDFABuilder {
 						if (i != length) {
 							prevPrefixForID = markovModel.stateIndex.getPrefixForID(validTransitionLabel);
 //						// if validToLabel doesn't satisfy c
-							equivalenceClassForTransitionLabel = equivalenceClassMap[0][validTransitionLabel];
-							secondaryEquivalenceClassForTransitionLabel = matchConstraintList.length > 1 ? equivalenceClassMap[1][validTransitionLabel]: -1;
+							for (int j = 0; j < matchConstraintList.length; j++) {
+								equivalenceClassesForTransitionLabel[j] = equivalenceClassMap[j][validTransitionLabel];
+							}
 
-							nextStateConstraints = new ArrayList<Map<Integer,Integer>>();
-							for (Map<Integer,Integer> map : prevStateConstraints) {
-								final HashMap<Integer, Integer> e = new HashMap<Integer,Integer>(map);
+							nextStateConstraints = new ArrayList<Map<Integer,Pair<Integer,Boolean>>>();
+							for (Map<Integer,Pair<Integer,Boolean>> map : prevStateConstraints) {
+								final HashMap<Integer, Pair<Integer,Boolean>> e = new HashMap<Integer,Pair<Integer,Boolean>>(map);
 								e.remove(i);
 								nextStateConstraints.add(e);
 							}
 							// if this position constrains another position m_i, add m_i to the constraint that are guaranteed from this state
-							if (matchConstraintAti != -1) {
-								nextStateConstraints.get(0).put(matchConstraintAti,equivalenceClassForTransitionLabel);
+							for (int j = 0; j < matchConstraintList.length; j++) {
+								if (matchConstraintsAti[j] != -1) {
+									nextStateConstraints.get(j).put(matchConstraintsAti[j],new Pair<Integer,Boolean>(equivalenceClassesForTransitionLabel[j], matchConstraintOutcomesAti[j]));
+								}
 							}
-							if (secondaryMatchConstraintAti != -1) {
-								nextStateConstraints.get(1).put(secondaryMatchConstraintAti,secondaryEquivalenceClassForTransitionLabel);
+							equivalenceClassConstraintsForNextPosition = new ArrayList<Pair<Integer, Boolean>>();
+							equivalenceClassConstraintsForNextPositionAreNull = true;
+							for (int j = 0; j < matchConstraintList.length; j++) {
+								final Pair<Integer, Boolean> nextStateConstraintsAtJI = nextStateConstraints.get(j).get(i+1);
+								equivalenceClassConstraintsForNextPositionAreNull &= (nextStateConstraintsAtJI == null);
+								equivalenceClassConstraintsForNextPosition.add(nextStateConstraintsAtJI);
 							}
-							equivalenceClassConstraintForNextPosition = nextStateConstraints.get(0).get(i+1);
-							secondaryEquivalenceClassConstraintForNextPosition = matchConstraintList.length > 1 ? nextStateConstraints.get(1).get(i+1) : null;
 							final Map<Integer, Double> validMarkovTransitionsFromLabel = validMarkovTransitions.get(validTransitionLabel);
 							if (validMarkovTransitionsFromLabel == null) { // no transitions because of Markov Constraints
 								continue;
 							}
-							if (controlConstraintsAti.isEmpty() && equivalenceClassConstraintForNextPosition == null && secondaryEquivalenceClassConstraintForNextPosition == null) // if there's nothing to filter
+							if (controlConstraintsAti.isEmpty() && equivalenceClassConstraintsForNextPositionAreNull) // if there's nothing to filter
 								satisfyingToLabels = validMarkovTransitionsFromLabel.keySet(); // set it to all transitions in the markov model
 							else { // otherwise there's something to filter
 								satisfyingToLabels = new HashSet<Integer>(); // so we have to make a new set
 								for (Integer toLabel : validMarkovTransitionsFromLabel.keySet()) { // populated with labels form the Markov model
 									prefixForID = markovModel.stateIndex.getPrefixForID(toLabel);
-									if (equivalenceClassConstraintForNextPosition != null && equivalenceClassMap[0][toLabel] != equivalenceClassConstraintForNextPosition){ // if the label doesn't match the match constraint
-//										System.out.println(prefixForID.getLast() + " failed match constraint at position " + i);
-										continue; // don't add it
-									}
-									if (secondaryEquivalenceClassConstraintForNextPosition != null && equivalenceClassMap[1][toLabel] != secondaryEquivalenceClassConstraintForNextPosition){ // if the label doesn't match the match constraint
-//										System.out.println(prefixForID.getLast() + " failed match constraint at position " + i);
-										continue; // don't add it
-									}
 									valid = true;
+									for (int j = 0; j < matchConstraintList.length && valid; j++) {
+										if (equivalenceClassConstraintsForNextPosition.get(j) != null && ((equivalenceClassMap[j][toLabel] == equivalenceClassConstraintsForNextPosition.get(j).getFirst()) != equivalenceClassConstraintsForNextPosition.get(j).getSecond() )){ // if the label doesn't match the match constraint
+//										System.out.println(prefixForID.getLast() + " failed match constraint at position " + i);
+											valid = false;
+											break; // don't add it
+										}
+									}
+									if (!valid)
+										continue;
 									for (ConditionedConstraint<T> conditionedConstraint : controlConstraintsAti) { // otherwise we then check if it satisfies all of the control constraints
 										final Constraint<T> constraint = conditionedConstraint.getConstraint();
 										if ((constraint instanceof StateConstraint && ((StateConstraint<T>)constraint).isSatisfiedBy(prefixForID, prefixForID.size()-1) != conditionedConstraint.getDesiredConditionState())
@@ -295,7 +312,7 @@ public class MatchDFABuilder {
 	public static <T extends Token> Automaton<T> build(int[] matchConstraintList, SparseVariableOrderMarkovModel<T> markovModel) {
 		Map<Integer, Map<Integer, Double>> validMarkovTransitions = markovModel.logTransitions;
 		
-		int[][] equivalenceClassMap = computeEquivalenceClasses(markovModel.stateIndex, null);
+		int[][] equivalenceClassMap = computeEquivalenceClasses(markovModel.stateIndex, null,1);
 		
 		Map<Integer, Map<Integer, Integer>> delta = new HashMap<Integer, Map<Integer, Integer>>();
 		Set<Integer> acceptingStates = new HashSet<Integer>();
@@ -473,11 +490,10 @@ public class MatchDFABuilder {
 		}
 	}
 
-	private static <T extends Token> int[][] computeEquivalenceClasses(BidirectionalVariableOrderPrefixIDMap<T> stateIndex, List<Comparator<T>> equivalenceRelations) {
-		
+	private static <T extends Token> int[][] computeEquivalenceClasses(BidirectionalVariableOrderPrefixIDMap<T> stateIndex, List<Comparator<T>> equivalenceRelations, int numRelations) {
 		
 		List<LinkedList<T>> idToPrefixMap = stateIndex.getIDToPrefixMap();		
-		int[][] equivalenceClassMaps = new int[equivalenceRelations == null? 1 : equivalenceRelations.size()][idToPrefixMap.size()];
+		int[][] equivalenceClassMaps = new int[equivalenceRelations == null? numRelations : equivalenceRelations.size()][idToPrefixMap.size()];
 		
 		int[] equivalenceClassMap;
 		for (int relationId = 0; relationId < equivalenceClassMaps.length; relationId++) {
@@ -512,12 +528,12 @@ public class MatchDFABuilder {
 	}
 
 	public static void main(String[] args) throws UnsatisfiableConstraintSetException, InterruptedException {
-//		runExample1();
-//		runExample2(); // test for combining states
-//		runExample3();
-//		runExample4();
-//		runExample5();
-//		runExample6();
+		runExample1();
+		runExample2(); // test for combining states
+		runExample3();
+		runExample4();
+		runExample5();
+		runExample6();
 		runExample7();
 	}
 
@@ -560,7 +576,9 @@ public class MatchDFABuilder {
 			add(new RhymeComparator());
 		}};
 		
-		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, equivalenceRelations, M);
+		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
+		Arrays.fill(matchConstraintOutcomeList, true);
+		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
 		
 		final ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>>();
 		for (int i = 0; i < length; i++) {
@@ -621,7 +639,10 @@ public class MatchDFABuilder {
 			add(new RhymeComparator());
 		}};
 		
-		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, equivalenceRelations, M);
+		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
+		Arrays.fill(matchConstraintOutcomeList, true);
+		
+		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
 		
 		final ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>>();
 		for (int i = 0; i < length; i++) {
@@ -682,7 +703,10 @@ public class MatchDFABuilder {
 			add(new RhymeComparator());
 		}};
 		
-		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, equivalenceRelations, M);
+		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
+		Arrays.fill(matchConstraintOutcomeList, true);
+		
+		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
 		
 		final ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>>();
 		for (int i = 0; i < length; i++) {
@@ -739,7 +763,10 @@ public class MatchDFABuilder {
 		
 		int[] matchConstraintList = new int[]{3,-1,-1,6,-1,-1}; // 1-based
 		
-		Automaton<CharacterToken> A = buildEfficiently(matchConstraintList, M);
+		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
+		Arrays.fill(matchConstraintOutcomeList, true);
+		
+		Automaton<CharacterToken> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M);
 		
 		System.out.println("A.sigma:");
 		System.out.println(A.sigma.getIDToPrefixMap());
@@ -784,7 +811,10 @@ public class MatchDFABuilder {
 		
 		int[] matchConstraintList = new int[]{3,-1,5,-1,-1}; // 1-based
 		
-		Automaton<CharacterToken> A = buildEfficiently(matchConstraintList, M);
+		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
+		Arrays.fill(matchConstraintOutcomeList, true);
+		
+		Automaton<CharacterToken> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M);
 		
 		System.out.println("A.sigma:");
 		System.out.println(A.sigma.getIDToPrefixMap());
@@ -835,7 +865,10 @@ public class MatchDFABuilder {
 		}
 		controlConstraints.get(1).add(new ConditionedConstraint<>(new CharacterTokenConstraint<CharacterToken>(new CharacterToken('a'))));
 		
-		Automaton<CharacterToken> A = buildEfficiently(matchConstraintList, M, controlConstraints);
+		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
+		Arrays.fill(matchConstraintOutcomeList, true);
+		
+		Automaton<CharacterToken> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M, controlConstraints);
 		
 		System.out.println("A.sigma:");
 		System.out.println(A.sigma.getIDToPrefixMap());
@@ -886,7 +919,12 @@ public class MatchDFABuilder {
 			add(new RhymeComparator());
 		}};
 		
-		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, equivalenceRelations, M);
+		boolean[][] matchConstraintOutcomeList = new boolean[2][matchConstraintList[0].length];
+		for (boolean[] bs : matchConstraintOutcomeList) {
+			Arrays.fill(bs, true);
+		}
+		
+		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
 		
 		System.out.println("A.sigma:");
 		System.out.println(A.sigma.getIDToPrefixMap());

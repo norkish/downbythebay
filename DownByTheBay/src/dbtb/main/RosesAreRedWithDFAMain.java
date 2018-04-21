@@ -1,10 +1,11 @@
 package dbtb.main;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import automaton.Automaton;
-import automaton.MatchDFABuilder;
+import automaton.MatchDFABuilderDFS;
 import automaton.RegularConstraintApplier;
 import automaton.RegularConstraintApplier.StateToken;
 import dbtb.constraint.AbsoluteStressConstraint;
@@ -81,8 +82,10 @@ public class RosesAreRedWithDFAMain {
 			
 			int[] matchConstraintList = new int[]{-1,-1,-1,-1,-1,-1,-1,16,-1,-1,-1,-1,-1,-1,-1,-1}; // 1-based
 			int length = matchConstraintList.length;
+			boolean[] matchConstraintOutcomeList = new boolean[length];
+			Arrays.fill(matchConstraintOutcomeList, true);
 			
-			Automaton<SyllableToken> A = MatchDFABuilder.buildEfficiently(matchConstraintList, M);
+			Automaton<SyllableToken> A = MatchDFABuilderDFS.buildEfficiently(matchConstraintList,matchConstraintOutcomeList, M);
 			
 			SparseVariableOrderNHMMMultiThreaded<StateToken<SyllableToken>> constrainedMarkovModel = RegularConstraintApplier.combineAutomataWithMarkov(M, A, length, constraints);
 			

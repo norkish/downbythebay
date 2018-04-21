@@ -8,7 +8,7 @@ import java.util.List;
 import org.apache.commons.lang3.time.StopWatch;
 
 import automaton.Automaton;
-import automaton.MatchDFABuilder;
+import automaton.MatchDFABuilderDFS;
 import automaton.RegularConstraintApplier;
 import automaton.RegularConstraintApplier.StateToken;
 import dbtb.constraint.AbsoluteStressConstraint;
@@ -160,9 +160,10 @@ public class DownByTheBayWithDFA {
 				// TODO: change the matchConstraintList
 //				int[] matchConstraintList = new int[]{-1,10,11,-1,-1,-1,-1,-1,-1,-1,-1}; // 1-based
 				int[] matchConstraintList = new int[]{-1,6,-1,-1,-1,-1}; // 1-based
+				boolean[] matchConstraintOutcomeList = new boolean[]{true,true,true,true,true,true};
 				int length = matchConstraintList.length;
 				
-				Automaton<SyllableToken> A = MatchDFABuilder.buildEfficiently(matchConstraintList, markovModel);
+				Automaton<SyllableToken> A = MatchDFABuilderDFS.buildEfficiently(matchConstraintList, matchConstraintOutcomeList, markovModel);
 				
 				constrainedMarkovModel = RegularConstraintApplier.combineAutomataWithMarkov(markovModel, A, length, constraints);
 				
