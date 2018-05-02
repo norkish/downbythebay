@@ -85,6 +85,7 @@ public class MatchDFABuilderDFS {
 	}
 	
 	public static <T extends Token> Automaton<T> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
+		if (markovModel.order != 1) throw new RuntimeException("Markov order other than 1 not supported. See other implementations.");
 		Map<Integer, Map<Integer, Integer>> delta = new HashMap<Integer, Map<Integer, Integer>>();
 		Set<Integer> acceptingStates = new HashSet<Integer>();
 		
@@ -370,13 +371,13 @@ public class MatchDFABuilderDFS {
 	}
 
 	public static void main(String[] args) throws UnsatisfiableConstraintSetException, InterruptedException {
-		runExample1();
-		runExample2(); // test for combining states
+//		runExample1();
+//		runExample2(); // test for combining states
 		runExample3();
-		runExample4();
-		runExample5();
-		runExample6();
-		runExample7();
+//		runExample4();
+//		runExample5();
+//		runExample6();
+//		runExample7();
 	}
 
 	private static void runExample1() throws UnsatisfiableConstraintSetException, InterruptedException {

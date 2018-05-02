@@ -44,6 +44,7 @@ public class MatchIteratorBuilderDFS {
 		newMatchConstraintList[0] = matchConstraintList;
 		boolean[][] newMatchConstraintOutcomeList = new boolean[1][];
 		newMatchConstraintOutcomeList[0] = matchConstraintOutcomeList;
+		
 		return buildEfficiently(newMatchConstraintList, newMatchConstraintOutcomeList, null, markovModel, controlConstraints);
 	}
 	
@@ -84,7 +85,6 @@ public class MatchIteratorBuilderDFS {
 		int[][] dfsMatchConstraintList;
 		boolean[][] dfsMatchConstraintOutcomeList;
 		
-		int[][] equivalenceClassMap;
 		Map<Integer, Map<Integer, Double>> validMarkovTransitions;
 		
 		// 0-based depth and Markov state
@@ -94,39 +94,61 @@ public class MatchIteratorBuilderDFS {
 		private List<List<ConditionedConstraint<T>>> controlConstraints;
 
 		private SparseVariableOrderMarkovModel<T> markovModel;
+		private List<Comparator<T>> equivalenceRelations;
 
 		public MatchIterator(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
+			if (markovModel.order > matchConstraintList[0].length) throw new RuntimeException("Markov order (" + markovModel.order + ") is greater than desired sequence length (" + matchConstraintList.length + ")");
 //			System.out.println("Building iterator");
+			
+			// match constraint list has to be altered so that in traversing depth-first we can look BACK (instead of forward) and match appropriately
 			dfsMatchConstraintList = new int[matchConstraintList.length][];
 			dfsMatchConstraintOutcomeList = new boolean[matchConstraintOutcomeList.length][];
-			for (int i = 0; i < matchConstraintList.length; i++) {
-				dfsMatchConstraintList[i] = new int[matchConstraintList[i].length];
-				Arrays.fill(dfsMatchConstraintList[i], -1);
-				dfsMatchConstraintOutcomeList[i] = new boolean[matchConstraintOutcomeList[i].length];
-				for (int j = 0; j < matchConstraintList[i].length; j++) {
-					if (matchConstraintList[i][j] != -1) {
-						dfsMatchConstraintList[i][matchConstraintList[i][j]-1] = j;
-						dfsMatchConstraintOutcomeList[i][matchConstraintList[i][j]-1] = matchConstraintOutcomeList[i][j];
+			for (int constraintSet = 0; constraintSet < matchConstraintList.length; constraintSet++) {
+				dfsMatchConstraintList[constraintSet] = new int[matchConstraintList[constraintSet].length];
+				Arrays.fill(dfsMatchConstraintList[constraintSet], -1);
+				dfsMatchConstraintOutcomeList[constraintSet] = new boolean[matchConstraintOutcomeList[constraintSet].length];
+				for (int seqPos = 0; seqPos < matchConstraintList[constraintSet].length; seqPos++) {
+					if (matchConstraintList[constraintSet][seqPos] != -1) {
+						dfsMatchConstraintList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] = seqPos;
+						dfsMatchConstraintOutcomeList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] = matchConstraintOutcomeList[constraintSet][seqPos];
 					}
 				}
 			}
 			
-			equivalenceClassMap = computeEquivalenceClasses(markovModel.stateIndex, equivalenceRelations, matchConstraintList.length);
-
+			if (equivalenceRelations == null) {
+				equivalenceRelations = new ArrayList<Comparator<T>>();
+				for (int i = 0; i < dfsMatchConstraintList.length; i++) {
+					equivalenceRelations.add(null);
+				}
+			}
+			
+			this.equivalenceRelations = equivalenceRelations;
 			this.controlConstraints = controlConstraints;
 			this.markovModel = markovModel;
 			
-			List<ConditionedConstraint<T>> controlConstraintsAti = controlConstraints.get(0);
 			final List<Integer> initialStates = new ArrayList<Integer>(markovModel.logPriors.keySet());
 			Collections.shuffle(initialStates);
 			for (Integer state : initialStates) {
+				final LinkedList<T> prefixForID = markovModel.stateIndex.getPrefixForID(state);
 				boolean keep = true;
-				for (ConditionedConstraint<T> conditionedConstraint : controlConstraintsAti) {
-					final Constraint<T> constraint = conditionedConstraint.getConstraint();
-					final LinkedList<T> prefixForID = markovModel.stateIndex.getPrefixForID(state);
-					if (constraint instanceof StateConstraint && ((StateConstraint<T>)constraint).isSatisfiedBy(prefixForID, 0) != conditionedConstraint.getDesiredConditionState()) {
-						keep = false;
-						break;
+				// initial states have to satisfy control constraints at all positions represented in token
+				for (int i = 0; keep && i < markovModel.order; i++) { 
+					List<ConditionedConstraint<T>> controlConstraintsAti = controlConstraints.get(i); // get control constraints at position
+					for (ConditionedConstraint<T> conditionedConstraint : controlConstraintsAti) { // iterate over constraints and check if they're satisfied
+						final Constraint<T> constraint = conditionedConstraint.getConstraint();
+						if (constraint instanceof StateConstraint && ((StateConstraint<T>)constraint).isSatisfiedBy(prefixForID, i) != conditionedConstraint.getDesiredConditionState()) {
+							keep = false;
+							break;
+						}
+					}
+					for (int constraintSet = 0; keep && constraintSet < dfsMatchConstraintList.length; constraintSet++) { // for each match constraint set
+						final int matchConstraintAtPosForSet = dfsMatchConstraintList[constraintSet][i]; // get matching constraints at position
+						if (matchConstraintAtPosForSet != -1) { // if constraint is present
+							if (matchConstraintIsSatisfied(equivalenceRelations.get(constraintSet), prefixForID.get(matchConstraintAtPosForSet), prefixForID.get(i)) != dfsMatchConstraintOutcomeList[constraintSet][i]) { // tuple doesn't satisfy match constraint
+								keep = false;
+								break;
+							}
+						}
 					}
 				}
 				if (keep) {
@@ -142,6 +164,14 @@ public class MatchIteratorBuilderDFS {
 			}
 		}
 		
+		private boolean matchConstraintIsSatisfied(Comparator<T> equivalenceRelation, T t1, T t2) {
+			if (equivalenceRelation == null) {// this needs to be adjusted according to the equivalence relation
+				return t1.equals(t2);
+			} else {//if (equivalenceRelation != null && 
+				return equivalenceRelation.compare(t1, t2) == 0;
+			}
+		}
+
 		@Override
 		public boolean hasNext() {
 			if (!computeOnHasNext) {
@@ -152,13 +182,12 @@ public class MatchIteratorBuilderDFS {
 				computeOnHasNext = false;
 				Integer currentDepth, currentMarkovState;
 				Pair<Integer, Integer> currentDepthAndState;
-				int equivalenceClassAtMatchPos;
 				
 				while(!visitStack.isEmpty()) {
 					currentDepthAndState = visitStack.pop();
 	//				System.out.println("Popped Depth and State: " + currentDepthAndState);
 					currentDepth = currentDepthAndState.getFirst();
-					final int nextDepth = currentDepth+1;
+					final int nextSeqPos = currentDepth+markovModel.order;
 					currentMarkovState = currentDepthAndState.getSecond();
 					
 					//pop visited path to get to currentDepth
@@ -169,51 +198,58 @@ public class MatchIteratorBuilderDFS {
 					pathStack.push(currentMarkovState);
 					final Map<Integer, Double> validMarkovTransitionsFromLabel = validMarkovTransitions.get(currentMarkovState);
 					
-					List<ConditionedConstraint<T>> controlConstraintsAti = controlConstraints.get(nextDepth);
+					List<ConditionedConstraint<T>> controlConstraintsAti = controlConstraints.get(nextSeqPos);
 					final List<Integer> nextStates = validMarkovTransitionsFromLabel == null ? new ArrayList<Integer>() : new ArrayList<Integer>(validMarkovTransitionsFromLabel.keySet());
 					Collections.shuffle(nextStates);
 					for (Integer validMarkovTransition : nextStates) {
+						final LinkedList<T> prefixForID = markovModel.stateIndex.getPrefixForID(validMarkovTransition);
 						boolean keep = true;
 						//control constraints
 						for (ConditionedConstraint<T> conditionedConstraint : controlConstraintsAti) {
 	//						System.out.println("Checking control constraint");
 							final Constraint<T> constraint = conditionedConstraint.getConstraint();
-							final LinkedList<T> prefixForID = markovModel.stateIndex.getPrefixForID(validMarkovTransition);
-							if (constraint instanceof StateConstraint && ((StateConstraint<T>)constraint).isSatisfiedBy(prefixForID, 0) != conditionedConstraint.getDesiredConditionState()) {
+							if (constraint instanceof StateConstraint && ((StateConstraint<T>)constraint).isSatisfiedBy(prefixForID, prefixForID.size()-1) != conditionedConstraint.getDesiredConditionState()) {
 								keep = false;
 								break;
 							}
 						}
 						
 						//match constraints
-						for (int j = 0; j < dfsMatchConstraintList.length; j++) {
-							if (dfsMatchConstraintList[j][nextDepth] != -1) {
-	//							System.out.println("Checking match constraint");
-								equivalenceClassAtMatchPos = equivalenceClassMap[j][pathStack.elementAt(dfsMatchConstraintList[j][nextDepth])];
-								if ((equivalenceClassAtMatchPos == equivalenceClassMap[j][validMarkovTransition]) != dfsMatchConstraintOutcomeList[j][nextDepth]) {
-	//								System.out.println("" + dfsMatchConstraintList[j][nextDepth] + "≠" + nextDepth);
+						for (int constraintSet = 0; keep && constraintSet < dfsMatchConstraintList.length; constraintSet++) {
+							final int matchConstraintAtPosForSet = dfsMatchConstraintList[constraintSet][nextSeqPos];
+							if (matchConstraintAtPosForSet != -1) {
+								//	System.out.println("Checking match constraint");
+								T prevTokenToMatch = (matchConstraintAtPosForSet < markovModel.order ? 
+										markovModel.stateIndex.getPrefixForID(pathStack.get(0)).get(matchConstraintAtPosForSet) :
+										markovModel.stateIndex.getPrefixForID(pathStack.get(matchConstraintAtPosForSet-markovModel.order+1)).getLast());
+								if (matchConstraintIsSatisfied(equivalenceRelations.get(constraintSet), prevTokenToMatch, prefixForID.getLast()) != dfsMatchConstraintOutcomeList[constraintSet][nextSeqPos]) { // tuple doesn't satisfy match constraint
 									keep = false;
 									break;
 								}
 							}
 						}
 						if (keep) {
-							if (nextDepth+1 == dfsMatchConstraintList[0].length) {
+							if (nextSeqPos+1 == dfsMatchConstraintList[0].length) {
 								next = new ArrayList<T>();
+								next.addAll(markovModel.stateIndex.getPrefixForID(pathStack.get(0)));
+								boolean first = true;
 								for (Integer integer : pathStack) {
-									next.add(markovModel.stateIndex.getPrefixFinaleForID(integer));
+									if (first)
+										first = false;
+									else
+										next.add(markovModel.stateIndex.getPrefixFinaleForID(integer));
 								}
 								next.add(markovModel.stateIndex.getPrefixFinaleForID(validMarkovTransition));
 								return true;
 							} else {
 	//							System.out.println("Pushing " + nextDepthAndState);
-								visitStack.push(new Pair<Integer,Integer>(nextDepth, validMarkovTransition));
+								visitStack.push(new Pair<Integer,Integer>(currentDepth+1, validMarkovTransition));
 							}
 						}
 					}
 					
-					if (computePercentTotalMemoryUsed() > 40) {
-						System.out.println("Memory limit reached");
+					if (computePercentTotalMemoryUsed() > 50) {
+						System.out.println("Memory limit reached. Used " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/1000000 + " GB.");
 						break;
 					} else if (watch.getTime() > 20000) {
 						System.out.println("Time limit reached");
@@ -241,53 +277,6 @@ public class MatchIteratorBuilderDFS {
 	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
 		
 		return new MatchIterator<T>(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints);
-	}
-
-	private static <T extends Token> int[][] computeEquivalenceClasses(BidirectionalVariableOrderPrefixIDMap<T> stateIndex, List<Comparator<T>> equivalenceRelations, int numRelations) {
-		
-		List<LinkedList<T>> idToPrefixMap = stateIndex.getIDToPrefixMap();		
-		int[][] equivalenceClassMaps = new int[equivalenceRelations == null? numRelations : equivalenceRelations.size()][idToPrefixMap.size()];
-		
-		int[] equivalenceClassMap;
-		for (int relationId = 0; relationId < equivalenceClassMaps.length; relationId++) {
-			Comparator<T> equivalenceRelation = equivalenceRelations == null? null : equivalenceRelations.get(relationId);
-			equivalenceClassMap = equivalenceClassMaps[relationId];
-			List<T> equivalenceClassRepresentatives = new ArrayList<T>();
-			for (int tokenId = 0; tokenId < idToPrefixMap.size(); tokenId++) {
-				T token = idToPrefixMap.get(tokenId).getLast();
-				boolean classFound = false;
-				for (int equivalenceClassId = 0; equivalenceClassId < equivalenceClassRepresentatives.size(); equivalenceClassId++) {
-					T representative = equivalenceClassRepresentatives.get(equivalenceClassId);
-					if (equivalenceRelation == null && token.equals(representative)) { // this needs to be adjusted according to the equivalence relation
-						equivalenceClassMap[tokenId] = equivalenceClassId;
-						classFound = true;
-						break;
-					} else if (equivalenceRelation != null && equivalenceRelation.compare(token, representative) == 0) {
-						equivalenceClassMap[tokenId] = equivalenceClassId;
-						classFound = true;
-						break;
-					}
-				}
-				
-				if (!classFound) {
-					equivalenceClassMap[tokenId] = equivalenceClassRepresentatives.size();
-					equivalenceClassRepresentatives.add(token);
-				}
-			}
-		}
-		
-		
-		return equivalenceClassMaps;
-	}
-
-	public static void main(String[] args) throws UnsatisfiableConstraintSetException, InterruptedException {
-		runExample1();
-		runExample2();
-		runExample3();
-		runExample4();
-		runExample5();
-		runExample6();
-		runExample7();
 	}
 
 	private static void runExample1() throws UnsatisfiableConstraintSetException, InterruptedException {
@@ -429,10 +418,14 @@ public class MatchIteratorBuilderDFS {
 		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
 		Arrays.fill(matchConstraintOutcomeList, true);
 		
-		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
-		
-		while(A.hasNext()) {
-			System.out.println(A.next());
+		try {
+			Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
+			
+			while(A.hasNext()) {
+				System.out.println(A.next());
+			}
+		} catch (Exception e) {
+			System.out.println("Not satisfiable");
 		}
 	}
 	
@@ -627,5 +620,68 @@ public class MatchIteratorBuilderDFS {
 		while(A.hasNext()) {
 			System.out.println(A.next());
 		}
+	}
+	
+	private static void runExample8() throws UnsatisfiableConstraintSetException, InterruptedException {
+		int markovOrder = 5;
+		
+		// Markov Model
+		Map<Integer, Double> priors = new HashMap<Integer, Double>();
+		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
+		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixMap = new BidirectionalVariableOrderPrefixIDMap<SyllableToken>(markovOrder);
+
+		String[] trainingSentences = new String[]{"one star how are world high in sky one star how are"};
+		DataLoader dl = new DataLoader(markovOrder);
+		
+		for (String trainingSentence : trainingSentences) {
+			List<SyllableToken> trainingSentenceTokens = DataLoader.convertToSyllableTokens(dl.cleanSentence(trainingSentence)).get(0);
+			LinkedList<SyllableToken> prefix = new LinkedList<SyllableToken>(trainingSentenceTokens.subList(0, markovOrder));
+			Integer toTokenID;
+			Integer fromTokenID = prefixMap.addPrefix(prefix);
+			for (int j = markovOrder; j < trainingSentenceTokens.size(); j++ ) {
+				prefix.removeFirst();
+				prefix.addLast(trainingSentenceTokens.get(j));
+				
+				toTokenID = prefixMap.addPrefix(prefix);
+				Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID, 1.0);
+				Utils.incrementValueForKey(priors, fromTokenID, 1.0); // we do this for every token 
+				
+				fromTokenID = toTokenID;
+			}
+			Utils.incrementValueForKey(priors, fromTokenID, 1.0); // we do this for every token 
+		}
+		Utils.normalize(priors);
+		Utils.normalizeByFirstDimension(transitions);
+		
+		SparseVariableOrderMarkovModel<SyllableToken> M = new SparseVariableOrderMarkovModel<SyllableToken>(prefixMap,priors,transitions);
+		
+		int[][] matchConstraintList = new int[][]{new int[]{9,10,11,12,-1,-1,-1,-1,-1,-1,-1,-1}, new int[]{-1,4,-1,-1,-1,8,-1,-1,-1,12,-1,-1}}; // 1-based
+		
+		List<Comparator<SyllableToken>> equivalenceRelations = new ArrayList<Comparator<SyllableToken>>(){{
+			add(null);
+			add(new RhymeComparator());
+		}};
+		
+		boolean[][] matchConstraintOutcomeList = new boolean[2][matchConstraintList[0].length];
+		for (boolean[] bs : matchConstraintOutcomeList) {
+			Arrays.fill(bs, true);
+		}
+		
+		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
+		
+		while(A.hasNext()) {
+			System.out.println(A.next());
+		}
+	}
+
+	public static void main(String[] args) throws UnsatisfiableConstraintSetException, InterruptedException {
+//		runExample1();
+//		runExample2();
+//		runExample3();
+//		runExample4();
+//		runExample5();
+//		runExample6();
+//		runExample7();
+		runExample8();
 	}
 }

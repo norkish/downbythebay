@@ -81,6 +81,7 @@ public class MatchDFABuilderBFS {
 	}
 	
 	public static <T extends Token> Automaton<T> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
+		if (markovModel.order != 1) throw new RuntimeException("Markov order other than 1 not supported. See other implementations.");
 		Map<Integer, Map<Integer, Integer>> delta = new HashMap<Integer, Map<Integer, Integer>>();
 		Set<Integer> acceptingStates = new HashSet<Integer>();
 
@@ -309,109 +310,6 @@ public class MatchDFABuilderBFS {
 		return true;
 	}
 
-	public static <T extends Token> Automaton<T> build(int[] matchConstraintList, SparseVariableOrderMarkovModel<T> markovModel) {
-		Map<Integer, Map<Integer, Double>> validMarkovTransitions = markovModel.logTransitions;
-		
-		int[][] equivalenceClassMap = computeEquivalenceClasses(markovModel.stateIndex, null,1);
-		
-		Map<Integer, Map<Integer, Integer>> delta = new HashMap<Integer, Map<Integer, Integer>>();
-		Set<Integer> acceptingStates = new HashSet<Integer>();
-		
-		int nextQStateID = 0;
-		
-		// find a state q_i,S by looking up it's position, then the label taken to get to the position, and then set of constraints satisfied by paths from this state
-		// this is akin to the "Q" function in Papadoupolos et al, 2014 Avoiding Plagiarism
-		Map<Integer, Map<Integer,Map<Map<Integer,Integer>, Integer>>> stateDictionary = new HashMap<Integer, Map<Integer,Map<Map<Integer, Integer>, Integer>>>();
-		Utils.setValueForKeys(stateDictionary,0,-1,new HashMap<Integer,Integer>(),nextQStateID++);
-
-		// Lookup using state id yields 1) the sequence position index of the state, 2) all state/labels pairs transitioning to the state and 3) the constraints guaranteed from the state
-		// this is akin to the "a" function in Papadoupolos et al, 2014 Avoiding Plagiarism
-		Map<Integer, Triple<Integer, Map<Integer, Set<Integer>>, Map<Integer, Integer>>> stateInfo = new HashMap<Integer, Triple<Integer, Map<Integer, Set<Integer>>, Map<Integer, Integer>>>();
-		stateInfo.put(0, new Triple<Integer,Map<Integer, Set<Integer>>, Map<Integer, Integer>>(0, new HashMap<Integer,Set<Integer>>(), new HashMap<Integer,Integer>()));
-		
-		
-		TreeSet<Integer> statesToRemove = new TreeSet<Integer>();
-		
-		// for each position i in the sequence
-		for (int i = 1; i <= matchConstraintList.length; i++) {
-			// this is the position to which it is supposed to match (-1 if matches nothing)
-			int matchConstraintAti = matchConstraintList[i-1];
-			// these are the states reached from the previous sequence position 
-			Map<Integer, Map<Map<Integer, Integer>, Integer>> qStatesInPrevCol = stateDictionary.get(i-1);
-			// for each state reached from the previous sequence position
-			for (Entry<Integer, Map<Map<Integer, Integer>, Integer>> prevQStateLabeledAndConstraints : qStatesInPrevCol.entrySet()) {
-				// get the label taken to get to the state
-				final Integer labelOfTransitionToPrevQState = prevQStateLabeledAndConstraints.getKey();
-				for (Entry<Map<Integer, Integer>, Integer> prevQStateAndConstraints : prevQStateLabeledAndConstraints.getValue().entrySet()) {
-					// get the token that leads to that state (at this stage there should only be one since we haven't combined)
-					final Integer prevQState = prevQStateAndConstraints.getValue();
-					// get the constraints that are guaranteed from that state 
-					Map<Integer, Integer> prevQConstraints = prevQStateAndConstraints.getKey();
-					Integer equivalenceClassForThisPosition = prevQConstraints.get(i); 
-					final Map<Integer, Double> validToLabels = i == 1? markovModel.logPriors: validMarkovTransitions.get(labelOfTransitionToPrevQState);
-					if (validToLabels == null) {
-						statesToRemove.add(prevQState);
-						continue; 
-					}
-					for (Integer validToLabel : validToLabels.keySet()) {
-						// if validToLabel doesn't satisfy c
-						final int equivalenceClassForThisLabel = equivalenceClassMap[0][validToLabel];
-						// If the prevQstate characterized by a constraint c on this position, use c to only add states for labels that satisfy c
-						if (equivalenceClassForThisPosition != null && equivalenceClassForThisPosition != equivalenceClassForThisLabel) {
-							continue;
-						}
-						// copy the set of constraints that are guaranteed from the previous state
-						Map<Integer, Integer> currentQConstraints = new HashMap<Integer, Integer>(prevQConstraints);
-						// remove c since it has now been satisfied at this position
-						currentQConstraints.remove(i);
-						// if this position constrains another position m_i, add m_i to the constraint that are guaranteed from this state
-						if (matchConstraintAti != -1) {
-							currentQConstraints.put(matchConstraintAti,equivalenceClassForThisLabel);
-						}
-						
-						// add a state and transition for this validToLabel, given currentQConstraints
-						Integer nextQState = Utils.getValueForKeys(stateDictionary, i, validToLabel, currentQConstraints);
-						Set<Integer> stateToLabels;
-						Map<Integer, Set<Integer>> stateToEdges;
-						if (nextQState == null) {
-							nextQState = nextQStateID++;
-							Utils.setValueForKeys(stateDictionary, i, validToLabel, currentQConstraints, nextQState);
-							stateToEdges = new HashMap<Integer,Set<Integer>>();
-							stateInfo.put(nextQState, new Triple<Integer, Map<Integer, Set<Integer>>, Map<Integer, Integer>>(i, stateToEdges, currentQConstraints));
-//							System.out.println("Creating state " + nextQState + " with stateInfo " + stateInfo.get(nextQState));
-						} else {
-							final Triple<Integer, Map<Integer, Set<Integer>>, Map<Integer, Integer>> stateToEdgesAndConstraints = stateInfo.get(nextQState);
-							stateToEdges = stateToEdgesAndConstraints.getSecond();
-						}
-						stateToLabels = new HashSet<Integer>();
-						stateToLabels.add(validToLabel);
-						stateToEdges.put(prevQState, stateToLabels);
-						
-						Utils.setValueForKeys(delta, prevQState, validToLabel, nextQState);
-					}
-					if (!delta.containsKey(prevQState)) {
-						statesToRemove.add(prevQState);
-//						assuming we continue; 
-					}
-				}
-			}
-			
-			combineEquivalentStates(i-1, delta, stateDictionary, stateInfo, statesToRemove);
-			removeStates(statesToRemove, delta, stateDictionary, stateInfo);
-			if (delta.isEmpty()) {
-				throw new RuntimeException("Unsatisiable. No sequence of length " + i + " can be produced given constraints");
-			}
-		}
-		
-		// establish accepting states
-		for (Map<Map<Integer, Integer>, Integer> stateDictionaryAtFinalCol : stateDictionary.get(matchConstraintList.length).values()) {
-			for (Integer finalColStateIdx : stateDictionaryAtFinalCol.values()) {
-				acceptingStates.add(finalColStateIdx);
-			}
-		}
-		
-		return new Automaton<T>(markovModel.stateIndex,delta,acceptingStates);
-	}
 
 	private static void combineEquivalentStates(int i,
 			Map<Integer, Map<Integer, Integer>> delta,
@@ -461,35 +359,6 @@ public class MatchDFABuilderBFS {
 		}
 	}
 
-	private static void removeStates(TreeSet<Integer> statesToRemove, Map<Integer, Map<Integer, Integer>> delta,
-			Map<Integer, Map<Integer, Map<Map<Integer, Integer>, Integer>>> stateDictionary, Map<Integer, Triple<Integer, Map<Integer, Set<Integer>>, Map<Integer, Integer>>> stateInfo) {
-		
-		while(!statesToRemove.isEmpty()) {
-			Integer nextStateToRemove = statesToRemove.pollLast();
-//			System.out.println("Removing state " + nextStateToRemove);
-			// remove q' from stateInfo
-			Triple<Integer, Map<Integer, Set<Integer>>, Map<Integer, Integer>> stateToEdgesAndConstraints = stateInfo.remove(nextStateToRemove);
-			Integer i = stateToEdgesAndConstraints.getFirst();
-			Map<Integer, Set<Integer>> stateToEdges = stateToEdgesAndConstraints.getSecond();
-			Map<Integer, Integer> constraints = stateToEdgesAndConstraints.getThird();
-			
-			// for each edge q,a going to the state q'
-			for (Integer qIdx : stateToEdges.keySet()) {
-				for (Integer aIdx : stateToEdges.get(qIdx)) {
-					// remove q,a -> q' from delta 
-					Utils.removeKeys(delta, qIdx, aIdx);
-					// and remove i,a,constraints from stateDictionary
-//					System.out.println("Removing entry from state dictionary " + i + ", " + aIdx + ", " + constraints);
-					Utils.removeKeys(stateDictionary, i, aIdx, constraints);
-					// if q has no outgoing edges (meaning it would have been removed by the Utils.removeKeys command), mark it for removal
-					if (!delta.containsKey(qIdx)) {
-						statesToRemove.add(qIdx);
-					}
-				}
-			}
-		}
-	}
-
 	private static <T extends Token> int[][] computeEquivalenceClasses(BidirectionalVariableOrderPrefixIDMap<T> stateIndex, List<Comparator<T>> equivalenceRelations, int numRelations) {
 		
 		List<LinkedList<T>> idToPrefixMap = stateIndex.getIDToPrefixMap();		
@@ -500,7 +369,7 @@ public class MatchDFABuilderBFS {
 			Comparator<T> equivalenceRelation = equivalenceRelations == null? null : equivalenceRelations.get(relationId);
 			equivalenceClassMap = equivalenceClassMaps[relationId];
 			List<T> equivalenceClassRepresentatives = new ArrayList<T>();
-			for (int tokenId = 0; tokenId < idToPrefixMap.size(); tokenId++) {
+			for (int tokenId = 0; tokenId < idToPrefixMap.size(); tokenId++) { 			// iterate over all tokens in the alphabet
 				T token = idToPrefixMap.get(tokenId).getLast();
 				boolean classFound = false;
 				for (int equivalenceClassId = 0; equivalenceClassId < equivalenceClassRepresentatives.size(); equivalenceClassId++) {
@@ -517,8 +386,8 @@ public class MatchDFABuilderBFS {
 				}
 				
 				if (!classFound) {
-					equivalenceClassMap[tokenId] = equivalenceClassRepresentatives.size();
-					equivalenceClassRepresentatives.add(token);
+					equivalenceClassMap[tokenId] = equivalenceClassRepresentatives.size(); // set the equivalence class for this token
+					equivalenceClassRepresentatives.add(token); // this token becomes the representative for this equivalence class
 				}
 			}
 		}
@@ -528,13 +397,14 @@ public class MatchDFABuilderBFS {
 	}
 
 	public static void main(String[] args) throws UnsatisfiableConstraintSetException, InterruptedException {
-		runExample1();
-		runExample2(); // test for combining states
-		runExample3();
-		runExample4();
-		runExample5();
-		runExample6();
-		runExample7();
+//		runExample1();
+//		runExample2(); // test for combining states
+//		runExample3();
+//		runExample4();
+//		runExample5();
+//		runExample6();
+//		runExample7();
+		runExample8();
 	}
 
 	private static void runExample1() throws UnsatisfiableConstraintSetException, InterruptedException {
@@ -880,6 +750,81 @@ public class MatchDFABuilderBFS {
 	
 	private static void runExample7() throws UnsatisfiableConstraintSetException, InterruptedException {
 		int markovOrder = 1;
+		
+		// Markov Model
+		Map<Integer, Double> priors = new HashMap<Integer, Double>();
+		Map<Integer, Map<Integer, Double>> transitions = new HashMap<Integer, Map<Integer, Double>>();
+		BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixMap = new BidirectionalVariableOrderPrefixIDMap<SyllableToken>(markovOrder);
+
+		String[] trainingSentences = new String[]{"one star how are world high in sky one star how are"};
+		DataLoader dl = new DataLoader(markovOrder);
+		
+		for (String trainingSentence : trainingSentences) {
+			List<SyllableToken> trainingSentenceTokens = DataLoader.convertToSyllableTokens(dl.cleanSentence(trainingSentence)).get(0);
+			LinkedList<SyllableToken> prefix = new LinkedList<SyllableToken>(trainingSentenceTokens.subList(0, markovOrder));
+			Integer toTokenID;
+			Integer fromTokenID = prefixMap.addPrefix(prefix);
+			for (int j = markovOrder; j < trainingSentenceTokens.size(); j++ ) {
+				prefix.removeFirst();
+				prefix.addLast(trainingSentenceTokens.get(j));
+				
+				toTokenID = prefixMap.addPrefix(prefix);
+				Utils.incrementValueForKeys(transitions, fromTokenID, toTokenID, 1.0);
+				Utils.incrementValueForKey(priors, fromTokenID, 1.0); // we do this for every token 
+				
+				fromTokenID = toTokenID;
+			}
+			Utils.incrementValueForKey(priors, fromTokenID, 1.0); // we do this for every token 
+		}
+		Utils.normalize(priors);
+		Utils.normalizeByFirstDimension(transitions);
+		
+		SparseVariableOrderMarkovModel<SyllableToken> M = new SparseVariableOrderMarkovModel<SyllableToken>(prefixMap,priors,transitions);
+		
+		int[][] matchConstraintList = new int[][]{new int[]{9,10,11,12,-1,-1,-1,-1,-1,-1,-1,-1}, new int[]{-1,4,-1,-1,-1,8,-1,-1,-1,12,-1,-1}}; // 1-based
+		int length = matchConstraintList[0].length;
+		
+		List<Comparator<SyllableToken>> equivalenceRelations = new ArrayList<Comparator<SyllableToken>>(){{
+			add(null);
+			add(new RhymeComparator());
+		}};
+		
+		boolean[][] matchConstraintOutcomeList = new boolean[2][matchConstraintList[0].length];
+		for (boolean[] bs : matchConstraintOutcomeList) {
+			Arrays.fill(bs, true);
+		}
+		
+		Automaton<SyllableToken> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
+		
+		System.out.println("A.sigma:");
+		System.out.println(A.sigma.getIDToPrefixMap());
+		System.out.println("A.delta:");
+		System.out.println(A.delta);
+		System.out.println("A.acceptingStates:");
+		System.out.println(A.acceptingStates);
+		
+		final ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>> constraints = new ArrayList<List<ConditionedConstraint<StateToken<SyllableToken>>>>();
+		for (int i = 0; i < length; i++) {
+			constraints.add(new ArrayList<ConditionedConstraint<StateToken<SyllableToken>>>());
+		}
+		
+		SparseVariableOrderNHMMMultiThreaded<StateToken<SyllableToken>> NHMM = RegularConstraintApplier.combineAutomataWithMarkov(M, A, length, constraints);
+		System.out.println("NHMM:");
+		for (int i = 0; i < 20; i++) {
+			final List<StateToken<SyllableToken>> generate = NHMM.generate(length);
+			System.out.println("\t\t" + generate + "\tProb:" + NHMM.probabilityOfSequence(generate.toArray(new Token[0])));
+		}
+		
+		FactorGraph<SyllableToken> factorGraph = RegularConstraintApplier.combineAutomataWithMarkovInFactorGraph(M, A, length, constraints);
+		System.out.println("Factor Graph:");
+		for (int i = 0; i < 20; i++) {
+			final Pair<List<StateToken<SyllableToken>>,Double> generate = factorGraph.generate(length);
+			System.out.println("\t\t" + generate.getFirst() + "\tProb:" + generate.getSecond());
+		}
+	}
+	
+	private static void runExample8() throws UnsatisfiableConstraintSetException, InterruptedException {
+		int markovOrder = 3;
 		
 		// Markov Model
 		Map<Integer, Double> priors = new HashMap<Integer, Double>();

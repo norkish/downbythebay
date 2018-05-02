@@ -16,7 +16,7 @@ public class SparseVariableOrderMarkovModel<T extends Token> extends AbstractMar
 	public Map<Integer,Map<Integer,Double>> logTransitions;
 	public BidirectionalVariableOrderPrefixIDMap<T> stateIndex;
 	private Random rand = new Random();
-	int order;
+	public int order;
 	public HashMap<Integer, Double> logPriors;
 	
 	@SuppressWarnings("unchecked")
