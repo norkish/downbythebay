@@ -10,6 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import java.util.Map.Entry;
+import java.util.Random;
 
 import org.apache.commons.lang3.time.StopWatch;
 
@@ -29,28 +31,28 @@ import dbtb.utils.Utils;
 
 public class MatchIteratorBuilderDFS {
 
-	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[] matchConstraintList, boolean[] matchConstraintOutcomeList, SparseVariableOrderMarkovModel<T> markovModel) {
+	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[] matchConstraintList, boolean[] matchConstraintOutcomeList, SparseVariableOrderMarkovModel<T> markovModel, int timeLimitinMS) {
 		List<List<ConditionedConstraint<T>>> controlConstraints = new ArrayList<List<ConditionedConstraint<T>>>();
 		
 		for (int i = 0; i < matchConstraintList.length; i++) {
 			controlConstraints.add(new ArrayList<ConditionedConstraint<T>>());
 		}
 		
-		return buildEfficiently(matchConstraintList, matchConstraintOutcomeList, markovModel, controlConstraints);
+		return buildEfficiently(matchConstraintList, matchConstraintOutcomeList, markovModel, controlConstraints, timeLimitinMS);
 	}
 
-	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[] matchConstraintList, boolean[] matchConstraintOutcomeList, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
+	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[] matchConstraintList, boolean[] matchConstraintOutcomeList, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints, int timeLimitinMS) {
 		int[][] newMatchConstraintList = new int[1][];
 		newMatchConstraintList[0] = matchConstraintList;
 		boolean[][] newMatchConstraintOutcomeList = new boolean[1][];
 		newMatchConstraintOutcomeList[0] = matchConstraintOutcomeList;
 		
-		return buildEfficiently(newMatchConstraintList, newMatchConstraintOutcomeList, null, markovModel, controlConstraints);
+		return buildEfficiently(newMatchConstraintList, newMatchConstraintOutcomeList, null, markovModel, controlConstraints, timeLimitinMS);
 	}
 	
 	
 	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[] matchConstraintList, boolean[] matchConstraintOutcomeList, 
-			List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel) {
+			List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, int timeLimitinMS) {
 		
 		int[][] newMatchConstraintList = new int[1][];
 		newMatchConstraintList[0] = matchConstraintList;
@@ -64,17 +66,17 @@ public class MatchIteratorBuilderDFS {
 			controlConstraints.add(new ArrayList<ConditionedConstraint<T>>());
 		}
 		
-		return buildEfficiently(newMatchConstraintList, newMatchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints);
+		return buildEfficiently(newMatchConstraintList, newMatchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints, timeLimitinMS);
 	}
 
 	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, 
-			List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel) {
+			List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, int timeLimitinMS) {
 		List<List<ConditionedConstraint<T>>> controlConstraints = new ArrayList<List<ConditionedConstraint<T>>>();
 		
 		for (int i = 0; i < matchConstraintList[0].length; i++) {
 			controlConstraints.add(new ArrayList<ConditionedConstraint<T>>());
 		}
-		return buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints);
+		return buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints, timeLimitinMS);
 	}
 	
 	public static class MatchIterator<T extends Token> implements Iterator<List<T>>{
@@ -95,11 +97,12 @@ public class MatchIteratorBuilderDFS {
 
 		private SparseVariableOrderMarkovModel<T> markovModel;
 		private List<Comparator<T>> equivalenceRelations;
+		private int timeLimit = -1;
 
-		public MatchIterator(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
+		public MatchIterator(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints, int timeLimit) {
 			if (markovModel.order > matchConstraintList[0].length) throw new RuntimeException("Markov order (" + markovModel.order + ") is greater than desired sequence length (" + matchConstraintList.length + ")");
 //			System.out.println("Building iterator");
-			
+			this.timeLimit = timeLimit;
 			// match constraint list has to be altered so that in traversing depth-first we can look BACK (instead of forward) and match appropriately
 			dfsMatchConstraintList = new int[matchConstraintList.length][];
 			dfsMatchConstraintOutcomeList = new boolean[matchConstraintOutcomeList.length][];
@@ -126,8 +129,10 @@ public class MatchIteratorBuilderDFS {
 			this.controlConstraints = controlConstraints;
 			this.markovModel = markovModel;
 			
-			final List<Integer> initialStates = new ArrayList<Integer>(markovModel.logPriors.keySet());
-			Collections.shuffle(initialStates);
+			List<Integer> initialStates = probabilisticallySortedKeyset(markovModel.logPriors);
+			Collections.reverse(initialStates);
+
+//			Collections.shuffle(initialStates);
 			for (Integer state : initialStates) {
 				final LinkedList<T> prefixForID = markovModel.stateIndex.getPrefixForID(state);
 				boolean keep = true;
@@ -158,7 +163,7 @@ public class MatchIteratorBuilderDFS {
 			
 			validMarkovTransitions = markovModel.logTransitions;
 
-			System.out.println("DFS model initialized. Searching for valid solution...");
+//			System.out.println("DFS model initialized. Searching for valid solution...");
 			if (!hasNext()) {
 				throw new RuntimeException("Unsatisfiable");
 			}
@@ -199,8 +204,10 @@ public class MatchIteratorBuilderDFS {
 					final Map<Integer, Double> validMarkovTransitionsFromLabel = validMarkovTransitions.get(currentMarkovState);
 					
 					List<ConditionedConstraint<T>> controlConstraintsAti = controlConstraints.get(nextSeqPos);
-					final List<Integer> nextStates = validMarkovTransitionsFromLabel == null ? new ArrayList<Integer>() : new ArrayList<Integer>(validMarkovTransitionsFromLabel.keySet());
-					Collections.shuffle(nextStates);
+					List<Integer> nextStates = validMarkovTransitionsFromLabel == null ? new ArrayList<Integer>() : probabilisticallySortedKeyset(validMarkovTransitionsFromLabel);
+					Collections.reverse(nextStates);
+
+//					Collections.shuffle(nextStates);
 					for (Integer validMarkovTransition : nextStates) {
 						final LinkedList<T> prefixForID = markovModel.stateIndex.getPrefixForID(validMarkovTransition);
 						boolean keep = true;
@@ -248,10 +255,10 @@ public class MatchIteratorBuilderDFS {
 						}
 					}
 					
-					if (computePercentTotalMemoryUsed() > 50) {
-						System.out.println("Memory limit reached. Used " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/1000000 + " GB.");
+					if (computePercentTotalMemoryUsed() > 60) {
+						System.out.println("Memory limit reached. Used " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/1000000 + " MB.");
 						break;
-					} else if (watch.getTime() > 20000) {
+					} else if (timeLimit  != -1 && watch.getTime() > timeLimit) {
 						System.out.println("Time limit reached");
 						break;
 					}
@@ -260,6 +267,43 @@ public class MatchIteratorBuilderDFS {
 				next = null;
 				return false;
 			}
+		}
+
+		Random rand = new Random();
+		/**
+		 * Create a semi-sorted list where tokens are sorted according to the order in which they are probabilistically sampled from the input distribution.
+		 * Tokens are only sampled once.
+		 * @param validMarkovTransitions
+		 * @return
+		 */
+		private List<Integer> probabilisticallySortedKeyset(Map<Integer, Double> validMarkovTransitions) {
+			List<Integer> probabilisticallySortedKeyset = new ArrayList<Integer>();
+			
+			Map<Integer, Double> validMarkovTransitionsCopy = new HashMap<Integer, Double>(validMarkovTransitions);
+			//keep track of how much probability density is left in the copy, we assume it initally sums to 1.0
+			double sumProb = 1.0;
+
+			//sample remaining distribution
+			while(!validMarkovTransitionsCopy.isEmpty()) {
+				Integer toRemove = -1;
+				double r = rand.nextDouble() * sumProb;
+				double sampleSum = 0.0;
+				for (Entry<Integer, Double> entry : validMarkovTransitionsCopy.entrySet()) {
+					final Double prob = Math.exp(entry.getValue());
+					sampleSum += prob;
+					if (sampleSum >= r) { 
+						toRemove = entry.getKey();
+						sumProb -= prob;
+						break;
+					}
+				}
+				
+				//add sampled label (removed from remainin distribution) to sorted set
+				validMarkovTransitionsCopy.remove(toRemove);
+				probabilisticallySortedKeyset.add(toRemove);
+			}
+						
+			return probabilisticallySortedKeyset;
 		}
 
 		@Override
@@ -274,9 +318,9 @@ public class MatchIteratorBuilderDFS {
 		return (100.0*(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()))/Runtime.getRuntime().maxMemory();
 	}
 	
-	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints) {
+	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints, int timeLimitinMS) {
 		
-		return new MatchIterator<T>(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints);
+		return new MatchIterator<T>(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints, timeLimitinMS);
 	}
 
 	private static void runExample1() throws UnsatisfiableConstraintSetException, InterruptedException {
@@ -320,7 +364,7 @@ public class MatchIteratorBuilderDFS {
 		
 		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
 		Arrays.fill(matchConstraintOutcomeList, true);
-		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
+		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M, -1);
 		
 		while(A.hasNext()) {
 			System.out.println(A.next());
@@ -369,7 +413,7 @@ public class MatchIteratorBuilderDFS {
 		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
 		Arrays.fill(matchConstraintOutcomeList, true);
 		
-		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
+		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M, -1);
 		
 		while(A.hasNext()) {
 			System.out.println(A.next());
@@ -419,7 +463,7 @@ public class MatchIteratorBuilderDFS {
 		Arrays.fill(matchConstraintOutcomeList, true);
 		
 		try {
-			Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
+			Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M, -1);
 			
 			while(A.hasNext()) {
 				System.out.println(A.next());
@@ -467,7 +511,7 @@ public class MatchIteratorBuilderDFS {
 		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
 		Arrays.fill(matchConstraintOutcomeList, true);
 		
-		Iterator<List<CharacterToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M);
+		Iterator<List<CharacterToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M, -1);
 		
 		while(A.hasNext()) {
 			System.out.println(A.next());
@@ -512,7 +556,7 @@ public class MatchIteratorBuilderDFS {
 		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
 		Arrays.fill(matchConstraintOutcomeList, true);
 		
-		Iterator<List<CharacterToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M);
+		Iterator<List<CharacterToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M, -1);
 		
 		while(A.hasNext()) {
 			System.out.println(A.next());
@@ -563,7 +607,7 @@ public class MatchIteratorBuilderDFS {
 		boolean[] matchConstraintOutcomeList = new boolean[matchConstraintList.length];
 		Arrays.fill(matchConstraintOutcomeList, true);
 		
-		Iterator<List<CharacterToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M, controlConstraints);
+		Iterator<List<CharacterToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, M, controlConstraints, -1);
 		
 		while(A.hasNext()) {
 			System.out.println(A.next());
@@ -615,7 +659,7 @@ public class MatchIteratorBuilderDFS {
 			Arrays.fill(bs, true);
 		}
 		
-		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
+		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M, -1);
 		
 		while(A.hasNext()) {
 			System.out.println(A.next());
@@ -667,7 +711,7 @@ public class MatchIteratorBuilderDFS {
 			Arrays.fill(bs, true);
 		}
 		
-		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M);
+		Iterator<List<SyllableToken>> A = buildEfficiently(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, M, -1);
 		
 		while(A.hasNext()) {
 			System.out.println(A.next());
