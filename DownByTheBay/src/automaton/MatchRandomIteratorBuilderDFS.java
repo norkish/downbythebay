@@ -112,7 +112,7 @@ public class MatchRandomIteratorBuilderDFS {
 				dfsMatchConstraintOutcomeList[constraintSet] = new boolean[matchConstraintOutcomeList[constraintSet].length];
 				for (int seqPos = 0; seqPos < matchConstraintList[constraintSet].length; seqPos++) {
 					if (matchConstraintList[constraintSet][seqPos] != -1) {
-						assert dfsMatchConstraintList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] == -1: "DFS implementation requires that no single match constraint list constrains the same index number twice:" + matchConstraintList;
+						assert dfsMatchConstraintList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] == -1: "DFS implementation requires that no single match constraint list constrains the same index number twice:" + Arrays.deepToString(matchConstraintList);
 						dfsMatchConstraintList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] = seqPos;
 						dfsMatchConstraintOutcomeList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] = matchConstraintOutcomeList[constraintSet][seqPos];
 					}
@@ -131,11 +131,6 @@ public class MatchRandomIteratorBuilderDFS {
 			this.markovModel = markovModel;
 			
 			validMarkovTransitions = markovModel.logTransitions;
-
-//			System.out.println("DFS model initialized. Searching for valid solution...");
-			if (!hasNext()) {
-				throw new RuntimeException("Unsatisfiable");
-			}
 		}
 		
 		private boolean matchConstraintIsSatisfied(Comparator<T> equivalenceRelation, T t1, T t2) {
@@ -266,7 +261,8 @@ public class MatchRandomIteratorBuilderDFS {
 //						break;
 //					} else 
 					if (timeLimit  != -1 && watch.getTime() > timeLimit) {
-						System.out.println("Time limit reached");
+						computeOnHasNext = true;
+//						System.out.println("Time limit reached");
 						break;
 					}
 				}
@@ -315,6 +311,7 @@ public class MatchRandomIteratorBuilderDFS {
 
 		@Override
 		public List<T> next() {
+			if (next == null) throw new RuntimeException("Called next on null");
 			computeOnHasNext = true;
 			return next;
 		}
