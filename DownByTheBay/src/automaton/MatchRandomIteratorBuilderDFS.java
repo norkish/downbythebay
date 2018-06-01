@@ -112,6 +112,7 @@ public class MatchRandomIteratorBuilderDFS {
 				dfsMatchConstraintOutcomeList[constraintSet] = new boolean[matchConstraintOutcomeList[constraintSet].length];
 				for (int seqPos = 0; seqPos < matchConstraintList[constraintSet].length; seqPos++) {
 					if (matchConstraintList[constraintSet][seqPos] != -1) {
+						assert dfsMatchConstraintList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] == -1: "DFS implementation requires that no single match constraint list constrains the same index number twice";
 						dfsMatchConstraintList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] = seqPos;
 						dfsMatchConstraintOutcomeList[constraintSet][matchConstraintList[constraintSet][seqPos]-1] = matchConstraintOutcomeList[constraintSet][seqPos];
 					}
