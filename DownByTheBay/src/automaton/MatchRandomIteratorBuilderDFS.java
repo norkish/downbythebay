@@ -260,10 +260,11 @@ public class MatchRandomIteratorBuilderDFS {
 						}
 					}
 					
-					if (computePercentTotalMemoryUsed() > 60) {
-						System.out.println("Memory limit reached. Used " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/1000000 + " MB.");
-						break;
-					} else if (timeLimit  != -1 && watch.getTime() > timeLimit) {
+//					if (computePercentTotalMemoryUsed() > 60) {
+//						System.out.println("Memory limit reached. Used " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/1000000 + " MB.");
+//						break;
+//					} else 
+					if (timeLimit  != -1 && watch.getTime() > timeLimit) {
 						System.out.println("Time limit reached");
 						break;
 					}
