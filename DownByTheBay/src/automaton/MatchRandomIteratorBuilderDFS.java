@@ -326,7 +326,6 @@ public class MatchRandomIteratorBuilderDFS {
 	}
 	
 	public static <T extends Token> Iterator<List<T>> buildEfficiently(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints, long timeLimitinMS) {
-		
 		return new MatchIterator<T>(matchConstraintList, matchConstraintOutcomeList, equivalenceRelations, markovModel, controlConstraints, timeLimitinMS);
 	}
 
