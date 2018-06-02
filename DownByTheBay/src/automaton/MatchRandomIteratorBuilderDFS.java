@@ -97,12 +97,12 @@ public class MatchRandomIteratorBuilderDFS {
 
 		private SparseVariableOrderMarkovModel<T> markovModel;
 		private List<Comparator<T>> equivalenceRelations;
-		private long timeLimit = -1;
+		private long stepLimit = -1;
 
-		public MatchIterator(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints, long timeLimit) {
+		public MatchIterator(int[][] matchConstraintList, boolean[][] matchConstraintOutcomeList, List<Comparator<T>> equivalenceRelations, SparseVariableOrderMarkovModel<T> markovModel, List<List<ConditionedConstraint<T>>> controlConstraints, long stepLimit) {
 			if (markovModel.order > matchConstraintList[0].length) throw new RuntimeException("Markov order (" + markovModel.order + ") is greater than desired sequence length (" + matchConstraintList.length + ")");
 //			System.out.println("Building iterator");
-			this.timeLimit = timeLimit;
+			this.stepLimit = stepLimit;
 			// match constraint list has to be altered so that in traversing depth-first we can look BACK (instead of forward) and match appropriately
 			dfsMatchConstraintList = new int[matchConstraintList.length][];
 			dfsMatchConstraintOutcomeList = new boolean[matchConstraintOutcomeList.length][];
@@ -146,8 +146,6 @@ public class MatchRandomIteratorBuilderDFS {
 			if (!computeOnHasNext) {
 				return (next != null);
 			} else {
-				StopWatch watch = new StopWatch();
-				watch.start();
 				computeOnHasNext = false;
 
 				visitStack = new Stack<Pair<Integer,Integer>>();
@@ -189,7 +187,9 @@ public class MatchRandomIteratorBuilderDFS {
 				Integer currentDepth, currentMarkovState;
 				Pair<Integer, Integer> currentDepthAndState;
 				
+				int i = 0;
 				while(!visitStack.isEmpty()) {
+					i++;
 					currentDepthAndState = visitStack.pop();
 	//				System.out.println("Popped Depth and State: " + currentDepthAndState);
 					currentDepth = currentDepthAndState.getFirst();
@@ -248,6 +248,7 @@ public class MatchRandomIteratorBuilderDFS {
 										next.add(markovModel.stateIndex.getPrefixFinaleForID(integer));
 								}
 								next.add(markovModel.stateIndex.getPrefixFinaleForID(validMarkovTransition));
+								System.out.print("Completed " + i + " DFS steps - ");
 								return true;
 							} else {
 	//							System.out.println("Pushing " + nextDepthAndState);
@@ -260,13 +261,13 @@ public class MatchRandomIteratorBuilderDFS {
 //						System.out.println("Memory limit reached. Used " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/1000000 + " MB.");
 //						break;
 //					} else 
-					if (timeLimit  != -1 && watch.getTime() > timeLimit) {
+					if (stepLimit  != -1 && i > stepLimit) {
 						computeOnHasNext = true;
-//						System.out.println("Time limit reached");
 						break;
 					}
 				}
-				
+
+//				System.out.println("Completed " + i + " DFS steps");
 				next = null;
 				return false;
 			}
@@ -311,7 +312,7 @@ public class MatchRandomIteratorBuilderDFS {
 
 		@Override
 		public List<T> next() {
-			if (next == null) throw new RuntimeException("Called next on null");
+			if (next == null) throw new RuntimeException("(Called next on null)");
 			computeOnHasNext = true;
 			return next;
 		}
