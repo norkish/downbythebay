@@ -187,9 +187,9 @@ public class MatchRandomIteratorBuilderDFS {
 				Integer currentDepth, currentMarkovState;
 				Pair<Integer, Integer> currentDepthAndState;
 				
-				int i = 0;
+				int steps = 0;
 				while(!visitStack.isEmpty()) {
-					i++;
+					steps++;
 					currentDepthAndState = visitStack.pop();
 	//				System.out.println("Popped Depth and State: " + currentDepthAndState);
 					currentDepth = currentDepthAndState.getFirst();
@@ -248,7 +248,7 @@ public class MatchRandomIteratorBuilderDFS {
 										next.add(markovModel.stateIndex.getPrefixFinaleForID(integer));
 								}
 								next.add(markovModel.stateIndex.getPrefixFinaleForID(validMarkovTransition));
-								System.out.print("Completed " + i + " DFS steps - ");
+								System.out.print("Completed " + steps + " DFS steps - ");
 								return true;
 							} else {
 	//							System.out.println("Pushing " + nextDepthAndState);
@@ -261,7 +261,7 @@ public class MatchRandomIteratorBuilderDFS {
 //						System.out.println("Memory limit reached. Used " + (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())/1000000 + " MB.");
 //						break;
 //					} else 
-					if (stepLimit  != -1 && i > stepLimit) {
+					if (stepLimit  != -1 && steps > stepLimit) {
 						computeOnHasNext = true;
 						break;
 					}
