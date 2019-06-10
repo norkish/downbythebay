@@ -3,19 +3,14 @@ package dbtb.data;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang3.time.StopWatch;
 
-import dbtb.linguistic.phonetic.Phoneme;
 import dbtb.linguistic.phonetic.Phoneticizer;
-import dbtb.linguistic.phonetic.VowelPhoneme;
 import dbtb.linguistic.phonetic.syllabic.WordSyllables;
 import dbtb.linguistic.syntactic.Pos;
 import dbtb.linguistic.syntactic.StanfordNlpInterface;
@@ -26,13 +21,13 @@ import dbtb.utils.Pair;
 import dbtb.utils.Utils;
 import edu.stanford.nlp.util.CoreMap;
 
-public class DataLoader {
+public class WordDataLoader {
 	
 //	private static final long MAX_TRAINING_SENTENCES = -1; // -1 for no limit - CAN'T USE THIS TO THROTTLE ANY MORE - requires syncing
 	private static final long MAX_TOKENS_PER_SENTENCE = 30; // keeps Stanford NLP fast
 	private static final int NUM_THREADS = Runtime.getRuntime().availableProcessors()-1;
 	private static final int DEBUG = 1; 
-	private static final double MAX_MEMORY_FOR_BASE_MODEL = 50.;
+	private static final double MAX_MEMORY_FOR_BASE_MODEL = 95.;
 	final private int BATCH_SIZE = 200;
 	
 	private static final boolean USE_DUMMY_DATA = false;
@@ -129,7 +124,7 @@ public class DataLoader {
 
 		int returnStatus = 0;
 		public int process() throws InterruptedException {
-			System.out.println("Starting " + NUM_THREADS + " threads");
+			if (DEBUG > 0)System.out.println("Starting " + NUM_THREADS + " threads");
 			System.gc();
 			StopWatch watch = new StopWatch();
 			
@@ -144,9 +139,8 @@ public class DataLoader {
 						
 						Map<Integer, Double> priorCountsForBatch = new HashMap<Integer, Double>();
 						Map<Integer, Map<Integer, Double>> transitionCountsForBatch = new HashMap<Integer, Map<Integer, Double>>();
-						BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMapForBatch = new BidirectionalVariableOrderPrefixIDMap<SyllableToken>(order);
+						BidirectionalVariableOrderPrefixIDMap<WordToken> prefixIDMapForBatch = new BidirectionalVariableOrderPrefixIDMap<WordToken>(order);
 
-						int sentencePronunciationsTrainedOnForBatch = 0;
 						int sentencesTrainedOnForBatch = 0;
 						
 						int currentSource = 0;
@@ -163,48 +157,38 @@ public class DataLoader {
 						
 						while((!threadReadyToSync || threadCurrentlySyncing()) && currentSource < trainingSentences.length && nextBatchStart < trainingSentences[currentSource].length) {
 							nextBatchEnd = Math.min(nextBatchStart+BATCH_SIZE, trainingSentences[currentSource].length);
-							System.out.println(Thread.currentThread().getName() + " training on sentences " + nextBatchStart + " to " + (nextBatchEnd-1) + " from " + (currentSource + 1990) + " (MEM:" + Main.computePercentTotalMemoryUsed() + "%)");
+							if (DEBUG > 1)System.out.println(Thread.currentThread().getName() + " training on sentences " + nextBatchStart + " to " + (nextBatchEnd-1) + " from " + (currentSource + 1990) + " (MEM:" + Main.computePercentTotalMemoryUsed() + "%)");
 							for (int i = nextBatchStart; i < nextBatchEnd; i++) {
 								String trainingSentence = trainingSentences[currentSource][i];
 								//start thread
-								// get syllable tokens for all unique pronunciations of the sentence
-								List<List<SyllableToken>> trainingTokensSentences = convertToSyllableTokens(cleanSentence(trainingSentence));
+								// get Word tokens for all unique pronunciations of the sentence
+								List<WordToken> trainingSentenceTokens = convertToWordTokens(cleanSentence(trainingSentence));
 								// if there was no valid pronunciation, skip it
-								if (trainingTokensSentences == null) continue;
+								if (trainingSentenceTokens == null) continue;
 								// for each pronunciation
-								if (DEBUG > 1) System.out.println("PRON COUNT:" + trainingTokensSentences.size());
-								final double trainingWeight = 1.0/trainingTokensSentences.size();
+								final double trainingWeight = 1.0;
 								// Start synchronization
+								if (trainingSentenceTokens.size() < order) continue;
 								Integer fromTokenID, toTokenID;
-								int sentencePronunciationsTrainedOnForSentence = 0;
-								for (List<SyllableToken> trainingSentenceTokens : trainingTokensSentences) {
-									if (trainingSentenceTokens.size() < order) continue;
-	//								LinkedList<Token> prefix = new LinkedList<Token>(Collections.nCopies(order, Token.getStartToken()));
-									LinkedList<SyllableToken> prefix = new LinkedList<SyllableToken>(trainingSentenceTokens.subList(0, order));
-									//TODO add string associated w/ prefix to set for Word2Vec
-									fromTokenID = prefixIDMap.addPrefix(prefix);
-									for (int j = order; j < trainingSentenceTokens.size(); j++ ) {
-										prefix.removeFirst();
-										prefix.addLast(trainingSentenceTokens.get(j));
-										
-										toTokenID = prefixIDMap.addPrefix(prefix);
-										Utils.incrementValueForKeys(transitionCountsForBatch, fromTokenID, toTokenID, trainingWeight);
-										Utils.incrementValueForKey(priorCountsForBatch, fromTokenID, trainingWeight); // we do this for every token 
-	
-										fromTokenID = toTokenID;
-									}
-									sentencePronunciationsTrainedOnForSentence++;
+								LinkedList<WordToken> prefix = new LinkedList<WordToken>(trainingSentenceTokens.subList(0, order));
+								//TODO add string associated w/ prefix to set for Word2Vec
+								fromTokenID = prefixIDMap.addPrefix(prefix);
+								for (int j = order; j < trainingSentenceTokens.size(); j++ ) {
+									prefix.removeFirst();
+									prefix.addLast(trainingSentenceTokens.get(j));
+									
+									toTokenID = prefixIDMap.addPrefix(prefix);
+									Utils.incrementValueForKeys(transitionCountsForBatch, fromTokenID, toTokenID, trainingWeight);
+									Utils.incrementValueForKey(priorCountsForBatch, fromTokenID, trainingWeight); // we do this for every token 
+
+									fromTokenID = toTokenID;
 								}
-								if (DEBUG > 1) System.out.println("sentencesTrainedOn:" + sentencesTrainedOn + ", sentencePronunciationsTrainedOn:" + sentencePronunciationsTrainedOn + " transitions.size()=" + transitions.size() + " prefixIDMap.getPrefixCount()=" + prefixIDMapForBatch.getPrefixCount());
-								
-								if (sentencePronunciationsTrainedOnForSentence > 0){
-									sentencesTrainedOnForBatch++;
-									sentencePronunciationsTrainedOnForBatch += sentencePronunciationsTrainedOnForSentence;
-								}
+								if (DEBUG > 1) System.out.println("sentencesTrainedOn:" + sentencesTrainedOn + " transitions.size()=" + transitions.size() + " prefixIDMap.getPrefixCount()=" + prefixIDMapForBatch.getPrefixCount());
+								sentencesTrainedOnForBatch++;
 							}
 							
 							if (returnStatus != 1 && Main.computePercentTotalMemoryUsed() > MAX_MEMORY_FOR_BASE_MODEL) {
-								System.out.println("Hit memory threshold of " + MAX_MEMORY_FOR_BASE_MODEL + " for base model training");
+								if (DEBUG > 1)System.out.println("Hit memory threshold of " + MAX_MEMORY_FOR_BASE_MODEL + " for base model training");
 								returnStatus = 1;
 							}
 							if (returnStatus == 1) {
@@ -218,8 +202,8 @@ public class DataLoader {
 									nextBatchStart = getNextBatchStart(currentSource);
 							}
 						}
-						System.out.println(Thread.currentThread().getName() + " finished training");
-						incrementSentencesAndPronunciationsTrainedOn(sentencesTrainedOnForBatch, sentencePronunciationsTrainedOnForBatch);
+						if (DEBUG > 1)System.out.println(Thread.currentThread().getName() + " finished training");
+						incrementSentencesAndPronunciationsTrainedOn(sentencesTrainedOnForBatch);
 						incrementTransitionsAndPriors(transitionCountsForBatch, priorCountsForBatch);
 					}
 				});
@@ -238,17 +222,17 @@ public class DataLoader {
 			
 			
 			watch.stop();
-			System.out.println("Time training with " + NUM_THREADS + " threads: " + watch.getTime());
+			if (DEBUG > 1) System.out.println("Time training with " + NUM_THREADS + " threads: " + watch.getTime());
 			System.gc();
 
 			return returnStatus; // if 1 is returned, it means the file wasn't fully read.
 		}
 		
 		private synchronized void incrementTransitionsAndPriors(
-				BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMapForBatch, Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
+				BidirectionalVariableOrderPrefixIDMap<WordToken> prefixIDMapForBatch, Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
 				Map<Integer, Double> priorCountsForBatch) {
 			
-			System.out.println("Synchronizing batch transitions and priors for thread " + Thread.currentThread().getName() + "... ");
+			if (DEBUG > 1) System.out.println("Synchronizing batch transitions and priors for thread " + Thread.currentThread().getName() + "... ");
 			
 			if (prefixIDMap.isEmpty()) { // if empty, just adopt this batch's model
 				prefixIDMap = prefixIDMapForBatch;
@@ -256,7 +240,7 @@ public class DataLoader {
 				priors = priorCountsForBatch;
 			} else {
 				Double prevCount, batchCount;
-				LinkedList<SyllableToken> fromState, toState;
+				LinkedList<WordToken> fromState, toState;
 				Integer absoluteFromID, absoluteToID;
 				Map<Integer, Double> batchTransitionsMap, aggregateTransitionsMap;
 				
@@ -325,7 +309,7 @@ public class DataLoader {
 				}
 			}
 			threadCurrentlySyncing = false;
-			System.out.println("Synchronization Complete!");
+			if (DEBUG > 1)System.out.println("Synchronization Complete!");
 		}
 
 		/**
@@ -336,7 +320,7 @@ public class DataLoader {
 		private synchronized void incrementTransitionsAndPriors(Map<Integer, Map<Integer, Double>> transitionCountsForBatch,
 				Map<Integer, Double> priorCountsForBatch) {
 			
-			System.out.println("Synchronizing batch transitions and priors for thread " + Thread.currentThread().getName() + "... ");
+			if (DEBUG > 1)System.out.println("Synchronizing batch transitions and priors for thread " + Thread.currentThread().getName() + "... ");
 			
 			Double prevCount, batchCount;
 			Map<Integer, Double> batchTransitionsMap, aggregateTransitionsMap;
@@ -389,7 +373,7 @@ public class DataLoader {
 			}
 			
 			threadCurrentlySyncing = false;
-			System.out.println("Synchronization Complete!");
+			if (DEBUG > 1)System.out.println("Synchronization Complete!");
 		}
 	}
 	
@@ -425,34 +409,32 @@ public class DataLoader {
 	}
 
 	private int order;
-	private BidirectionalVariableOrderPrefixIDMap<SyllableToken> prefixIDMap;
+	private BidirectionalVariableOrderPrefixIDMap<WordToken> prefixIDMap;
 	private Map<Integer, Double> priors = new HashMap<>();
 	private Map<Integer, Map<Integer, Double>> transitions = new HashMap<>();
 	private long sentencesTrainedOn = 0;
-	private long sentencePronunciationsTrainedOn = 0;
 	
-	public DataLoader(int markovOrder) {
+	public WordDataLoader(int markovOrder) {
 		this.order = markovOrder;
 		this.prefixIDMap = new BidirectionalVariableOrderPrefixIDMap<>(order);
 	}
 
-	public DataSummary<SyllableToken> loadData() throws InterruptedException {
+	public DataSummary<WordToken> loadData() throws InterruptedException {
 		
 		DataProcessor dp = new DataProcessor();
 		int status = dp.process();
 		
-		System.out.println("Trained on " + sentencesTrainedOn + " sentences and " + sentencePronunciationsTrainedOn + " pronunciations");
+		System.out.println("Trained on " + sentencesTrainedOn + " sentences");
 
 		Utils.normalize(priors);
 		Utils.normalizeByFirstDimension(transitions);
 		
-		DataSummary<SyllableToken> summary = new DataSummary<SyllableToken>(prefixIDMap, priors, transitions);
+		DataSummary<WordToken> summary = new DataSummary<WordToken>(prefixIDMap, priors, transitions);
 		return summary;
 	}
 
-	private synchronized void incrementSentencesAndPronunciationsTrainedOn(int sentencesTrainedOn, int sentencePronunciationsTrainedOn) {
+	private synchronized void incrementSentencesAndPronunciationsTrainedOn(int sentencesTrainedOn) {
 		this.sentencesTrainedOn += sentencesTrainedOn;
-		this.sentencePronunciationsTrainedOn += sentencePronunciationsTrainedOn;
 	}
 
 	final private static String[] suffixes = new String[]{" n't "," ' "," 's "," 've ", " 'd ", " 'll ", " 're ", " 't "," 'm "};
@@ -480,7 +462,8 @@ public class DataLoader {
 		return trainingSentence;
 	}
 
-	public static List<List<SyllableToken>> convertToSyllableTokens(String trainingSentence) {
+	private static final boolean includePronunciation = false;
+	public static List<WordToken> convertToWordTokens(String trainingSentence) {
 		if (DEBUG > 1) System.out.println("CONVERT:" + trainingSentence);
 		if (trainingSentence == null || trainingSentence.trim().isEmpty()) return null;
 		List<CoreMap> taggedSentences = nlp.parseTextToCoreMaps(trainingSentence);
@@ -488,126 +471,29 @@ public class DataLoader {
 		//TODO deal with instances where Stanford tagger splits words, like "don't" -> "do" + "n't"
 //		final String[] words = trainingSentence.split("\\s+");
 
-		List<List<SyllableToken>> allTokensSentences = new ArrayList<>();
-		allTokensSentences.add(new ArrayList<>());
+		List<WordToken> allTokensSentences = new ArrayList<>();
 		// for every word
 		for (Pair<String,Pos> taggedWord : taggedWords) {
-			if (taggedWord.getSecond() == null) continue;
-			List<WordSyllables> pronunciations = Phoneticizer.syllableDict.get(taggedWord.getFirst().toUpperCase());
-			if (pronunciations == null) {
-				pronunciations = Phoneticizer.useG2P(taggedWord.getFirst().toUpperCase());
-			}
-			if (pronunciations == null || pronunciations.isEmpty()) return null;
-//			reduceUnnecessaryPronunciations(pronunciations);
-			// replicate all of the token sentences so far
-			int pronunciationCount = pronunciations.size();
-			replicateTokenSentences(allTokensSentences, pronunciationCount);
-			
-			// for every pronunciation of the word
-			for (int i = 0; i < pronunciationCount; i++ ) {
-				WordSyllables pronunciation = pronunciations.get(i); 
-				// for each syllable in that pronunciation
-				for (int j = 0; j < pronunciation.size(); j++) {
-					// create a new syllable token
-					final SyllableToken newSyllableToken = new SyllableToken(taggedWord.getFirst(), pronunciation.get(j).getPhonemeEnums(), taggedWord.getSecond(), pronunciation.size(), j, pronunciation.get(j).getStress());
-					for (int k = i; k < allTokensSentences.size(); k+=pronunciationCount) {
-						// and add it to each original sentence
-						List<SyllableToken> sentenceTokens = allTokensSentences.get(k);
-						sentenceTokens.add(newSyllableToken);
-					}
+			WordSyllables pronunciation = null;
+			if (includePronunciation) {
+				List<WordSyllables> pronunciations = Phoneticizer.syllableDict.get(taggedWord.getFirst().toUpperCase());
+				if (pronunciations == null) {
+					pronunciations = Phoneticizer.useG2P(taggedWord.getFirst().toUpperCase());
 				}
+				if (pronunciations == null || pronunciations.isEmpty()) return null;
+	
+				pronunciation = pronunciations.get(0); 
 			}
+			// create a new word token
+			final WordToken newWordToken = new WordToken(taggedWord.getFirst(), pronunciation, taggedWord.getSecond());
+			allTokensSentences.add(newWordToken);
 		}
-		// if there were no words
 		return allTokensSentences;
 	}
 
-	/**
-	 * Looks for instances where pronunciations are redundant. For example "with" can be stressed and unstressed.
-	 * We want to keep the stressed version since in our stress constraint we care only that viable pronunciations
-	 * have at least as great a stress as the constraint mandates
-	 * @param pronunciations
-	 */
-	private static void reduceUnnecessaryPronunciations(List<WordSyllables> pronunciations) {
-		Set<Integer> idxsToRemove = new HashSet<Integer>();
-		List<Phoneme> wordSyllables1, wordSyllables2;
-		for (int i = 0; i < pronunciations.size()-1; i++) {
-			if (idxsToRemove.contains(i)) continue;
-			wordSyllables1 = pronunciations.get(i).getPronunciation();
-			for (int j = i+1; j < pronunciations.size(); j++) {
-				if (idxsToRemove.contains(j)) continue;
-				boolean allSamePhonemeEnums = true;
-				boolean wordSyllable1hasLessStressedSyllables = false;
-				boolean wordSyllable2hasLessStressedSyllables = false;
-				wordSyllables2 = pronunciations.get(j).getPronunciation();
-				if (wordSyllables1.size() == wordSyllables2.size()) {
-					for (int k = 0; k < wordSyllables1.size(); k++) {
-						Phoneme phoneme1 = wordSyllables1.get(k);
-						Phoneme phoneme2 = wordSyllables2.get(k);
-						if (phoneme1.getPhonemeEnum() == phoneme2.getPhonemeEnum()) {
-							if (phoneme1.isVowel()) {
-								if (phoneme2.isVowel()) {
-									int phoneme1Stress = ((VowelPhoneme) phoneme1).stress;
-									int phoneme2Stress = ((VowelPhoneme) phoneme2).stress;
-									if (phoneme1Stress > phoneme2Stress) {
-										wordSyllable2hasLessStressedSyllables = true;
-									} else if (phoneme2Stress > phoneme1Stress) {
-										wordSyllable1hasLessStressedSyllables = true;
-									}
-								}
-							}
-						} else {
-							allSamePhonemeEnums = false;
-							break;
-						}
-					}
-				} else {
-					allSamePhonemeEnums = false;
-				}
-				
-				if (allSamePhonemeEnums) {
-					if (wordSyllable1hasLessStressedSyllables) {
-						if (!wordSyllable2hasLessStressedSyllables) {
-							// they're all the same and wordSyllable2 is strictly more stressed, so we can get away with using just the first
-							idxsToRemove.add(i);
-						}
-					} else {
-						if (wordSyllable2hasLessStressedSyllables) {
-							// they're all the same and wordSyllable1 is strictly more stressed, so we can get away with using just the second
-							idxsToRemove.add(j);
-						}
-					}
-				}
-			}
-		}
-		
-		final ArrayList<Integer> listOfIdxsToRemove = new ArrayList<Integer>(idxsToRemove);
-		Collections.sort(listOfIdxsToRemove, Collections.reverseOrder());
-		for (Integer idxToRemove : listOfIdxsToRemove) {
-			pronunciations.remove((int)idxToRemove);
-		}
-	}
-
-	/**
-	 * Replicates each entry in allTokensSentences so that there are copies times more instances of the entry
-	 * with copies of a given entry being placed together, preserving original ordering or unique entries 
-	 * @param allTokensSentences
-	 * @param copies
-	 */
-	private static void replicateTokenSentences(List<List<SyllableToken>> allTokensSentences, int copies) {
-		if (copies == 1) return;
-		else {
-			int allTokensSize = allTokensSentences.size();
-			for (int i = allTokensSize-1; i >=0; i--) {
-				List<SyllableToken> sentenceToReplicate = allTokensSentences.get(i);
-				allTokensSentences.add(i,new ArrayList<SyllableToken>(sentenceToReplicate));
-			}
-		}
-	}
-	
 	public static void main(String[] args) {
-		DataLoader dl = new DataLoader(4);
-		convertToSyllableTokens(dl.cleanSentence("This is a sign of the decline of"));
+		WordDataLoader dl = new WordDataLoader(4);
+		convertToWordTokens(dl.cleanSentence("This is a sign of the decline of"));
 	}
 
 }

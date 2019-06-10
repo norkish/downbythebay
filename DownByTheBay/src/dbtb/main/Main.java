@@ -32,7 +32,7 @@ public class Main {
 		final static int A = 0, LLA = 1, MA = 2,
 			WEAR = 3, ING = 4, POL = 5, KA = 6, DOT = 7, PA = 8, JA = 9, MAS = 10;
 
-	public static String rootPath = "/Users/norkish/Archive/2017_BYU/ComputationalCreativity/";
+	public static String rootPath = "/Users/bodipaul/Archive/2017_BYU/ComputationalCreativity/";
 	
 	public static void setRootPath(String newRootPath) {
 		rootPath = newRootPath;
